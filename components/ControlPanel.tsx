@@ -134,22 +134,25 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         onSettingsChange({ ...settings, [key]: value });
     };
 
-    const handleQuickMode = (modeType: 'general' | 'mockup' | 'selo3d' | 'keepcolor' | 'extract_bg') => {
+    const handleQuickMode = (modeType: 'general' | 'mockup' | 'selo3d' | 'keepcolor' | 'extract_bg' | 'remove_branding') => {
         switch(modeType) {
             case 'general':
-                onSettingsChange({ ...settings, mode: 'general', is3dLogo: false, keepColors: true, style: 'photorealistic' });
+                onSettingsChange({ ...settings, mode: 'general', is3dLogo: false, keepColors: true, removeBranding: false, style: 'photorealistic' });
                 break;
             case 'mockup':
-                onSettingsChange({ ...settings, mode: 'mockup', is3dLogo: false, keepColors: false, style: 'blank' });
+                onSettingsChange({ ...settings, mode: 'mockup', is3dLogo: false, keepColors: false, removeBranding: false, style: 'blank' });
                 break;
             case 'selo3d':
-                onSettingsChange({ ...settings, mode: 'general', is3dLogo: true, keepColors: true, style: '3d_render' });
+                onSettingsChange({ ...settings, mode: 'general', is3dLogo: true, keepColors: true, removeBranding: false, style: '3d_render' });
                 break;
             case 'keepcolor':
-                onSettingsChange({ ...settings, mode: 'mockup', is3dLogo: false, keepColors: true, style: 'blank' });
+                onSettingsChange({ ...settings, mode: 'mockup', is3dLogo: false, keepColors: true, removeBranding: false, style: 'blank' });
                 break;
             case 'extract_bg':
-                onSettingsChange({ ...settings, mode: 'extract_background', is3dLogo: false, keepColors: true, style: 'photorealistic' });
+                onSettingsChange({ ...settings, mode: 'extract_background', is3dLogo: false, keepColors: true, removeBranding: false, style: 'photorealistic' });
+                break;
+            case 'remove_branding':
+                onSettingsChange({ ...settings, mode: 'remove_branding', is3dLogo: false, keepColors: true, removeBranding: true, style: 'photorealistic' });
                 break;
         }
     };
@@ -169,10 +172,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
     // Determine current active visual mode
     const isExtractBgActive = settings.mode === 'extract_background';
-    const isMockupColor = settings.mode === 'mockup' && settings.keepColors;
-    const isMockupPlain = settings.mode === 'mockup' && !settings.keepColors;
-    const isSeloActive = settings.is3dLogo && settings.mode !== 'extract_background';
-    const isGeneralActive = settings.mode === 'general' && !settings.is3dLogo;
+    const isRemoveBrandingActive = settings.mode === 'remove_branding' || !!settings.removeBranding;
+    const isMockupColor = settings.mode === 'mockup' && settings.keepColors && !isRemoveBrandingActive;
+    const isMockupPlain = settings.mode === 'mockup' && !settings.keepColors && !isRemoveBrandingActive;
+    const isSeloActive = settings.is3dLogo && settings.mode !== 'extract_background' && !isRemoveBrandingActive;
+    const isGeneralActive = settings.mode === 'general' && !settings.is3dLogo && !isRemoveBrandingActive;
 
     return (
         <div className="bg-slate-800/90 rounded-xl p-5 border border-slate-700 backdrop-blur-md h-full flex flex-col relative shadow-2xl">
@@ -204,6 +208,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                                 modo background
                             </span>
                         )}
+                        {isRemoveBrandingActive && (
+                            <span className="text-teal-400 text-[10px] font-mono lowercase tracking-normal flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+                                sem marca / rótulo
+                            </span>
+                        )}
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                         <button 
@@ -232,7 +242,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="grid grid-cols-3 gap-2 mt-2">
                         <button 
                             onClick={() => handleQuickMode('selo3d')}
                             className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isSeloActive ? 'bg-amber-600/20 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
@@ -248,7 +258,26 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <Palette size={18} className={isMockupColor ? 'text-pink-400' : 'text-slate-500 group-hover:text-slate-300'} />
                             <span className={`text-[9px] font-black uppercase tracking-tight ${isMockupColor ? 'text-white' : 'text-slate-500'}`}>Manter Cor</span>
                         </button>
+
+                        <button 
+                            onClick={() => handleQuickMode('remove_branding')}
+                            className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isRemoveBrandingActive ? 'bg-teal-600/25 border-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.35)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
+                            title="Remover marca, rótulo e logos de bebidas ou produtos preservando 100% das cores e do líquido"
+                        >
+                            <Ban size={18} className={isRemoveBrandingActive ? 'text-teal-300' : 'text-slate-500 group-hover:text-teal-300'} />
+                            <span className={`text-[9px] font-black uppercase tracking-tight text-center ${isRemoveBrandingActive ? 'text-teal-200' : 'text-slate-500'}`}>Sem Rótulo</span>
+                        </button>
                     </div>
+
+                    {isRemoveBrandingActive && (
+                        <div className="p-3 rounded-xl bg-teal-950/40 border border-teal-500/40 text-[11px] text-teal-200 flex items-start gap-2.5 animate-in fade-in duration-200">
+                            <Sparkles size={16} className="text-teal-400 shrink-0 mt-0.5" />
+                            <div className="leading-relaxed">
+                                <strong className="text-teal-300 font-bold block mb-0.5">Modo Sem Marca / Rótulo Ativo:</strong>
+                                Remove automaticamente marcas, logotipos, rótulos impressos e textos da bebida ou embalagem. A silhueta, textura (vidro/lata), condensação e as <strong className="text-white underline decoration-teal-400">cores exatas do produto e do líquido</strong> são preservadas com máxima fidelidade.
+                            </div>
+                        </div>
+                    )}
 
                     {isExtractBgActive && (
                         <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-[11px] text-emerald-200 flex items-start gap-2.5 animate-in fade-in duration-200">

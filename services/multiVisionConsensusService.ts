@@ -33,26 +33,30 @@ export const generateConsensusPrompt = async (
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const isExtractBg = settings.mode === 'extract_background';
+    const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
 
     const consensusInstructions = `You are the Multi-Vision Consensus Orchestrator (Super Vision Ensemble).
 Perform a multi-layered simultaneous optical and aesthetic analysis of the provided image across 4 specialized dimensions:
 
 [LAYER 1: GEOMETRY & COMPOSITION]
-Analyze the spatial balance, aspect ratio, camera focal length, vanishing lines, and subject/background isolation.
+Analyze the spatial balance, aspect ratio, camera focal length, vanishing lines, container proportions, and subject/background isolation.
+${isRemoveBranding ? 'CRITICAL MANDATE: Completely remove all branding, labels, logos, trademarks, and typography. The container/bottle/can becomes an unbranded, seamless, unprinted commercial package.' : ''}
 ${isExtractBg ? 'RULE: The main foreground subject is omitted to preserve an empty scenic plate.' : ''}
 
 [LAYER 2: LIGHTING PHYSICS & ATMOSPHERE]
-Analyze the light sources (key light, fill, ambient bounce, color temperature in Kelvin, rim illumination, shadow falloff).
+Analyze the light sources (key light, fill, ambient bounce, color temperature in Kelvin, rim illumination, shadow falloff, condensation glints).
 
-[LAYER 3: MATERIALS & TACTILE TEXTURES]
-Analyze surface shaders (roughness, specular reflections, subsurface scattering, micro-textures, fabric weave, or metallic gloss).
+[LAYER 3: MATERIALS & TACTILE TEXTURES - COLOR PRESERVATION]
+Analyze surface shaders (roughness, specular reflections, subsurface scattering, micro-textures, liquid clarity, and metallic gloss).
+${isRemoveBranding ? 'STRICT COLOR PRESERVATION: Preserve 100% of the authentic product color palette (exact bottle glass hue, aluminum can paint, liquid color, cap color). The blank surface must match the original color flawlessly.' : ''}
 
 [LAYER 4: SYNTHESIS & TARGET PLATFORM OPTIMIZATION]
-Synthesize the above 3 layers into a single, cohesive, breathtaking master prompt specifically formatted for:
+Synthesize the above layers into a single, cohesive, breathtaking master prompt specifically formatted for:
 Platform: ${settings.targetPlatform}
 Style: ${settings.style}
 Detail Level: ${settings.detailLevel}/10
 Directives: Lighting (${settings.lighting}), Camera Angle (${settings.cameraAngle}), Position (${settings.productPosition})
+${isRemoveBranding ? 'Directive: UNBRANDED CLEAN PRODUCT - NO LOGOS, NO LABELS, PRESERVE AUTHENTIC PRODUCT COLORS' : ''}
 
 FORMAT RULE: Output ONLY the synthesized master prompt ready for production generation, with no introductory text or markdown labels.`;
 

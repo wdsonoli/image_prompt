@@ -58,13 +58,14 @@ export interface PromptSettings {
     aspectRatio: string;
     removeBackground: boolean;
     targetPlatform: TargetPlatform;
-    mode: 'general' | 'mockup' | 'extract_background';
+    mode: 'general' | 'mockup' | 'extract_background' | 'remove_branding';
     activeTemplateId?: string;
     shadowOpacity: number;
     material: string;
     environment: string;
     keepColors: boolean;
     is3dLogo: boolean;
+    removeBranding?: boolean;
 }
 
 export interface HistoryItem {

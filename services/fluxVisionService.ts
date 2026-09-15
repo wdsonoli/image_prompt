@@ -30,15 +30,16 @@ export const generateFluxPrompt = async (
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const isExtractBg = settings.mode === 'extract_background';
+    const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
 
     const fluxInstructions = `You are the Flux.1 Realism Prompt Architect specializing in Black Forest Labs Flux diffusion models.
 Flux thrives on continuous, descriptive photographic prose rather than spammy keywords.
 
 PROMPT CRITERIA:
 1. Describe the scene like a professional award-winning photographer shooting RAW 35mm film.
-2. Emphasize physical realism: micro-textures, authentic lighting bounce, natural skin textures (subtle freckles, natural pores), realistic fabric weaves, and atmospheric haze.
+2. Emphasize physical realism: micro-textures, authentic lighting bounce, realistic materials, and surface physics.
 3. Completely avoid AI clichés such as "hyperrealistic, 8k, masterpiece, octane render". Instead describe the ACTUAL optical properties: lens focal length, natural depth of field, color temperature, and soft shadow gradients.
-4. If EXTRACT_BACKGROUND (${isExtractBg}): isolate the background scenery plate, describing the environmental space, wall textures, ambient daylight, and empty interior/exterior architecture with no people or foreground objects.
+4. ${isRemoveBranding ? 'UNBRANDED DE-BRANDED PRODUCT: Completely remove any brand logos, commercial stickers, typography, paper labels, or emblems from the bottle, can, or packaging container. The surface must be a clean, blank, unprinted finish while STRICTLY PRESERVING the exact authentic container colors (e.g. glass tint, aluminum paint) and liquid color.' : (isExtractBg ? 'If EXTRACT_BACKGROUND: isolate the background scenery plate, describing the environmental space, wall textures, ambient daylight, and empty interior/exterior architecture with no people or foreground objects.' : 'Maintain authentic subject fidelity.')}
 5. Lighting directive: ${settings.lighting !== 'none' ? settings.lighting.replace(/_/g, ' ') : 'natural ambient lighting'}
 6. Camera angle: ${settings.cameraAngle !== 'none' ? settings.cameraAngle.replace(/_/g, ' ') : 'eye-level candid perspective'}
 7. Return ONLY the final prompt text in English, ready to paste into Flux.1.`;

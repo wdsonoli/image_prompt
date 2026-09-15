@@ -29,6 +29,7 @@ export const generateClaudePrompt = async (
     }
 
     const isExtractBg = settings.mode === 'extract_background';
+    const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
     const lightingInstruction = (settings.lighting !== 'none' && settings.lighting !== 'auto') 
         ? `Artistic lighting direction: ${settings.lighting.replace(/_/g, ' ')}.` 
         : '';
@@ -39,16 +40,7 @@ export const generateClaudePrompt = async (
         ? `Compositional weight & placement: ${settings.productPosition.replace(/_/g, ' ')}.` 
         : '';
 
-    const claudeSystemInstruction = isExtractBg 
-        ? `You are Claude 3.7 Sonnet Vision, acting as a world-renowned Cinematographer and Production Designer.
-Your task is to isolate and deeply deconstruct the BACKGROUND ENVIRONMENT plate of this image, omitting the foreground subject.
-Deconstruct the scene's spatial architecture, materials, ambient set dressing, atmospheric depth, color grading, and environmental lighting physics.
-Target platform: ${settings.targetPlatform}.
-Visual style: ${settings.style}.
-Detail level: ${settings.detailLevel}/10.
-${lightingInstruction} ${angleInstruction} ${positionInstruction}
-Return ONLY the final prompt text without meta-commentary or markdown conversational filler.`
-        : `You are Claude 3.7 Sonnet Vision, acting as an elite Creative Director and Master Cinematographer.
+    let claudeSystemInstruction = `You are Claude 3.7 Sonnet Vision, acting as an elite Creative Director and Master Cinematographer.
 Analyze the visual essence, emotional resonance, optical depth, color harmony, and tactile textures of the image.
 Transform this visual into an evocative, ultra-nuanced image-generation prompt tailored for ${settings.targetPlatform}.
 Visual style: ${settings.style}.
@@ -57,6 +49,30 @@ ${lightingInstruction}
 ${angleInstruction}
 ${positionInstruction}
 Return ONLY the raw prompt text without preamble, quotation marks, or conversational notes.`;
+
+    if (isRemoveBranding) {
+        claudeSystemInstruction = `You are Claude 3.7 Sonnet Vision, acting as an elite Commercial Product Photographer and Master Colorist.
+Your goal is to de-brand the beverage/product container in this image.
+MANDATORY RULES:
+1. Completely eradicate all commercial brand logos, printed labels, typography, barcodes, and trademarks from the container.
+2. PRESERVE WITH ABSOLUTE FIDELITY THE EXACT COLOR PALETTE of the product: bottle glass tint, aluminum can color, cap/lid shade, and the exact fluid/liquid tone and translucency.
+3. Preserve the exact container silhouette, reflections, condensation drops, and lighting atmosphere.
+4. The label area must become a seamless, pristine, unprinted surface in the identical base material and color.
+Target platform: ${settings.targetPlatform}.
+Visual style: ${settings.style}.
+Detail level: ${settings.detailLevel}/10.
+${lightingInstruction} ${angleInstruction} ${positionInstruction}
+Return ONLY the raw unbranded prompt text without conversational preamble.`;
+    } else if (isExtractBg) {
+        claudeSystemInstruction = `You are Claude 3.7 Sonnet Vision, acting as a world-renowned Cinematographer and Production Designer.
+Your task is to isolate and deeply deconstruct the BACKGROUND ENVIRONMENT plate of this image, omitting the foreground subject.
+Deconstruct the scene's spatial architecture, materials, ambient set dressing, atmospheric depth, color grading, and environmental lighting physics.
+Target platform: ${settings.targetPlatform}.
+Visual style: ${settings.style}.
+Detail level: ${settings.detailLevel}/10.
+${lightingInstruction} ${angleInstruction} ${positionInstruction}
+Return ONLY the final prompt text without meta-commentary or markdown conversational filler.`;
+    }
 
     // 1. Direct Anthropic API call if key is provided
     if (apiKey && apiKey.trim().startsWith('sk-ant-')) {

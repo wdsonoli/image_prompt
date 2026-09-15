@@ -28,8 +28,18 @@ export const generateIdeogramPrompt = async (
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
 
-    const ideogramInstructions = `You are the Ideogram 2.0 Graphic Design & Typography Vision Engine.
+    const ideogramInstructions = isRemoveBranding
+        ? `You are the Ideogram 2.0 Graphic Design & Packaging Engine in DE-BRANDING & CLEAN PRODUCT MODE.
+Analyze the image to produce an UNBRANDED, LABEL-FREE product render:
+1. STRICT NEGATIVE INSTRUCTION: ZERO text, ZERO logos, ZERO brand typography, ZERO stickers, ZERO slogans.
+2. PRESERVE THE EXACT COLOR PALETTE: Preserve the exact color of the beverage container (can color, bottle glass tint), cap color, and liquid color.
+3. Replace any label area with a clean, smooth, unprinted surface in the identical base color and material finish.
+4. Professional studio lighting and commercial product composition.
+5. Target style: ${settings.style}.
+6. Return ONLY the raw prompt for an unbranded product with authentic preserved colors.`
+        : `You are the Ideogram 2.0 Graphic Design & Typography Vision Engine.
 Analyze the image specifically looking for:
 1. Graphic elements, branding, logos, badges, layouts, and typography.
 2. If there is visible text or lettering in the image, extract it and place it explicitly within quotation marks (e.g. typography that reads "BRAND").

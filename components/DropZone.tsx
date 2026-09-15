@@ -1,6 +1,10 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, Image as ImageIcon, Link2, Globe, Clipboard, Loader2, AlertCircle, X, Check, Sparkles, ArrowRight, ClipboardPaste } from 'lucide-react';
+import { 
+    Upload, Image as ImageIcon, Link2, Globe, Clipboard, Loader2, 
+    AlertCircle, X, Check, Sparkles, ArrowRight, ClipboardPaste, 
+    MousePointerClick, ShieldCheck, KeyRound, CheckCircle2, AlertTriangle 
+} from 'lucide-react';
 import { loadImageFromAnyUrl, extractImageUrlFromText } from '../utils/urlImageLoader';
 
 interface DropZoneProps {
@@ -33,8 +37,26 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
     const [inlineError, setInlineError] = useState<string | null>(null);
     const [pasteSuccess, setPasteSuccess] = useState(false);
     const [filePasteFeedback, setFilePasteFeedback] = useState(false);
+    const [isReadingClipboard, setIsReadingClipboard] = useState(false);
+    const [showPermissionGuide, setShowPermissionGuide] = useState(false);
+    const [pasteOnClickEnabled, setPasteOnClickEnabled] = useState<boolean>(() => {
+        try {
+            const saved = localStorage.getItem('paste_on_click_enabled');
+            return saved !== null ? saved === 'true' : true;
+        } catch {
+            return true;
+        }
+    });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const urlInputRef = useRef<HTMLInputElement>(null);
+
+    const togglePasteOnClick = () => {
+        const next = !pasteOnClickEnabled;
+        setPasteOnClickEnabled(next);
+        try {
+            localStorage.setItem('paste_on_click_enabled', String(next));
+        } catch {}
+    };
 
     // Ouvinte para atalho de colagem (Ctrl+V ou Cmd+V)
     useEffect(() => {
@@ -148,26 +170,80 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
         processUrl(urlInput);
     };
 
-    const handlePasteFromClipboard = async () => {
+    const handlePasteFromClipboard = async (autoProcess: boolean = true) => {
+        setIsReadingClipboard(true);
+        setInlineError(null);
+        setShowPermissionGuide(false);
+        if (onError) onError(null);
+
         try {
-            if (!navigator.clipboard || !navigator.clipboard.readText) {
-                setInlineError('Seu navegador não suporta leitura direta da área de transferência. Use Ctrl+V para colar.');
-                return;
-            }
-            const text = await navigator.clipboard.readText();
-            if (text) {
-                const cleaned = extractImageUrlFromText(text);
-                setUrlInput(cleaned);
-                setPasteSuccess(true);
-                setTimeout(() => setPasteSuccess(false), 2000);
-                if (cleaned.startsWith('http://') || cleaned.startsWith('https://') || cleaned.startsWith('data:image/')) {
-                    processUrl(cleaned);
+            // 1. Tenta verificar permissão se a API permissions for suportada
+            if (navigator.permissions && navigator.permissions.query) {
+                try {
+                    const status = await navigator.permissions.query({ name: 'clipboard-read' as any });
+                    if (status.state === 'denied') {
+                        setShowPermissionGuide(true);
+                        setInlineError('Acesso à área de transferência bloqueado pelo navegador. Autorize nas opções do site ou use Ctrl+V.');
+                        setIsReadingClipboard(false);
+                        return;
+                    }
+                } catch {
+                    // query de clipboard-read não é suportada por todos os navegadores, prossegue para leitura direta
                 }
-            } else {
-                setInlineError('Nenhum link encontrado na área de transferência.');
             }
-        } catch (err) {
-            setInlineError('Permissão para acessar a área de transferência não concedida. Cole manualmente com Ctrl+V.');
+
+            // 2. Tenta ler texto (link de imagem ou data URI)
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                const text = await navigator.clipboard.readText();
+                if (text && text.trim()) {
+                    const cleaned = extractImageUrlFromText(text.trim());
+                    setUrlInput(cleaned);
+                    setPasteSuccess(true);
+                    setTimeout(() => setPasteSuccess(false), 2500);
+
+                    if (autoProcess && (cleaned.startsWith('http://') || cleaned.startsWith('https://') || cleaned.startsWith('data:image/'))) {
+                        setIsReadingClipboard(false);
+                        await processUrl(cleaned);
+                        return;
+                    }
+                    setIsReadingClipboard(false);
+                    return;
+                }
+            }
+
+            // 3. Se não havia texto no clipboard, verifica se o usuário copiou um arquivo de imagem direto
+            if (navigator.clipboard && navigator.clipboard.read) {
+                try {
+                    const clipboardItems = await navigator.clipboard.read();
+                    for (const item of clipboardItems) {
+                        const imageType = item.types.find(type => type.startsWith('image/'));
+                        if (imageType) {
+                            const blob = await item.getType(imageType);
+                            const ext = imageType.split('/')[1] || 'png';
+                            const file = new File([blob], `pasted-image-${Date.now()}.${ext}`, { type: imageType });
+                            setFilePasteFeedback(true);
+                            setPasteSuccess(true);
+                            setTimeout(() => {
+                                setFilePasteFeedback(false);
+                                setPasteSuccess(false);
+                            }, 2500);
+                            onFilesSelected([file]);
+                            setIsReadingClipboard(false);
+                            return;
+                        }
+                    }
+                } catch (readErr) {
+                    console.log('Tentativa de ler blob da área de transferência:', readErr);
+                }
+            }
+
+            setInlineError('Nenhum link ou imagem foi encontrado na sua área de transferência. Copie um link de imagem (Ctrl+C) e clique novamente.');
+        } catch (err: any) {
+            console.warn('Permissão ou acesso ao clipboard bloqueado:', err);
+            setShowPermissionGuide(true);
+            setInlineError('O navegador solicitou autorização para acessar a área de transferência. Clique em "Permitir" na notificação do navegador ou use o atalho Ctrl+V.');
+        } finally {
+            setIsReadingClipboard(false);
         }
     };
 
@@ -363,7 +439,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
 
             {/* Conteúdo da Aba 2: Enviar via Link */}
             {activeTab === 'link' && (
-                <div id="dropzone-link-area" className="p-6 sm:p-8 space-y-6 animate-in fade-in duration-200">
+                <div id="dropzone-link-area" className="p-6 sm:p-8 space-y-5 animate-in fade-in duration-200">
                     <div className="text-center sm:text-left">
                         <div className="flex items-center gap-2 justify-center sm:justify-start mb-1">
                             <Globe size={18} className="text-blue-400" />
@@ -372,9 +448,112 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                             </h3>
                         </div>
                         <p className="text-slate-400 text-xs sm:text-sm">
-                            Aceita qualquer link que contenha imagem: URLs diretas, Unsplash, Pinterest, Google Imagens, páginas web com imagem ou Base64.
+                            Aceita qualquer link que contenha imagem: URLs diretas, Unsplash, Pinterest, Google Imagens, páginas web ou Base64.
                         </p>
                     </div>
+
+                    {/* Barra de Ação Rápida: Colar com 1 Clique e Autorização */}
+                    <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                        <button
+                            id="btn-prominent-paste-click"
+                            type="button"
+                            onClick={() => handlePasteFromClipboard(true)}
+                            disabled={isLoadingUrl || isReadingClipboard}
+                            className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 border ${
+                                pasteSuccess
+                                    ? 'bg-emerald-600/30 border-emerald-500 text-emerald-200 shadow-emerald-600/20'
+                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border-blue-500/50 shadow-blue-500/25'
+                            }`}
+                            title="Clique para colar automaticamente o link da sua área de transferência"
+                        >
+                            {isReadingClipboard ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin text-white" />
+                                    <span>Lendo Área de Transferência...</span>
+                                </>
+                            ) : pasteSuccess ? (
+                                <>
+                                    <CheckCircle2 size={16} className="text-emerald-400" />
+                                    <span>Link Colado com Sucesso!</span>
+                                </>
+                            ) : (
+                                <>
+                                    <MousePointerClick size={16} className="text-blue-200 animate-pulse" />
+                                    <span>Colar Link com 1 Clique</span>
+                                </>
+                            )}
+                        </button>
+
+                        <button
+                            id="btn-toggle-paste-on-click"
+                            type="button"
+                            onClick={togglePasteOnClick}
+                            className={`px-3 py-2 rounded-xl text-xs font-medium border flex items-center gap-2 transition-all ${
+                                pasteOnClickEnabled
+                                    ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/40'
+                                    : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                            }`}
+                            title="Clique para ativar/desativar a colagem automática ao clicar dentro do campo de texto"
+                        >
+                            <ShieldCheck size={15} className={pasteOnClickEnabled ? 'text-emerald-400' : 'text-slate-500'} />
+                            <span>Colar ao clicar no campo: <strong className="uppercase font-bold tracking-wide">{pasteOnClickEnabled ? 'Autorizado' : 'Inativo'}</strong></span>
+                        </button>
+                    </div>
+
+                    {/* Card de Ajuda de Permissão quando solicitado ou bloqueado pelo navegador */}
+                    {showPermissionGuide && (
+                        <div id="clipboard-permission-card" className="p-4 rounded-xl bg-indigo-950/40 border border-indigo-500/40 text-xs text-indigo-200 space-y-2.5 animate-in fade-in duration-200">
+                            <div className="flex items-center gap-2 font-bold text-indigo-300 text-sm">
+                                <KeyRound size={16} className="text-indigo-400 shrink-0" />
+                                <span>Autorizar Colar com 1 Clique no Navegador</span>
+                            </div>
+                            <p className="text-slate-300 leading-relaxed">
+                                Para colar diretamente com um clique, o navegador pode solicitar confirmação de segurança para ler sua área de transferência:
+                            </p>
+                            <div className="bg-slate-900/80 p-3 rounded-lg border border-indigo-900/50 text-slate-300 space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">1</span>
+                                    <span>Clique no botão azul <strong>"Autorizar Agora"</strong> abaixo.</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">2</span>
+                                    <span>Quando o navegador exibir a janela perguntando se permite ver texto/imagens, clique em <strong>"Permitir"</strong>.</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="w-5 h-5 rounded-full bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-[11px] shrink-0">3</span>
+                                    <span>Atalho alternativo: você também pode clicar no campo de texto e pressionar <strong>Ctrl+V</strong> (ou <strong>Cmd+V</strong>).</span>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={() => handlePasteFromClipboard(true)}
+                                    className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                                >
+                                    <MousePointerClick size={14} />
+                                    <span>Autorizar Agora (Solicitar Permissão)</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        urlInputRef.current?.focus();
+                                        setShowPermissionGuide(false);
+                                    }}
+                                    className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors border border-slate-700"
+                                >
+                                    <span>Focar Campo para Ctrl+V</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPermissionGuide(false)}
+                                    className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 ml-auto"
+                                    title="Fechar"
+                                >
+                                    <X size={15} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Formulário de Input de URL */}
                     <form onSubmit={handleUrlSubmit} className="space-y-3">
@@ -392,12 +571,17 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                                     setUrlInput(e.target.value);
                                     if (inlineError) setInlineError(null);
                                 }}
+                                onClick={() => {
+                                    if (pasteOnClickEnabled && !urlInput && !isLoadingUrl && !isReadingClipboard) {
+                                        handlePasteFromClipboard(true);
+                                    }
+                                }}
                                 disabled={isLoadingUrl}
-                                placeholder="Cole aqui o link da imagem (ex: https://...)"
-                                className="w-full bg-slate-950/80 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-100 placeholder-slate-500 text-sm rounded-xl pl-10 pr-24 py-3 outline-none transition-all"
+                                placeholder={pasteOnClickEnabled ? "Clique para colar link automaticamente (ou digite uma URL)" : "Cole aqui o link da imagem (ex: https://...)"}
+                                className="w-full bg-slate-950/80 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-100 placeholder-slate-500 text-sm rounded-xl pl-10 pr-36 py-3.5 outline-none transition-all cursor-text"
                             />
 
-                            <div className="absolute right-2.5 flex items-center gap-1.5">
+                            <div className="absolute right-2 flex items-center gap-1.5">
                                 {urlInput && !isLoadingUrl && (
                                     <button
                                         id="btn-clear-url"
@@ -407,7 +591,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                                             setInlineError(null);
                                         }}
                                         className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                                        title="Limpar"
+                                        title="Limpar link"
                                     >
                                         <X size={15} />
                                     </button>
@@ -416,20 +600,29 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                                 <button
                                     id="btn-paste-clipboard"
                                     type="button"
-                                    onClick={handlePasteFromClipboard}
-                                    disabled={isLoadingUrl}
-                                    className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors border border-slate-700 flex items-center gap-1"
-                                    title="Colar da área de transferência"
+                                    onClick={() => handlePasteFromClipboard(true)}
+                                    disabled={isLoadingUrl || isReadingClipboard}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border flex items-center gap-1.5 active:scale-95 ${
+                                        pasteSuccess
+                                            ? 'bg-emerald-600/30 border-emerald-500 text-emerald-300'
+                                            : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border-blue-500/40 hover:border-blue-400'
+                                    }`}
+                                    title="Colar link da área de transferência com 1 clique"
                                 >
-                                    {pasteSuccess ? (
+                                    {isReadingClipboard ? (
+                                        <>
+                                            <Loader2 size={13} className="animate-spin text-blue-400" />
+                                            <span className="text-[11px]">Lendo...</span>
+                                        </>
+                                    ) : pasteSuccess ? (
                                         <>
                                             <Check size={13} className="text-emerald-400" />
                                             <span className="text-emerald-400 text-[11px]">Colado!</span>
                                         </>
                                     ) : (
                                         <>
-                                            <Clipboard size={13} />
-                                            <span className="hidden sm:inline text-[11px]">Colar</span>
+                                            <MousePointerClick size={14} className="text-blue-400" />
+                                            <span className="text-[11px]">Colar com Clique</span>
                                         </>
                                     )}
                                 </button>

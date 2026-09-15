@@ -23,6 +23,7 @@ export const generateGeminiPrompt = async (
         const isMockup = settings.mode === 'mockup';
         const is3dLogo = settings.is3dLogo;
         const isExtractBg = settings.mode === 'extract_background';
+        const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
         
         const lighting = (settings.lighting !== 'none' && settings.lighting !== 'auto') 
             ? `NEW LIGHTING: Apply "${settings.lighting.replace(/_/g, ' ')}" lighting style to the scene.` 
@@ -57,7 +58,28 @@ RULES:
 
 TASK: Extract the subject from the image and generate a professional prompt that follows the creative directives above.`;
 
-        if (isExtractBg) {
+        if (isRemoveBranding) {
+            systemInstruction = `You are an Elite Commercial Beverage & Product Prompt Architect and Visual Retoucher.
+Your mission is to analyze the provided image (beverage, bottle, can, packaging, container, or product) and construct a high-precision prompt that COMPLETELY REMOVES ALL BRAND NAMES, COMMERCIAL LABELS, LOGOS, TRADEMARKS, STICKERS, AND TYPOGRAPHY.
+CRITICAL MANDATES:
+1. PRESERVE THE EXACT SAME COLORS of the product: exact bottle/can container colors, cap/lid color, and internal liquid color/transparency (e.g. amber brew, emerald glass, ruby soda, deep black, matte brushed aluminum).
+2. PRESERVE THE EXACT SHAPE & GEOMETRY: silhouette, neck curvature, can bevels, condensation beads, surface gloss, reflections, and lighting.
+3. The surface where the label or brand was must be seamless, unprinted, blank, and pristine, matching the authentic material and color of the container.
+4. Format the output as a clean, highly descriptive prompt for ${settings.targetPlatform}.
+5. RETURN ONLY THE RAW PROMPT TEXT WITHOUT PREAMBLE.`;
+
+            promptTaskText = `USER DIRECTIVES FOR REMOVING BRAND / LABEL (PRESERVING 100% PRODUCT COLORS):
+- Mode: REMOVE BRAND, LOGO, AND LABEL (UNBRANDED PRODUCT WITH IDENTICAL COLORS)
+- Target Platform: ${settings.targetPlatform}
+- Desired Style: ${settings.style}
+- Detail Level: ${settings.detailLevel}/10
+- ${lighting}
+- ${angle}
+- ${position}
+- Additional Directives: ${settings.basePrompt || 'Completely unbranded clean beverage/product container, zero logos, zero labels, original container and liquid colors strictly preserved'}
+
+TASK: Carefully extract the exact container color palette, liquid color, materials, reflections, and geometry. Generate an image generation prompt specifying an UNBRANDED, LABEL-FREE product with NO text and NO logos, while preserving the exact authentic colors, reflections, and container shape of the reference image.`;
+        } else if (isExtractBg) {
             systemInstruction = `You are an Elite Scene Decomposition and Background Extraction Architect.
 Your mission is to analyze the provided image, DETECT AND ISOLATE THE BACKGROUND ENVIRONMENT, and EXTRACT EVERY CONSTITUENT ELEMENT that composes the scene (setting, architecture, walls, flooring, materials, background props, secondary ambient objects, lighting direction, and atmosphere).
 CRITICAL RULE: The main foreground subject (person, model, product, central vehicle, or character) MUST BE COMPLETELY EXCLUDED OR REMOVED.

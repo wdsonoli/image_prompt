@@ -29,9 +29,12 @@ export const analyzeWithWhisk = async (
         const isMockup = settings.mode === 'mockup';
         const is3dLogo = settings.is3dLogo;
         const isExtractBg = settings.mode === 'extract_background';
+        const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
 
         let modeText = "FULL FIDELITY: Recreate the colors, textures, and subject exactly.";
-        if (isExtractBg) {
+        if (isRemoveBranding) {
+            modeText = "UNBRANDED BEVERAGE / PRODUCT: Strip all brand logos, labels, commercial typography, and trademarks. Recreate the container with a blank, seamless unprinted surface while strictly keeping 100% of the authentic product colors (can/bottle color, cap color, liquid color, and reflections).";
+        } else if (isExtractBg) {
             modeText = "BACKGROUND EXTRACTION: Exclude and remove the foreground subject completely. Isolate and describe all constituent elements of the background (scenery, architecture, materials, props, atmosphere, and lighting) to render an empty background scenic plate.";
         } else if (is3dLogo) {
             modeText = "3D SEAL RECONSTRUCTION: Describe the subject as a high-end 3D metallic or glass asset. REPLICATE ALL DETAILS FROM THE ORIGINAL IMAGE IDENTICALLY. Focus on 3D depth and premium materials.";

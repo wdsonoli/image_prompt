@@ -556,6 +556,7 @@ const App: React.FC = () => {
         const isMockup = settings.mode === 'mockup';
         const is3dLogo = settings.is3dLogo;
         const isExtractBg = settings.mode === 'extract_background';
+        const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
 
         const detailInfo = DETAIL_LEVEL_MAP[settings.detailLevel === 'auto' ? 5 : settings.detailLevel];
         const platformBoost = detailInfo.platformBoosts[settings.targetPlatform] || "";
@@ -569,7 +570,9 @@ const App: React.FC = () => {
             subject = subject.replace(/\[location\]/gi, 'landscape');
         }
         
-        if (isExtractBg) {
+        if (isRemoveBranding) {
+            subject = `Commercial UNBRANDED ${subject}, blank unprinted container surface, zero logos, zero paper labels, zero brand typography or stickers, authentic container geometry, strictly preserving the exact original container and liquid color palette`;
+        } else if (isExtractBg) {
             subject = "Pristine empty scenic background plate, completely empty environment without foreground people or subjects, isolated background setting";
         } else if (is3dLogo) {
             subject = `High-fidelity 3D reconstruction of ${subject}, maintaining identical design details and branding, isometric perspective, clean vector silhouette, professional 3D branding aesthetic, identical to the source reference`;
@@ -582,7 +585,9 @@ const App: React.FC = () => {
         }
         promptParts.push(subject);
 
-        if (isExtractBg) {
+        if (isRemoveBranding) {
+            promptParts.push("completely devoid of trademarks or commercial text, clean seamless unprinted packaging finish, authentic reflections, subtle condensation droplets, high-end commercial beverage photography");
+        } else if (isExtractBg) {
             promptParts.push("hyper-detailed architectural surfaces, ambient scene props, pristine spatial environment, clean background composition, no foreground elements, photographic empty plate");
         } else if (is3dLogo) {
             promptParts.push("Octane render, Cinema 4D, Unreal Engine 5, ray tracing, sharp clean edges, volumetric lighting, premium high-gloss finish, masterfully rendered 3D asset");
@@ -593,8 +598,8 @@ const App: React.FC = () => {
             if (analysis.depthOfField === 'shallow') promptParts.push("shallow depth of field, elegant bokeh");
             if (analysis.contourComplexity === 'high') promptParts.push("intricate structural detail, complex topology");
             
-            if ((isMockup || is3dLogo) && settings.keepColors && analysis.colors.dominantColors.length > 0) {
-                promptParts.push(`maintaining palette: ${analysis.colors.dominantColors.join(', ')}`);
+            if ((isMockup || is3dLogo || isRemoveBranding) && settings.keepColors && analysis.colors.dominantColors.length > 0) {
+                promptParts.push(`maintaining authentic color palette: ${analysis.colors.dominantColors.join(', ')}`);
             }
         }
 
@@ -605,7 +610,9 @@ const App: React.FC = () => {
             }
         }
 
-        if (is3dLogo) {
+        if (isRemoveBranding) {
+            promptParts.push("clean commercial advertising studio backdrop, soft studio lighting, sharp focus on unbranded beverage container");
+        } else if (is3dLogo) {
             promptParts.push("clean solid neutral studio background, professional lighting setup, minimal distractions, high-end commercial presentation");
         } else if (isMockup) {
             promptParts.push("clean minimal professional studio background, solid neutral grey surface, high-end catalog presentation");
