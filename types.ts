@@ -23,12 +23,22 @@ export interface AnalysisResult {
     timestamp: number;
 }
 
+export interface BackgroundDecomposition {
+    settingDescription: string;
+    architecturalElements: string[];
+    propsAndObjects: string[];
+    lightingAndAtmosphere: string;
+    dominantBackgroundColors: string[];
+    isolatedPrompt: string;
+}
+
 export interface UploadedImage {
     id: string;
     file: File;
     previewUrl: string;
     name: string;
     analysis: AnalysisResult | null;
+    backgroundExtraction?: BackgroundDecomposition | null;
     base64Data?: string;
     mimeType?: string;
 }
@@ -48,7 +58,7 @@ export interface PromptSettings {
     aspectRatio: string;
     removeBackground: boolean;
     targetPlatform: TargetPlatform;
-    mode: 'general' | 'mockup';
+    mode: 'general' | 'mockup' | 'extract_background';
     activeTemplateId?: string;
     shadowOpacity: number;
     material: string;

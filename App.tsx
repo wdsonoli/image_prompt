@@ -8,15 +8,22 @@ import { ImagePreview } from './components/ImagePreview';
 import { ApiSettingsModal } from './components/ApiSettingsModal';
 import { GeneratedImageDisplay } from './components/GeneratedImageDisplay';
 import { HistoryPanel } from './components/HistoryPanel';
-import { UploadedImage, PromptSettings, STYLE_TEMPLATES, DETAIL_LEVEL_MAP, HistoryItem, TargetPlatform } from './types';
+import { UploadedImage, PromptSettings, STYLE_TEMPLATES, DETAIL_LEVEL_MAP, HistoryItem, TargetPlatform, BackgroundDecomposition } from './types';
 import { analyzeImage } from './utils/analysis';
-import { generateGeminiPrompt } from './services/geminiService';
+import { generateGeminiPrompt, extractBackgroundDecomposition } from './services/geminiService';
 import { generateOpenAIPrompt } from './services/openaiService';
 import { generateDeepseekPrompt } from './services/deepseekService';
 import { generateImage } from './services/imageGenService';
 import { classifyImageMobileNet } from './services/tfService';
 import { analyzeWithWhisk } from './services/whiskService';
 import { analyzeWithGoogleVision } from './services/googleVisionService';
+import { generateClaudePrompt } from './services/claudeVisionService';
+import { generateMidjourneyDescribePrompt } from './services/midjourneyVisionService';
+import { generateFluxPrompt } from './services/fluxVisionService';
+import { generateIdeogramPrompt } from './services/ideogramVisionService';
+import { generateHuggingFacePrompt } from './services/huggingFaceService';
+import { generateConsensusPrompt } from './services/multiVisionConsensusService';
+import { BackgroundElementsView } from './components/BackgroundElementsView';
 import { Zap, History } from 'lucide-react';
 
 const COMPOSITION_KEYWORDS: Record<string, string> = {
@@ -96,6 +103,7 @@ const App: React.FC = () => {
     const [isGeneratingTF, setIsGeneratingTF] = useState(false);
     const [isGeneratingVisual, setIsGeneratingVisual] = useState(false);
     const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+    const [backgroundData, setBackgroundData] = useState<BackgroundDecomposition | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -103,6 +111,15 @@ const App: React.FC = () => {
     
     const [openAIKey, setOpenAIKey] = useState<string>(localStorage.getItem('openai_api_key') || '');
     const [deepseekKey, setDeepseekKey] = useState<string>(localStorage.getItem('deepseek_api_key') || '');
+    const [anthropicKey, setAnthropicKey] = useState<string>(localStorage.getItem('anthropic_api_key') || '');
+    const [hfToken, setHfToken] = useState<string>(localStorage.getItem('hf_token') || '');
+
+    const [isGeneratingClaude, setIsGeneratingClaude] = useState(false);
+    const [isGeneratingMidjourney, setIsGeneratingMidjourney] = useState(false);
+    const [isGeneratingFlux, setIsGeneratingFlux] = useState(false);
+    const [isGeneratingIdeogram, setIsGeneratingIdeogram] = useState(false);
+    const [isGeneratingHuggingFace, setIsGeneratingHuggingFace] = useState(false);
+    const [isGeneratingConsensus, setIsGeneratingConsensus] = useState(false);
     
     const [settings, setSettings] = useState<PromptSettings>({
         basePrompt: '',
@@ -199,11 +216,15 @@ const App: React.FC = () => {
         setHistory([]);
     };
 
-    const saveApiKeys = (newOpenAIKey: string, newDeepseekKey: string) => {
+    const saveApiKeys = (newOpenAIKey: string, newDeepseekKey: string, newAnthropicKey = '', newHfToken = '') => {
         setOpenAIKey(newOpenAIKey);
         setDeepseekKey(newDeepseekKey);
+        setAnthropicKey(newAnthropicKey);
+        setHfToken(newHfToken);
         localStorage.setItem('openai_api_key', newOpenAIKey);
         localStorage.setItem('deepseek_api_key', newDeepseekKey);
+        localStorage.setItem('anthropic_api_key', newAnthropicKey);
+        localStorage.setItem('hf_token', newHfToken);
         setError(null);
     };
 
@@ -234,6 +255,7 @@ const App: React.FC = () => {
 
             setImages([newImage]);
             setSelectedImageId(tempId);
+            setBackgroundData(null);
         } catch (err: any) {
             setError(`Erro ao processar imagem: ${err.message || 'Erro desconhecido'}`);
         }
@@ -270,6 +292,11 @@ const App: React.FC = () => {
         try {
             const result = await generateDeepseekPrompt(activeImage.file, deepseekKey, settings, activeImage.base64Data ? { base64: activeImage.base64Data, mimeType: activeImage.mimeType! } : undefined);
             setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
         } catch (err: any) {
             setError(err.message || "Falha na análise Deepseek.");
         } finally {
@@ -281,8 +308,19 @@ const App: React.FC = () => {
         if (!activeImage) return;
         setIsGeneratingGemini(true); 
         try { 
-            const result = await generateGeminiPrompt(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
-            setPrompt(result);
+            if (settings.mode === 'extract_background') {
+                const [result, decomposition] = await Promise.all([
+                    generateGeminiPrompt(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! }),
+                    extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! }).catch(() => null)
+                ]);
+                setPrompt(result);
+                if (decomposition) {
+                    setBackgroundData(decomposition);
+                }
+            } else {
+                const result = await generateGeminiPrompt(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
+                setPrompt(result);
+            }
         } catch (err: any) {
             setError(err.message || "Falha na análise Gemini.");
         } finally { 
@@ -296,6 +334,11 @@ const App: React.FC = () => {
         try {
             const result = await analyzeWithGoogleVision(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
             setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
         } catch (err: any) {
             setError(err.message || "Falha na análise Google Vision.");
         } finally {
@@ -309,6 +352,11 @@ const App: React.FC = () => {
         try {
             const result = await analyzeWithWhisk(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
             setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
         } catch (err: any) {
             setError(err.message || "Falha na análise Whisk AI.");
         } finally {
@@ -322,6 +370,11 @@ const App: React.FC = () => {
         try {
             const result = await generateGeminiPrompt(activeImage.file, { ...settings, targetPlatform: 'google_imagefx' }, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
             setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
         } catch (err: any) {
             setError(err.message || "Falha na análise ImageFX.");
         } finally {
@@ -336,6 +389,11 @@ const App: React.FC = () => {
         try { 
             const result = await generateOpenAIPrompt(activeImage.file, openAIKey, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
             setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
         } catch (err: any) {
             setError(err.message || "Falha na análise OpenAI.");
         } finally { 
@@ -353,6 +411,114 @@ const App: React.FC = () => {
             setError(err.message || "Falha na análise TensorFlow.");
         } finally {
             setIsGeneratingTF(false);
+        }
+    };
+
+    const handleClaudeAnalysis = async () => {
+        if (!activeImage) return;
+        setIsGeneratingClaude(true);
+        try {
+            const result = await generateClaudePrompt(activeImage.file, anthropicKey, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
+            setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
+        } catch (err: any) {
+            setError(err.message || "Falha na análise Claude 3.7.");
+        } finally {
+            setIsGeneratingClaude(false);
+        }
+    };
+
+    const handleMidjourneyAnalysis = async () => {
+        if (!activeImage) return;
+        setIsGeneratingMidjourney(true);
+        try {
+            const result = await generateMidjourneyDescribePrompt(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
+            setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
+        } catch (err: any) {
+            setError(err.message || "Falha na análise Midjourney.");
+        } finally {
+            setIsGeneratingMidjourney(false);
+        }
+    };
+
+    const handleFluxAnalysis = async () => {
+        if (!activeImage) return;
+        setIsGeneratingFlux(true);
+        try {
+            const result = await generateFluxPrompt(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
+            setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
+        } catch (err: any) {
+            setError(err.message || "Falha na análise Flux.1.");
+        } finally {
+            setIsGeneratingFlux(false);
+        }
+    };
+
+    const handleIdeogramAnalysis = async () => {
+        if (!activeImage) return;
+        setIsGeneratingIdeogram(true);
+        try {
+            const result = await generateIdeogramPrompt(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
+            setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
+        } catch (err: any) {
+            setError(err.message || "Falha na análise Ideogram 2.0.");
+        } finally {
+            setIsGeneratingIdeogram(false);
+        }
+    };
+
+    const handleHuggingFaceAnalysis = async () => {
+        if (!activeImage) return;
+        setIsGeneratingHuggingFace(true);
+        try {
+            const result = await generateHuggingFacePrompt(activeImage.file, hfToken, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
+            setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
+        } catch (err: any) {
+            setError(err.message || "Falha na análise Hugging Face.");
+        } finally {
+            setIsGeneratingHuggingFace(false);
+        }
+    };
+
+    const handleConsensusAnalysis = async () => {
+        if (!activeImage) return;
+        setIsGeneratingConsensus(true);
+        try {
+            const result = await generateConsensusPrompt(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! });
+            setPrompt(result);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
+        } catch (err: any) {
+            setError(err.message || "Falha na análise do Consenso Multi-Visão.");
+        } finally {
+            setIsGeneratingConsensus(false);
         }
     };
 
@@ -389,6 +555,7 @@ const App: React.FC = () => {
         const analysis = activeImage?.analysis;
         const isMockup = settings.mode === 'mockup';
         const is3dLogo = settings.is3dLogo;
+        const isExtractBg = settings.mode === 'extract_background';
 
         const detailInfo = DETAIL_LEVEL_MAP[settings.detailLevel === 'auto' ? 5 : settings.detailLevel];
         const platformBoost = detailInfo.platformBoosts[settings.targetPlatform] || "";
@@ -402,7 +569,9 @@ const App: React.FC = () => {
             subject = subject.replace(/\[location\]/gi, 'landscape');
         }
         
-        if (is3dLogo) {
+        if (isExtractBg) {
+            subject = "Pristine empty scenic background plate, completely empty environment without foreground people or subjects, isolated background setting";
+        } else if (is3dLogo) {
             subject = `High-fidelity 3D reconstruction of ${subject}, maintaining identical design details and branding, isometric perspective, clean vector silhouette, professional 3D branding aesthetic, identical to the source reference`;
         } else if (isMockup) {
             if (settings.keepColors) {
@@ -413,7 +582,9 @@ const App: React.FC = () => {
         }
         promptParts.push(subject);
 
-        if (is3dLogo) {
+        if (isExtractBg) {
+            promptParts.push("hyper-detailed architectural surfaces, ambient scene props, pristine spatial environment, clean background composition, no foreground elements, photographic empty plate");
+        } else if (is3dLogo) {
             promptParts.push("Octane render, Cinema 4D, Unreal Engine 5, ray tracing, sharp clean edges, volumetric lighting, premium high-gloss finish, masterfully rendered 3D asset");
         }
 
@@ -544,6 +715,7 @@ const App: React.FC = () => {
                                         if (activeImage) URL.revokeObjectURL(activeImage.previewUrl);
                                         setImages([]); 
                                         setPrompt(''); 
+                                        setBackgroundData(null);
                                     }} 
                                     onRemoveBackground={() => setSettings(s => ({ ...s, removeBackground: !s.removeBackground }))}
                                     isRemovingBackground={settings.removeBackground}
@@ -566,6 +738,12 @@ const App: React.FC = () => {
                                 onAnalyzeGoogleVision={handleGoogleVisionAnalysis}
                                 onAnalyzeWhisk={handleWhiskAnalysis}
                                 onAnalyzeImageFX={handleAnalyzeImageFX}
+                                onAnalyzeClaude={handleClaudeAnalysis}
+                                onAnalyzeMidjourney={handleMidjourneyAnalysis}
+                                onAnalyzeFlux={handleFluxAnalysis}
+                                onAnalyzeIdeogram={handleIdeogramAnalysis}
+                                onAnalyzeHuggingFace={handleHuggingFaceAnalysis}
+                                onAnalyzeConsensus={handleConsensusAnalysis}
                                 onAnalyzeTF={handleTFAnalysis}
                                 onOpenSettings={() => setIsSettingsOpen(true)}
                                 isGeneratingGemini={isGeneratingGemini}
@@ -574,11 +752,25 @@ const App: React.FC = () => {
                                 isGeneratingGoogleVision={isGeneratingGoogleVision}
                                 isGeneratingWhisk={isGeneratingWhisk}
                                 isGeneratingImageFX={isGeneratingImageFX}
+                                isGeneratingClaude={isGeneratingClaude}
+                                isGeneratingMidjourney={isGeneratingMidjourney}
+                                isGeneratingFlux={isGeneratingFlux}
+                                isGeneratingIdeogram={isGeneratingIdeogram}
+                                isGeneratingHuggingFace={isGeneratingHuggingFace}
+                                isGeneratingConsensus={isGeneratingConsensus}
                                 isGeneratingTF={isGeneratingTF}
                                 hasImage={!!activeImage}
                             />
                             <div className="flex flex-col gap-6">
                                 <PromptDisplay prompt={prompt} onUpdatePrompt={setPrompt} onCreateImage={handleCreateVisual} isGeneratingImage={isGeneratingVisual} />
+                                {backgroundData && (
+                                    <BackgroundElementsView 
+                                        data={backgroundData}
+                                        onApplyToPrompt={(newPrompt) => setPrompt(newPrompt)}
+                                        onCreateVisual={handleCreateVisual}
+                                        isGeneratingVisual={isGeneratingVisual}
+                                    />
+                                )}
                                 <GeneratedImageDisplay 
                                     imageUrl={generatedImageUrl} 
                                     originalImageUrl={activeImage?.previewUrl || null}
@@ -592,7 +784,15 @@ const App: React.FC = () => {
                 </div>
             </main>
             
-            <ApiSettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onSave={saveApiKeys} initialOpenAIKey={openAIKey} initialDeepseekKey={deepseekKey} />
+            <ApiSettingsModal 
+                isOpen={isSettingsOpen} 
+                onClose={() => setIsSettingsOpen(false)} 
+                onSave={saveApiKeys} 
+                initialOpenAIKey={openAIKey} 
+                initialDeepseekKey={deepseekKey} 
+                initialAnthropicKey={anthropicKey}
+                initialHfToken={hfToken}
+            />
             <HistoryPanel 
                 isOpen={isHistoryOpen}
                 onClose={() => setIsHistoryOpen(false)}

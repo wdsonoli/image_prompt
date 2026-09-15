@@ -41,6 +41,28 @@ export const generateOpenAIPrompt = async (
             : '';
         const creativeDirectives = [lightingInstruction, angleInstruction, positionInstruction].filter(Boolean).join('\n');
 
+        const isExtractBg = settings.mode === 'extract_background';
+        const systemPromptText = isExtractBg
+            ? `You are an elite Scene Decomposition and Background Extraction Architect. Analyze the image, DETECT AND ISOLATE THE BACKGROUND ENVIRONMENT, and EXTRACT EVERY CONSTITUENT ELEMENT that composes the scene (architecture, walls, flooring, materials, background props, secondary ambient objects, lighting direction, and atmosphere).
+CRITICAL RULE: The main foreground subject (person, product, central vehicle, or character) MUST BE COMPLETELY EXCLUDED OR REMOVED.
+Reconstruct the entire background environment as a pristine, empty scenic plate containing all the background details, textures, and ambiance.
+Platform Requirement: ${settings.targetPlatform}
+Detailed Instruction: ${platformInstructions}
+Style: ${settings.style}
+Directives: ${creativeDirectives}
+Return ONLY the raw prompt text without preamble.`
+            : `You are an expert prompt engineer. Analyze the subject in the image, then generate a new text-to-image prompt to recreate that subject but with the following modifications:
+${creativeDirectives}
+
+Platform Requirement: ${settings.targetPlatform}
+Detailed Instruction: ${platformInstructions}
+Style: ${settings.style}
+
+Instructions:
+1. Identify the core subject, but apply the new creative directives.
+2. Strictly follow the platform format.
+3. Return ONLY the raw prompt text.`;
+
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -55,17 +77,7 @@ export const generateOpenAIPrompt = async (
                         content: [
                             { 
                                 type: "text", 
-                                text: `You are an expert prompt engineer. Analyze the subject in the image, then generate a new text-to-image prompt to recreate that subject but with the following modifications:
-                                ${creativeDirectives}
-                                
-                                Platform Requirement: ${settings.targetPlatform}
-                                Detailed Instruction: ${platformInstructions}
-                                Style: ${settings.style}
-                                
-                                Instructions:
-                                1. Identify the core subject, but apply the new creative directives.
-                                2. Strictly follow the platform format.
-                                3. Return ONLY the raw prompt text.` 
+                                text: systemPromptText
                             },
                             {
                                 type: "image_url",

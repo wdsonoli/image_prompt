@@ -1,6 +1,6 @@
 {
   "name": "Image prompt 2.5",
-  "description": "Advanced image-to-prompt generator with side-by-side visual comparison, local Canvas analysis, URL/link image loader, and Gemini AI for precise visual descriptions.",
+  "description": "Advanced image-to-prompt generator with multi-vision intelligence suite (Gemini, GPT-4o, Claude 3.7, DeepSeek, Midjourney describe, Flux.1, Ideogram 2.0, Consensus Ensemble), background element extraction, side-by-side comparison, and visual generation.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

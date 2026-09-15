@@ -35,6 +35,16 @@ export const generateDeepseekPrompt = async (
             : '';
         const creativeDirectives = [lightingInstruction, angleInstruction, positionInstruction].filter(Boolean).join(' ');
 
+        const isExtractBg = settings.mode === 'extract_background';
+        const promptInstruction = isExtractBg
+            ? `Deconstruct this image to EXTRACT ONLY THE BACKGROUND ENVIRONMENT and all its constituent elements (scenery, walls, flooring, materials, background props, secondary ambient objects, lighting). EXCLUDE AND REMOVE the foreground subject entirely. Target: ${settings.targetPlatform}. Style: ${settings.style}. Directives: ${creativeDirectives}. Output ONLY the raw generated prompt.`
+            : `Analyze the subject in the image. Generate a new prompt for this subject but apply these new directives: ${creativeDirectives}.
+Target: ${settings.targetPlatform}
+Style: ${settings.style}
+
+Describe the original subject but with the new lighting, angle, and position.
+Output ONLY the generated prompt.`;
+
         const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -49,12 +59,7 @@ export const generateDeepseekPrompt = async (
                         content: [
                             { 
                                 type: "text", 
-                                text: `Analyze the subject in the image. Generate a new prompt for this subject but apply these new directives: ${creativeDirectives}.
-                                Target: ${settings.targetPlatform}
-                                Style: ${settings.style}
-                                
-                                Describe the original subject but with the new lighting, angle, and position.
-                                Output ONLY the generated prompt.` 
+                                text: promptInstruction
                             },
                             {
                                 type: "image_url",

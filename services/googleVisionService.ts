@@ -28,6 +28,7 @@ export const analyzeWithGoogleVision = async (
 
         const isMockup = settings.mode === 'mockup';
         const is3dLogo = settings.is3dLogo;
+        const isExtractBg = settings.mode === 'extract_background';
 
         const lighting = (settings.lighting !== 'none' && settings.lighting !== 'auto') 
             ? `Physics Override: Use "${settings.lighting.replace(/_/g, ' ')}" light source properties.` 
@@ -37,9 +38,13 @@ export const analyzeWithGoogleVision = async (
             ? `Spatial Override: Rotate perspective to "${settings.cameraAngle.replace(/_/g, ' ')}".` 
             : 'Map original camera coordinates.';
 
+        const modeDescription = isExtractBg 
+            ? 'Background & Environment Isolation (Exclude foreground subject)' 
+            : (is3dLogo ? '3D Seal Reconstruction' : (isMockup ? 'Clay Mockup' : 'Literal mapping'));
+
         const response = await ai.models.generateContent({
             // Mantido Flash pela velocidade e precisão em detecção técnica de labels e formas
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.5-flash',
             contents: {
                 parts: [
                     {
@@ -50,25 +55,30 @@ export const analyzeWithGoogleVision = async (
                     },
                     {
                         text: `TECHNICAL ANALYSIS PARAMETERS:
-                        - Subject Mode: ${is3dLogo ? '3D Seal Reconstruction' : (isMockup ? 'Clay Mockup' : 'Literal mapping')}
+                        - Operational Mode: ${modeDescription}
                         - Directives: ${lighting}, ${angle}
                         - Detail Resolution: ${settings.detailLevel}/10
                         
-                        Map the subject geometry and combine with the specified physics overrides.`
+                        ${isExtractBg 
+                            ? 'Detect and catalog all background architectural surfaces, secondary props, ambient textures, and environment lighting vectors. Exclude the foreground subject.' 
+                            : 'Map the subject geometry and combine with the specified physics overrides.'}`
                     }
                 ]
             },
             config: {
                 systemInstruction: `You are a High-Precision Technical Recognition and Vision Engine. 
                 Your task is to perform a literal and structural mapping of the provided image. 
-                Identify the subject with hyper-accuracy, cataloging its textures, materials, and geometry.
+                ${isExtractBg 
+                    ? 'Catalog all background components, materials, scenery props, surfaces, and environmental vectors. Completely omit the foreground focal subject to create an empty scenic background plate.' 
+                    : 'Identify the subject with hyper-accuracy, cataloging its textures, materials, and geometry.'}
                 
                 OPERATIONAL PROTOCOL:
-                1. MOCKUP MODE: Treat the surface as untextured white polymer/clay, mapping only vertices and topology.
-                2. 3D SEAL MODE: Identify logos and typography for perfect 1:1 vector/3D reconstruction.
-                3. INTEGRATION: Apply the user's overrides for lighting and camera position to the mapped subject.
-                4. NO CHATTER: Do not explain your process.
-                5. OUTPUT: Return only the technical prompt optimized for high-end image generators like Flux or Midjourney.`,
+                1. If in BACKGROUND EXTRACTION: Extract only background elements, surfaces, and ambient fixtures, excluding the foreground subject.
+                2. MOCKUP MODE: Treat the surface as untextured white polymer/clay, mapping only vertices and topology.
+                3. 3D SEAL MODE: Identify logos and typography for perfect 1:1 vector/3D reconstruction.
+                4. INTEGRATION: Apply the user's overrides for lighting and camera position.
+                5. NO CHATTER: Do not explain your process.
+                6. OUTPUT: Return only the technical prompt optimized for high-end image generators like Flux or Midjourney.`,
                 temperature: 0.2 // Baixa temperatura para maior consistência técnica
             }
         });

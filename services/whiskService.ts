@@ -28,9 +28,12 @@ export const analyzeWithWhisk = async (
 
         const isMockup = settings.mode === 'mockup';
         const is3dLogo = settings.is3dLogo;
+        const isExtractBg = settings.mode === 'extract_background';
 
         let modeText = "FULL FIDELITY: Recreate the colors, textures, and subject exactly.";
-        if (is3dLogo) {
+        if (isExtractBg) {
+            modeText = "BACKGROUND EXTRACTION: Exclude and remove the foreground subject completely. Isolate and describe all constituent elements of the background (scenery, architecture, materials, props, atmosphere, and lighting) to render an empty background scenic plate.";
+        } else if (is3dLogo) {
             modeText = "3D SEAL RECONSTRUCTION: Describe the subject as a high-end 3D metallic or glass asset. REPLICATE ALL DETAILS FROM THE ORIGINAL IMAGE IDENTICALLY. Focus on 3D depth and premium materials.";
         } else if (isMockup) {
             modeText = "MOCKUP FOCUS: Describe the subject's form as a 'clean white artistic mockup'. Preserve the silhouette and proportions exactly.";
@@ -49,7 +52,7 @@ export const analyzeWithWhisk = async (
 
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-2.5-flash',
             contents: {
                 parts: [
                     {
@@ -59,14 +62,16 @@ export const analyzeWithWhisk = async (
                         }
                     },
                     {
-                        text: `You are the Whisk AI Artistic Analyst. Translate the core subject of this image into an artistic prompt, but apply the following creative choices.
+                        text: `You are the Whisk AI Artistic Analyst. Translate this image into an artistic prompt, applying the following directives.
 
                         ${modeText}
                         
                         CREATIVE CHOICES:
                         ${creativeDirectives}
                         
-                        Analyze the subject for 100% structural fidelity, but re-imagine the scene with the new choices.
+                        ${isExtractBg 
+                            ? 'Render strictly the empty background plate with all scene elements intact, without any foreground subject.' 
+                            : 'Analyze the subject for 100% structural fidelity, but re-imagine the scene with the new choices.'}
                         
                         Target Platform: ${settings.targetPlatform}
                         Desired Style: ${settings.style}

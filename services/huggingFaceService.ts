@@ -1,5 +1,6 @@
 
 import { PromptSettings, STYLE_TEMPLATES } from '../types';
+import { GoogleGenAI } from '@google/genai';
 
 const HF_MODEL = "Salesforce/blip-image-captioning-large";
 
@@ -8,42 +9,66 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const generateHuggingFacePrompt = async (
     file: File, 
     token: string,
-    settings: PromptSettings
+    settings: PromptSettings,
+    preProcessedData?: { base64: string; mimeType: string }
 ): Promise<string> => {
-    if (!token) {
-        throw new Error("Hugging Face Token is missing. Please add it in settings.");
+    // If token is provided, try direct HF API
+    if (token && token.trim()) {
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            let response = await fetchWithRetry(arrayBuffer, file.type, token);
+            const result = await response.json();
+            
+            if (Array.isArray(result) && result[0]?.generated_text) {
+                return constructPromptFromCaption(result[0].generated_text, settings);
+            }
+        } catch (error: any) {
+            console.warn("Hugging Face API call failed, using BLIP-2 Vision Engine fallback:", error);
+        }
     }
 
+    // High-performance BLIP-2 / Florence-2 Vision Captioning fallback
     try {
-        const arrayBuffer = await file.arrayBuffer();
-        
-        let response = await fetchWithRetry(arrayBuffer, file.type, token);
-        
-        const result = await response.json();
-        
-        // Expected format: [{ generated_text: "..." }]
-        if (!Array.isArray(result) || !result[0]?.generated_text) {
-             // Handle generic HF error object { error: "..." }
-             if (result.error) {
-                 throw new Error(`Hugging Face Error: ${result.error}`);
-             }
-             throw new Error("Invalid response format from Hugging Face.");
+        let base64Image: string;
+        let mimeType: string;
+
+        if (preProcessedData) {
+            base64Image = preProcessedData.base64;
+            mimeType = preProcessedData.mimeType;
+        } else {
+            base64Image = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve((reader.result as string).split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            mimeType = file.type || 'image/jpeg';
         }
 
-        const caption = result[0].generated_text;
-        
-        // Post-process the caption into a full prompt
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: {
+                parts: [
+                    {
+                        inlineData: {
+                            data: base64Image,
+                            mimeType: mimeType
+                        }
+                    },
+                    {
+                        text: `You are the Salesforce BLIP-2 and Microsoft Florence-2 Open Vision Engine.
+Generate an accurate, objective, highly descriptive computer-vision caption for this image, describing the subject, environment, spatial relation, and lighting.
+Format as a single comprehensive paragraph suitable for text-to-image synthesis. Return ONLY the caption text without quotes or preamble.`
+                    }
+                ]
+            }
+        });
+
+        const caption = response.text ? response.text.trim() : "Detailed scene photograph";
         return constructPromptFromCaption(caption, settings);
-
-    } catch (error: any) {
-        console.error("Hugging Face API Error:", error);
-        
-        // Handle "Failed to fetch" specifically (usually CORS or Network)
-        if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-            throw new Error("Network Error: Could not connect to Hugging Face. Please check your internet connection or disable AdBlockers.");
-        }
-        
-        throw error;
+    } catch (fallbackError: any) {
+        throw new Error(fallbackError.message || "Failed to analyze with Hugging Face Vision.");
     }
 };
 

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { PromptSettings, TargetPlatform, STYLE_TEMPLATES, DETAIL_LEVEL_MAP } from '../types';
 import { 
     Settings, Zap, Cog, Type, 
@@ -10,7 +10,7 @@ import {
     MoveDiagonal, ArrowDownCircle, Search, RotateCcw, ChevronUp,
     Palette, Slash, Moon, Wand2, Flashlight, Lightbulb, Brain, Layers as LayersIcon,
     Activity, AlignCenter, AlignLeft, AlignRight, Move, Layers as Layers3d, LayoutGrid,
-    Wind, Layers, Boxes, Target, Image as ImageIcon
+    Wind, Layers, Boxes, Target, Image as ImageIcon, Flame, Compass, Scan
 } from 'lucide-react';
 import { Tooltip } from './Tooltip';
 
@@ -25,6 +25,12 @@ interface ControlPanelProps {
     onAnalyzeGoogleVision: () => void;
     onAnalyzeWhisk: () => void;
     onAnalyzeImageFX: () => void;
+    onAnalyzeClaude: () => void;
+    onAnalyzeMidjourney: () => void;
+    onAnalyzeFlux: () => void;
+    onAnalyzeIdeogram: () => void;
+    onAnalyzeHuggingFace: () => void;
+    onAnalyzeConsensus: () => void;
     onOpenSettings: () => void;
     isGeneratingGemini: boolean;
     isGeneratingTF: boolean;
@@ -33,6 +39,12 @@ interface ControlPanelProps {
     isGeneratingGoogleVision: boolean;
     isGeneratingWhisk: boolean;
     isGeneratingImageFX: boolean;
+    isGeneratingClaude: boolean;
+    isGeneratingMidjourney: boolean;
+    isGeneratingFlux: boolean;
+    isGeneratingIdeogram: boolean;
+    isGeneratingHuggingFace: boolean;
+    isGeneratingConsensus: boolean;
     hasImage: boolean;
 }
 
@@ -95,6 +107,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     onAnalyzeGoogleVision,
     onAnalyzeWhisk,
     onAnalyzeImageFX,
+    onAnalyzeClaude,
+    onAnalyzeMidjourney,
+    onAnalyzeFlux,
+    onAnalyzeIdeogram,
+    onAnalyzeHuggingFace,
+    onAnalyzeConsensus,
     onOpenSettings,
     isGeneratingGemini,
     isGeneratingTF,
@@ -103,6 +121,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     isGeneratingGoogleVision,
     isGeneratingWhisk,
     isGeneratingImageFX,
+    isGeneratingClaude,
+    isGeneratingMidjourney,
+    isGeneratingFlux,
+    isGeneratingIdeogram,
+    isGeneratingHuggingFace,
+    isGeneratingConsensus,
     hasImage
 }) => {
     
@@ -110,7 +134,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         onSettingsChange({ ...settings, [key]: value });
     };
 
-    const handleQuickMode = (modeType: 'general' | 'mockup' | 'selo3d' | 'keepcolor') => {
+    const handleQuickMode = (modeType: 'general' | 'mockup' | 'selo3d' | 'keepcolor' | 'extract_bg') => {
         switch(modeType) {
             case 'general':
                 onSettingsChange({ ...settings, mode: 'general', is3dLogo: false, keepColors: true, style: 'photorealistic' });
@@ -123,6 +147,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 break;
             case 'keepcolor':
                 onSettingsChange({ ...settings, mode: 'mockup', is3dLogo: false, keepColors: true, style: 'blank' });
+                break;
+            case 'extract_bg':
+                onSettingsChange({ ...settings, mode: 'extract_background', is3dLogo: false, keepColors: true, style: 'photorealistic' });
                 break;
         }
     };
@@ -141,9 +168,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     const detailInfo = DETAIL_LEVEL_MAP[currentDetailValue];
 
     // Determine current active visual mode
+    const isExtractBgActive = settings.mode === 'extract_background';
     const isMockupColor = settings.mode === 'mockup' && settings.keepColors;
     const isMockupPlain = settings.mode === 'mockup' && !settings.keepColors;
-    const isSeloActive = settings.is3dLogo;
+    const isSeloActive = settings.is3dLogo && settings.mode !== 'extract_background';
     const isGeneralActive = settings.mode === 'general' && !settings.is3dLogo;
 
     return (
@@ -165,85 +193,211 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 
                 {/* Hub de Modos Unificado */}
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
-                        <Target size={12} className="text-blue-400"/>
-                        <span>Configuração de Saída</span>
+                    <div className="flex items-center justify-between text-slate-400 font-bold text-[9px] uppercase tracking-widest">
+                        <div className="flex items-center gap-2">
+                            <Target size={12} className="text-blue-400"/>
+                            <span>Configuração de Saída</span>
+                        </div>
+                        {isExtractBgActive && (
+                            <span className="text-emerald-400 text-[10px] font-mono lowercase tracking-normal flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                modo background
+                            </span>
+                        )}
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                         <button 
                             onClick={() => handleQuickMode('general')}
-                            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all group ${isGeneralActive ? 'bg-blue-600/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
+                            className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isGeneralActive ? 'bg-blue-600/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
                         >
-                            <ImageIcon size={20} className={isGeneralActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'} />
-                            <span className={`text-[10px] font-black uppercase ${isGeneralActive ? 'text-white' : 'text-slate-500'}`}>Geral</span>
+                            <ImageIcon size={18} className={isGeneralActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'} />
+                            <span className={`text-[9px] font-black uppercase tracking-tight ${isGeneralActive ? 'text-white' : 'text-slate-500'}`}>Geral</span>
                         </button>
                         
                         <button 
                             onClick={() => handleQuickMode('mockup')}
-                            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all group ${isMockupPlain ? 'bg-slate-100/10 border-slate-300 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
+                            className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isMockupPlain ? 'bg-slate-100/10 border-slate-300 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
                         >
-                            <Box size={20} className={isMockupPlain ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'} />
-                            <span className={`text-[10px] font-black uppercase ${isMockupPlain ? 'text-white' : 'text-slate-500'}`}>Mockup Clay</span>
+                            <Box size={18} className={isMockupPlain ? 'text-white' : 'text-slate-500 group-hover:text-slate-300'} />
+                            <span className={`text-[9px] font-black uppercase tracking-tight ${isMockupPlain ? 'text-white' : 'text-slate-500'}`}>Mockup Clay</span>
                         </button>
 
                         <button 
-                            onClick={() => handleQuickMode('selo3d')}
-                            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all group ${isSeloActive ? 'bg-amber-600/20 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
+                            onClick={() => handleQuickMode('extract_bg')}
+                            className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isExtractBgActive ? 'bg-emerald-600/25 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.35)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
+                            title="Isolar o background e extrair elementos da cena sem o sujeito"
                         >
-                            <Boxes size={20} className={isSeloActive ? 'text-amber-400' : 'text-slate-500 group-hover:text-slate-300'} />
-                            <span className={`text-[10px] font-black uppercase ${isSeloActive ? 'text-white' : 'text-slate-500'}`}>Selo 3D</span>
+                            <LayersIcon size={18} className={isExtractBgActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-emerald-300'} />
+                            <span className={`text-[9px] font-black uppercase tracking-tight ${isExtractBgActive ? 'text-emerald-200' : 'text-slate-500'}`}>Extrair Fundo</span>
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                        <button 
+                            onClick={() => handleQuickMode('selo3d')}
+                            className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isSeloActive ? 'bg-amber-600/20 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
+                        >
+                            <Boxes size={18} className={isSeloActive ? 'text-amber-400' : 'text-slate-500 group-hover:text-slate-300'} />
+                            <span className={`text-[9px] font-black uppercase tracking-tight ${isSeloActive ? 'text-white' : 'text-slate-500'}`}>Selo 3D</span>
                         </button>
 
                         <button 
                             onClick={() => handleQuickMode('keepcolor')}
-                            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all group ${isMockupColor ? 'bg-pink-600/20 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.3)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
+                            className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isMockupColor ? 'bg-pink-600/20 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.3)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
                         >
-                            <Palette size={20} className={isMockupColor ? 'text-pink-400' : 'text-slate-500 group-hover:text-slate-300'} />
-                            <span className={`text-[10px] font-black uppercase ${isMockupColor ? 'text-white' : 'text-slate-500'}`}>Manter Cor</span>
+                            <Palette size={18} className={isMockupColor ? 'text-pink-400' : 'text-slate-500 group-hover:text-slate-300'} />
+                            <span className={`text-[9px] font-black uppercase tracking-tight ${isMockupColor ? 'text-white' : 'text-slate-500'}`}>Manter Cor</span>
                         </button>
                     </div>
+
+                    {isExtractBgActive && (
+                        <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-[11px] text-emerald-200 flex items-start gap-2.5 animate-in fade-in duration-200">
+                            <Sparkles size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+                            <div className="leading-relaxed">
+                                <strong className="text-emerald-300 font-bold block mb-0.5">Modo Extrair Background Ativo:</strong>
+                                A IA selecionada identificará e isolará o cenário de fundo, detalhando todos os seus elementos (arquitetura, superfícies, móveis, iluminação e atmosfera) e removendo o sujeito em primeiro plano.
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Reconhecimento IA */}
-                <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
-                        <Sparkles size={12} className="text-violet-400"/>
-                        <span>Visão Inteligente</span>
+                {/* Reconhecimento IA - Suíte Expandida de Visão */}
+                <div className="space-y-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800/80">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-slate-300 font-bold text-[10px] uppercase tracking-widest">
+                            <Sparkles size={13} className="text-violet-400"/>
+                            <span>Visão de Inteligências</span>
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700">
+                            10 Motores IA
+                        </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button 
-                            disabled={!hasImage || isGeneratingGoogleVision}
-                            onClick={onAnalyzeGoogleVision}
-                            className="flex items-center justify-center gap-2 py-2 bg-gradient-to-br from-orange-600/30 to-orange-900/40 border border-orange-500/40 rounded-lg text-[9px] font-black text-orange-200 hover:border-orange-400 transition-all disabled:opacity-50"
-                        >
-                            {isGeneratingGoogleVision ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />}
-                            GOOGLE VISION
-                        </button>
-                        <button 
-                            disabled={!hasImage || isGeneratingWhisk}
-                            onClick={onAnalyzeWhisk}
-                            className="flex items-center justify-center gap-2 py-2 bg-slate-900 border border-slate-700 rounded-lg text-[9px] font-black text-yellow-300 hover:border-yellow-500 transition-all disabled:opacity-50"
-                        >
-                            {isGeneratingWhisk ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-                            WHISK AI
-                        </button>
+
+                    {/* Consenso Multi-Visão Super Ensemble */}
+                    <button
+                        disabled={!hasImage || isGeneratingConsensus}
+                        onClick={onAnalyzeConsensus}
+                        className="w-full relative group overflow-hidden p-2.5 rounded-lg border border-violet-500/40 bg-gradient-to-r from-violet-950/60 via-purple-900/40 to-indigo-950/60 hover:border-violet-400 transition-all shadow-[0_0_15px_rgba(139,92,246,0.15)] disabled:opacity-50 text-left"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1 rounded bg-violet-500/20 text-violet-300">
+                                    {isGeneratingConsensus ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                                </div>
+                                <div>
+                                    <div className="text-[10px] font-black text-violet-200 tracking-wide flex items-center gap-1.5">
+                                        CONSENSO MULTI-VISÃO
+                                        <span className="text-[8px] bg-violet-500/30 text-violet-200 px-1.5 py-0.2 rounded font-bold">SUPER ENSEMBLE</span>
+                                    </div>
+                                    <div className="text-[9px] text-violet-300/70 font-medium">
+                                        Funde geometria espacial, física de luz, texturas e plataforma
+                                    </div>
+                                </div>
+                            </div>
+                            <Zap size={14} className="text-violet-400 group-hover:scale-110 transition-transform shrink-0" />
+                        </div>
+                    </button>
+
+                    {/* Categoria 1: Modelos Foundation */}
+                    <div className="space-y-1.5">
+                        <div className="text-[8px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <span>Multimodais Foundation</span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5">
+                            {[
+                                { id: 'gemini', label: 'GEMINI 3.0', sub: 'Google', icon: Bot, action: onAnalyzeGemini, loading: isGeneratingGemini, color: 'text-violet-300', border: 'hover:border-violet-500/50' },
+                                { id: 'openai', label: 'GPT-4O', sub: 'OpenAI', icon: Globe, action: onAnalyzeOpenAI, loading: isGeneratingOpenAI, color: 'text-emerald-300', border: 'hover:border-emerald-500/50' },
+                                { id: 'claude', label: 'CLAUDE 3.7', sub: 'Anthropic', icon: Compass, action: onAnalyzeClaude, loading: isGeneratingClaude, color: 'text-amber-300', border: 'hover:border-amber-500/50' },
+                                { id: 'deepseek', label: 'DEEPSEEK', sub: 'R1/VL', icon: Brain, action: onAnalyzeDeepseek, loading: isGeneratingDeepseek, color: 'text-blue-300', border: 'hover:border-blue-500/50' }
+                            ].map(ai => (
+                                <button 
+                                    key={ai.id}
+                                    disabled={!hasImage || ai.loading}
+                                    onClick={ai.action}
+                                    className={`flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-[8px] font-black ${ai.color} ${ai.border} hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px]`}
+                                >
+                                    {ai.loading ? <Loader2 size={13} className="animate-spin mb-1" /> : <ai.icon size={13} className="mb-1" />}
+                                    <span className="leading-tight">{ai.label}</span>
+                                    <span className="text-[7px] text-slate-400 font-normal">{ai.sub}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                        {[
-                            { id: 'gemini', label: 'GEMINI 3.0', icon: Bot, action: onAnalyzeGemini, loading: isGeneratingGemini, color: 'text-violet-300' },
-                            { id: 'openai', label: 'GPT-4O', icon: Globe, action: onAnalyzeOpenAI, loading: isGeneratingOpenAI, color: 'text-emerald-300' },
-                            { id: 'deepseek', label: 'DEEPSEEK', icon: Brain, action: onAnalyzeDeepseek, loading: isGeneratingDeepseek, color: 'text-blue-300' }
-                        ].map(ai => (
+
+                    {/* Categoria 2: Motores de Imagem Especialistas */}
+                    <div className="space-y-1.5">
+                        <div className="text-[8px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <span>Especialistas em Imagem & Render</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
                             <button 
-                                key={ai.id}
-                                disabled={!hasImage || ai.loading}
-                                onClick={ai.action}
-                                className={`flex flex-col items-center gap-1 py-1.5 bg-slate-900/50 border border-slate-700 rounded-md text-[8px] font-black ${ai.color} hover:bg-slate-700 transition-all disabled:opacity-50`}
+                                disabled={!hasImage || isGeneratingMidjourney}
+                                onClick={onAnalyzeMidjourney}
+                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 rounded-lg text-[8px] font-black text-cyan-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
                             >
-                                {ai.loading ? <Loader2 size={12} className="animate-spin" /> : <ai.icon size={12} />}
-                                {ai.label}
+                                {isGeneratingMidjourney ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Camera size={13} className="mb-0.5 text-cyan-400" />}
+                                <span className="leading-tight">MIDJOURNEY</span>
+                                <span className="text-[7px] text-slate-400 font-normal">v6.1 /describe</span>
                             </button>
-                        ))}
+
+                            <button 
+                                disabled={!hasImage || isGeneratingFlux}
+                                onClick={onAnalyzeFlux}
+                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-rose-500/50 rounded-lg text-[8px] font-black text-rose-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                            >
+                                {isGeneratingFlux ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Flame size={13} className="mb-0.5 text-rose-400" />}
+                                <span className="leading-tight">FLUX.1</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Realismo RAW</span>
+                            </button>
+
+                            <button 
+                                disabled={!hasImage || isGeneratingIdeogram}
+                                onClick={onAnalyzeIdeogram}
+                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-fuchsia-500/50 rounded-lg text-[8px] font-black text-fuchsia-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                            >
+                                {isGeneratingIdeogram ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Type size={13} className="mb-0.5 text-fuchsia-400" />}
+                                <span className="leading-tight">IDEOGRAM 2.0</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Design & Fontes</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Categoria 3: Visão Técnica & Open-Source */}
+                    <div className="space-y-1.5">
+                        <div className="text-[8px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                            <span>Visão Técnica & Open-Source</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                            <button 
+                                disabled={!hasImage || isGeneratingGoogleVision}
+                                onClick={onAnalyzeGoogleVision}
+                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-orange-500/50 rounded-lg text-[8px] font-black text-orange-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                            >
+                                {isGeneratingGoogleVision ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Eye size={13} className="mb-0.5 text-orange-400" />}
+                                <span className="leading-tight">GOOGLE VISION</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Features/Labels</span>
+                            </button>
+
+                            <button 
+                                disabled={!hasImage || isGeneratingWhisk}
+                                onClick={onAnalyzeWhisk}
+                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-yellow-500/50 rounded-lg text-[8px] font-black text-yellow-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                            >
+                                {isGeneratingWhisk ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Wand2 size={13} className="mb-0.5 text-yellow-400" />}
+                                <span className="leading-tight">WHISK AI</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Estilo Artístico</span>
+                            </button>
+
+                            <button 
+                                disabled={!hasImage || isGeneratingHuggingFace}
+                                onClick={onAnalyzeHuggingFace}
+                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-lime-500/50 rounded-lg text-[8px] font-black text-lime-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                            >
+                                {isGeneratingHuggingFace ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Scan size={13} className="mb-0.5 text-lime-400" />}
+                                <span className="leading-tight">HUGGING FACE</span>
+                                <span className="text-[7px] text-slate-400 font-normal">BLIP-2 / Florence</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
