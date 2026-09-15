@@ -1,5 +1,8 @@
 {
   "name": "Image prompt 2.5",
-  "description": "Advanced image-to-prompt generator using local Canvas analysis and Gemini AI for precise visual descriptions.",
-  "requestFramePermissions": []
+  "description": "Advanced image-to-prompt generator with side-by-side visual comparison, local Canvas analysis, URL/link image loader, and Gemini AI for precise visual descriptions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

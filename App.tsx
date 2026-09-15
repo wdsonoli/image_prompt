@@ -533,6 +533,7 @@ const App: React.FC = () => {
                         {!activeImage ? (
                             <DropZone 
                                 onFilesSelected={handleFilesSelected} 
+                                onError={setError}
                             />
                         ) : (
                             <div className="space-y-4 animate-in fade-in duration-500">
@@ -580,6 +581,8 @@ const App: React.FC = () => {
                                 <PromptDisplay prompt={prompt} onUpdatePrompt={setPrompt} onCreateImage={handleCreateVisual} isGeneratingImage={isGeneratingVisual} />
                                 <GeneratedImageDisplay 
                                     imageUrl={generatedImageUrl} 
+                                    originalImageUrl={activeImage?.previewUrl || null}
+                                    originalImageName={activeImage?.name || null}
                                     isGenerating={isGeneratingVisual} 
                                     onClose={() => setGeneratedImageUrl(null)} 
                                 />
