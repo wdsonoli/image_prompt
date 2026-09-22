@@ -46,6 +46,7 @@ interface ControlPanelProps {
     isGeneratingHuggingFace: boolean;
     isGeneratingConsensus: boolean;
     hasImage: boolean;
+    onSwitchToEffects?: () => void;
 }
 
 const LIGHTING_OPTIONS = [
@@ -127,7 +128,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     isGeneratingIdeogram,
     isGeneratingHuggingFace,
     isGeneratingConsensus,
-    hasImage
+    hasImage,
+    onSwitchToEffects
 }) => {
     
     const handleChange = (key: keyof PromptSettings, value: any) => {
@@ -188,10 +190,22 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <Cog size={18} />
             </button>
 
-            <h2 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
-                <Settings size={18} />
-                <span>Arquiteto de Prompt</span>
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-blue-400 flex items-center gap-2">
+                    <Settings size={18} />
+                    <span>Arquiteto de Prompt</span>
+                </h2>
+                {onSwitchToEffects && (
+                    <button
+                        onClick={onSwitchToEffects}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-violet-500/40 text-violet-300 hover:text-white hover:border-violet-400 transition-all text-xs font-bold mr-6"
+                        title="Abrir Galeria de Efeitos (/tags)"
+                    >
+                        <Sparkles size={13} className="text-amber-300" />
+                        <span>Ver Efeitos (/tags)</span>
+                    </button>
+                )}
+            </div>
 
             <div className="space-y-5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 

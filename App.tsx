@@ -24,7 +24,8 @@ import { generateIdeogramPrompt } from './services/ideogramVisionService';
 import { generateHuggingFacePrompt } from './services/huggingFaceService';
 import { generateConsensusPrompt } from './services/multiVisionConsensusService';
 import { BackgroundElementsView } from './components/BackgroundElementsView';
-import { Zap, History } from 'lucide-react';
+import { VisualEffectsTab } from './components/VisualEffectsTab';
+import { Zap, History, Sparkles, Sliders } from 'lucide-react';
 
 const COMPOSITION_KEYWORDS: Record<string, string> = {
     macro: "macro photography, extreme close-up, high detail texture",
@@ -120,6 +121,7 @@ const App: React.FC = () => {
     const [isGeneratingIdeogram, setIsGeneratingIdeogram] = useState(false);
     const [isGeneratingHuggingFace, setIsGeneratingHuggingFace] = useState(false);
     const [isGeneratingConsensus, setIsGeneratingConsensus] = useState(false);
+    const [activeControlTab, setActiveControlTab] = useState<'architect' | 'effects'>('architect');
     
     const [settings, setSettings] = useState<PromptSettings>({
         basePrompt: '',
@@ -734,40 +736,86 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="lg:col-span-7">
+                        {/* Tab Switcher: Arquiteto vs Galeria de Efeitos */}
+                        <div className="flex items-center gap-2 p-1.5 bg-slate-900/90 border border-slate-800 rounded-xl mb-6 backdrop-blur-md shadow-lg">
+                            <button 
+                                onClick={() => setActiveControlTab('architect')}
+                                className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                                    activeControlTab === 'architect' 
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25 ring-1 ring-blue-400' 
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                                }`}
+                            >
+                                <Sliders size={15} className={activeControlTab === 'architect' ? 'text-white' : 'text-blue-400'} />
+                                <span>Arquiteto de Prompt</span>
+                            </button>
+                            <button 
+                                onClick={() => setActiveControlTab('effects')}
+                                className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all relative ${
+                                    activeControlTab === 'effects' 
+                                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 ring-1 ring-violet-400' 
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                                }`}
+                            >
+                                <Sparkles size={15} className={activeControlTab === 'effects' ? 'text-amber-300' : 'text-violet-400'} />
+                                <span>Efeitos Visuais (/tags)</span>
+                                <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-violet-400/20 text-violet-200 border border-violet-400/30">
+                                    80+ Efeitos
+                                </span>
+                            </button>
+                        </div>
+
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                            <ControlPanel 
-                                settings={settings} 
-                                onSettingsChange={setSettings} 
-                                onGenerate={handleGeneratePrompt}
-                                onAnalyzeGemini={handleGeminiAnalysis}
-                                onAnalyzeOpenAI={handleOpenAIAnalysis}
-                                onAnalyzeDeepseek={handleDeepseekAnalysis}
-                                onAnalyzeGoogleVision={handleGoogleVisionAnalysis}
-                                onAnalyzeWhisk={handleWhiskAnalysis}
-                                onAnalyzeImageFX={handleAnalyzeImageFX}
-                                onAnalyzeClaude={handleClaudeAnalysis}
-                                onAnalyzeMidjourney={handleMidjourneyAnalysis}
-                                onAnalyzeFlux={handleFluxAnalysis}
-                                onAnalyzeIdeogram={handleIdeogramAnalysis}
-                                onAnalyzeHuggingFace={handleHuggingFaceAnalysis}
-                                onAnalyzeConsensus={handleConsensusAnalysis}
-                                onAnalyzeTF={handleTFAnalysis}
-                                onOpenSettings={() => setIsSettingsOpen(true)}
-                                isGeneratingGemini={isGeneratingGemini}
-                                isGeneratingOpenAI={isGeneratingOpenAI}
-                                isGeneratingDeepseek={isGeneratingDeepseek}
-                                isGeneratingGoogleVision={isGeneratingGoogleVision}
-                                isGeneratingWhisk={isGeneratingWhisk}
-                                isGeneratingImageFX={isGeneratingImageFX}
-                                isGeneratingClaude={isGeneratingClaude}
-                                isGeneratingMidjourney={isGeneratingMidjourney}
-                                isGeneratingFlux={isGeneratingFlux}
-                                isGeneratingIdeogram={isGeneratingIdeogram}
-                                isGeneratingHuggingFace={isGeneratingHuggingFace}
-                                isGeneratingConsensus={isGeneratingConsensus}
-                                isGeneratingTF={isGeneratingTF}
-                                hasImage={!!activeImage}
-                            />
+                            {activeControlTab === 'architect' ? (
+                                <ControlPanel 
+                                    settings={settings} 
+                                    onSettingsChange={setSettings} 
+                                    onGenerate={handleGeneratePrompt}
+                                    onAnalyzeGemini={handleGeminiAnalysis}
+                                    onAnalyzeOpenAI={handleOpenAIAnalysis}
+                                    onAnalyzeDeepseek={handleDeepseekAnalysis}
+                                    onAnalyzeGoogleVision={handleGoogleVisionAnalysis}
+                                    onAnalyzeWhisk={handleWhiskAnalysis}
+                                    onAnalyzeImageFX={handleAnalyzeImageFX}
+                                    onAnalyzeClaude={handleClaudeAnalysis}
+                                    onAnalyzeMidjourney={handleMidjourneyAnalysis}
+                                    onAnalyzeFlux={handleFluxAnalysis}
+                                    onAnalyzeIdeogram={handleIdeogramAnalysis}
+                                    onAnalyzeHuggingFace={handleHuggingFaceAnalysis}
+                                    onAnalyzeConsensus={handleConsensusAnalysis}
+                                    onAnalyzeTF={handleTFAnalysis}
+                                    onOpenSettings={() => setIsSettingsOpen(true)}
+                                    isGeneratingGemini={isGeneratingGemini}
+                                    isGeneratingOpenAI={isGeneratingOpenAI}
+                                    isGeneratingDeepseek={isGeneratingDeepseek}
+                                    isGeneratingGoogleVision={isGeneratingGoogleVision}
+                                    isGeneratingWhisk={isGeneratingWhisk}
+                                    isGeneratingImageFX={isGeneratingImageFX}
+                                    isGeneratingClaude={isGeneratingClaude}
+                                    isGeneratingMidjourney={isGeneratingMidjourney}
+                                    isGeneratingFlux={isGeneratingFlux}
+                                    isGeneratingIdeogram={isGeneratingIdeogram}
+                                    isGeneratingHuggingFace={isGeneratingHuggingFace}
+                                    isGeneratingConsensus={isGeneratingConsensus}
+                                    isGeneratingTF={isGeneratingTF}
+                                    hasImage={!!activeImage}
+                                    onSwitchToEffects={() => setActiveControlTab('effects')}
+                                />
+                            ) : (
+                                <VisualEffectsTab 
+                                    onApplyPrompt={(newPrompt) => {
+                                        setPrompt(newPrompt);
+                                        setSettings(s => ({ ...s, basePrompt: newPrompt }));
+                                    }}
+                                    onCreateVisual={handleCreateVisual}
+                                    currentBasePrompt={settings.basePrompt}
+                                    hasActiveImage={!!activeImage}
+                                    activeImageName={activeImage?.name}
+                                    detectedSubject={activeImage?.name ? activeImage.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ") : ''}
+                                    targetPlatform={settings.targetPlatform}
+                                    onSwitchToArchitect={() => setActiveControlTab('architect')}
+                                />
+                            )}
                             <div className="flex flex-col gap-6">
                                 <PromptDisplay prompt={prompt} onUpdatePrompt={setPrompt} onCreateImage={handleCreateVisual} isGeneratingImage={isGeneratingVisual} />
                                 {backgroundData && (

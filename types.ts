@@ -66,6 +66,7 @@ export interface PromptSettings {
     keepColors: boolean;
     is3dLogo: boolean;
     removeBranding?: boolean;
+    selectedEffects?: string[];
 }
 
 export interface HistoryItem {
