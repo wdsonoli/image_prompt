@@ -48,6 +48,7 @@ interface ControlPanelProps {
     isGeneratingConsensus: boolean;
     hasImage: boolean;
     onSwitchToEffects?: () => void;
+    onOpenGemini3ProGenerator?: () => void;
 }
 
 const LIGHTING_OPTIONS = [
@@ -130,7 +131,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     isGeneratingHuggingFace,
     isGeneratingConsensus,
     hasImage,
-    onSwitchToEffects
+    onSwitchToEffects,
+    onOpenGemini3ProGenerator
 }) => {
     
     const handleChange = (key: keyof PromptSettings, value: any) => {
@@ -679,6 +681,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 >
                     <Zap size={16} /> Compilar Prompt Profissional
                 </button>
+
+                {onOpenGemini3ProGenerator && (
+                    <button
+                        type="button"
+                        onClick={onOpenGemini3ProGenerator}
+                        className="w-full py-2.5 px-3 rounded-lg font-black text-xs bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
+                        title="Abrir Gerador de Imagem Gemini 3 Pro 4K"
+                    >
+                        <Sparkles size={15} className="text-slate-950" />
+                        <span>Gerador Gemini 3 Pro 4K</span>
+                    </button>
+                )}
             </div>
         </div>
     );

@@ -1,6 +1,6 @@
 {
   "name": "Image prompt 2.5",
-  "description": "Advanced image-to-prompt generator with multi-vision suite (Gemini, GPT-4o, Claude 3.7, Flux.1, Midjourney describe), 120+ photographic effects with special collections for framing (/topdown, /sideview), fashion photoshoots (/editorialportrait, /lookbook), lighting (/softbox, /hardlight), and optical lenses (/35mm, /85mm, /fisheye).",
+  "description": "Advanced image-to-prompt generator with multi-vision suite, 120+ photographic effects, Ultra-Premium 16K Remaster, and native 4K image generation powered by Gemini 3 Pro.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

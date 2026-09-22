@@ -8,9 +8,16 @@ interface PromptDisplayProps {
     onUpdatePrompt: (newPrompt: string) => void;
     onCreateImage: () => void;
     isGeneratingImage: boolean;
+    onOpenGemini3ProGenerator?: () => void;
 }
 
-export const PromptDisplay: React.FC<PromptDisplayProps> = ({ prompt, onUpdatePrompt, onCreateImage, isGeneratingImage }) => {
+export const PromptDisplay: React.FC<PromptDisplayProps> = ({ 
+    prompt, 
+    onUpdatePrompt, 
+    onCreateImage, 
+    isGeneratingImage,
+    onOpenGemini3ProGenerator
+}) => {
     const [copied, setCopied] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [localPrompt, setLocalPrompt] = useState(prompt);
@@ -232,19 +239,36 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({ prompt, onUpdatePr
                              <p className="font-mono text-sm text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
                                 {localPrompt}
                             </p>
-                             {/* Floating Create Image Button */}
-                             <div className="sticky bottom-0 mt-4 flex justify-center">
+                             {/* Floating Buttons: Gemini 3 Pro 4K & Standard Create Image */}
+                             <div className="sticky bottom-0 mt-4 flex flex-wrap items-center justify-center gap-2.5">
+                                <button 
+                                    onClick={() => {
+                                        if (onOpenGemini3ProGenerator) {
+                                            onOpenGemini3ProGenerator();
+                                        } else {
+                                            onCreateImage();
+                                        }
+                                    }}
+                                    disabled={isGeneratingImage}
+                                    className="flex items-center gap-2 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 px-5 py-2.5 rounded-full font-black text-xs shadow-xl shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                                    title="Abrir estúdio de renderização 4K com Gemini 3 Pro"
+                                >
+                                    {isGeneratingImage ? (
+                                        <div className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                                    ) : (
+                                        <Sparkles size={16} className="text-slate-950" />
+                                    )}
+                                    <span>Gerar 4K com Gemini 3 Pro</span>
+                                </button>
+
                                 <button 
                                     onClick={onCreateImage}
                                     disabled={isGeneratingImage}
-                                    className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 text-white px-6 py-2.5 rounded-full font-bold shadow-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                                    className="flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-full font-bold text-xs shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                                    title="Geração Rápida Direta"
                                 >
-                                    {isGeneratingImage ? (
-                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    ) : (
-                                        <ImagePlus size={18} />
-                                    )}
-                                    Create Image
+                                    <ImagePlus size={15} />
+                                    <span>Geração Rápida</span>
                                 </button>
                              </div>
                         </div>

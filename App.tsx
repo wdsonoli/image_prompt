@@ -25,6 +25,7 @@ import { generateHuggingFacePrompt } from './services/huggingFaceService';
 import { generateConsensusPrompt } from './services/multiVisionConsensusService';
 import { BackgroundElementsView } from './components/BackgroundElementsView';
 import { VisualEffectsTab } from './components/VisualEffectsTab';
+import { Gemini3ProImageGeneratorModal } from './components/Gemini3ProImageGeneratorModal';
 import { loadHistory, saveHistory, deleteHistoryItem, clearHistory, compressBase64Image } from './utils/historyStorage';
 import { Zap, History, Sparkles, Sliders } from 'lucide-react';
 
@@ -123,6 +124,7 @@ const App: React.FC = () => {
     const [isGeneratingHuggingFace, setIsGeneratingHuggingFace] = useState(false);
     const [isGeneratingConsensus, setIsGeneratingConsensus] = useState(false);
     const [activeControlTab, setActiveControlTab] = useState<'architect' | 'effects'>('architect');
+    const [isGemini3ProModalOpen, setIsGemini3ProModalOpen] = useState(false);
     
     const [settings, setSettings] = useState<PromptSettings>({
         basePrompt: '',
@@ -553,7 +555,7 @@ const App: React.FC = () => {
         setIsGeneratingVisual(true);
         try {
             const imageContext = activeImage?.base64Data ? { base64: activeImage.base64Data, mimeType: activeImage.mimeType! } : undefined;
-            const url = await generateImage(prompt, false, imageContext);
+            const url = await generateImage(prompt, true, imageContext, "4K");
             setGeneratedImageUrl(url);
             
             if (activeImage?.base64Data && activeImage.mimeType) {
@@ -715,13 +717,23 @@ const App: React.FC = () => {
                         </div>
                         <h1 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400 tracking-tight">VPA v2.5</h1>
                     </div>
-                    <button 
-                        onClick={() => setIsHistoryOpen(true)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-slate-300 bg-slate-800/80 border border-slate-700 rounded-lg hover:bg-slate-700 transition-all active:scale-95"
-                        title="Histórico"
-                    >
-                        <History size={16} />
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setIsGemini3ProModalOpen(true)}
+                            className="flex items-center gap-2 px-3.5 py-2 text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 rounded-lg shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
+                            title="Abrir Gerador de Imagem Gemini 3 Pro 4K"
+                        >
+                            <Sparkles size={15} className="text-slate-950" />
+                            <span>Gerador Gemini 3 Pro 4K</span>
+                        </button>
+                        <button 
+                            onClick={() => setIsHistoryOpen(true)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-slate-300 bg-slate-800/80 border border-slate-700 rounded-lg hover:bg-slate-700 transition-all active:scale-95"
+                            title="Histórico"
+                        >
+                            <History size={16} />
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -824,6 +836,7 @@ const App: React.FC = () => {
                                     isGeneratingTF={isGeneratingTF}
                                     hasImage={!!activeImage}
                                     onSwitchToEffects={() => setActiveControlTab('effects')}
+                                    onOpenGemini3ProGenerator={() => setIsGemini3ProModalOpen(true)}
                                 />
                             ) : (
                                 <VisualEffectsTab 
@@ -841,7 +854,13 @@ const App: React.FC = () => {
                                 />
                             )}
                             <div className="flex flex-col gap-6">
-                                <PromptDisplay prompt={prompt} onUpdatePrompt={setPrompt} onCreateImage={handleCreateVisual} isGeneratingImage={isGeneratingVisual} />
+                                <PromptDisplay 
+                                    prompt={prompt} 
+                                    onUpdatePrompt={setPrompt} 
+                                    onCreateImage={handleCreateVisual} 
+                                    isGeneratingImage={isGeneratingVisual}
+                                    onOpenGemini3ProGenerator={() => setIsGemini3ProModalOpen(true)}
+                                />
                                 {backgroundData && (
                                     <BackgroundElementsView 
                                         data={backgroundData}
@@ -863,6 +882,32 @@ const App: React.FC = () => {
                 </div>
             </main>
             
+            <Gemini3ProImageGeneratorModal
+                isOpen={isGemini3ProModalOpen}
+                onClose={() => setIsGemini3ProModalOpen(false)}
+                initialPrompt={prompt}
+                activeImage={activeImage ? {
+                    previewUrl: activeImage.previewUrl,
+                    base64Data: activeImage.base64Data,
+                    mimeType: activeImage.mimeType,
+                    name: activeImage.name
+                } : null}
+                onImageGenerated={(url, usedPrompt) => {
+                    setGeneratedImageUrl(url);
+                    if (activeImage?.base64Data && activeImage.mimeType) {
+                        addToHistory({
+                            prompt: usedPrompt,
+                            generatedImageUrl: url,
+                            baseImage: {
+                                base64Data: activeImage.base64Data,
+                                mimeType: activeImage.mimeType,
+                                name: activeImage.name,
+                            },
+                            settings,
+                        });
+                    }
+                }}
+            />
             <ApiSettingsModal 
                 isOpen={isSettingsOpen} 
                 onClose={() => setIsSettingsOpen(false)} 

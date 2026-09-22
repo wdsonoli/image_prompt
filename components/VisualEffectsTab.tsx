@@ -374,7 +374,7 @@ export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
                     <button
                         onClick={() => {
                             onApplyPrompt(ULTRA_PREMIUM_16K_PROMPT);
@@ -382,10 +382,26 @@ export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
                                 setSelectedEffectIds(prev => [...prev, 'remaster16k']);
                             }
                         }}
-                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all active:scale-95 hover:scale-105"
+                        className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                    >
+                        <Sparkles size={13} className="text-amber-400" />
+                        <span>Aplicar Remaster 16K</span>
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            onApplyPrompt(ULTRA_PREMIUM_16K_PROMPT);
+                            if (!selectedEffectIds.includes('remaster16k')) {
+                                setSelectedEffectIds(prev => [...prev, 'remaster16k']);
+                            }
+                            if (onCreateVisual) {
+                                onCreateVisual(ULTRA_PREMIUM_16K_PROMPT);
+                            }
+                        }}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all active:scale-95 hover:scale-105"
                     >
                         <Sparkles size={14} className="text-slate-950" />
-                        <span>Selecionar Remaster 16K</span>
+                        <span>Gerar 4K (Gemini 3 Pro)</span>
                     </button>
                 </div>
             </div>
