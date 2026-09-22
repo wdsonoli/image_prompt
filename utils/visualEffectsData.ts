@@ -12,7 +12,9 @@ export type EffectCategory =
     | 'weather'
     | 'styles'
     | 'scenarios'
-    | 'quality';
+    | 'quality'
+    | 'portraits'
+    | 'lenses';
 
 export interface VisualEffect {
     id: string;
@@ -28,15 +30,17 @@ export interface VisualEffect {
 
 export const VISUAL_EFFECT_CATEGORIES = [
     { id: 'all', label: 'Todos os Efeitos', icon: 'Sparkles' },
+    { id: 'portraits', label: 'Ensaios Fotográficos', icon: 'User' },
+    { id: 'lenses', label: 'Lentes / Câmeras', icon: 'Aperture' },
+    { id: 'angles', label: 'Comandos de Enquadramento', icon: 'Camera' },
+    { id: 'lighting', label: 'Iluminação & Luz', icon: 'Sun' },
     { id: 'perspective', label: 'Perspectiva & Hacks', icon: 'Box' },
-    { id: 'angles', label: 'Ângulos & Posições', icon: 'Camera' },
     { id: 'movement', label: 'Movimento de Câmera', icon: 'Move' },
     { id: 'levels', label: 'Níveis de Câmera', icon: 'Layers' },
     { id: 'reveals', label: 'Revelações & Mistério', icon: 'Eye' },
-    { id: 'focus', label: 'Foco, Lentes & Óptica', icon: 'Maximize2' },
+    { id: 'focus', label: 'Foco & Óptica', icon: 'Maximize2' },
     { id: 'reflections', label: 'Reflexos & Clones', icon: 'Split' },
     { id: 'time', label: 'Ação & Congelamento', icon: 'Zap' },
-    { id: 'lighting', label: 'Luz, Flares & FX', icon: 'Sun' },
     { id: 'analog', label: 'Filme & Analógico', icon: 'Film' },
     { id: 'weather', label: 'Clima & Atmosfera', icon: 'CloudRain' },
     { id: 'styles', label: 'Estilos Artísticos & 3D', icon: 'Palette' },
@@ -226,8 +230,30 @@ export const VISUAL_EFFECTS: VisualEffect[] = [
     },
 
     // =========================================================================
-    // 2. ÂNGULOS & POSIÇÕES (Imagem 2 & 3)
+    // 2. COMANDOS DE ENQUADRAMENTO & ÂNGULOS (Imagem 1 & Ângulos de Câmera)
     // =========================================================================
+    {
+        id: 'topdown',
+        tag: '/topdown',
+        name: 'Top-Down (Zenital 90° Vista de Cima)',
+        category: 'angles',
+        categoryLabel: 'Comandos de Enquadramento',
+        description: 'Câmera posicionada diretamente no alto apontada para baixo em 90°, vista zenital aérea completa do sujeito na poltrona.',
+        promptToken: 'top-down zenith camera angle, 90-degree overhead shot looking directly down at subject seated in leather armchair, geometric composition, rich red and warm amber lighting',
+        gradient: 'from-red-950 via-amber-900 to-stone-900',
+        iconName: 'Camera'
+    },
+    {
+        id: 'sideview',
+        tag: '/sideview',
+        name: 'Side-View (Visão Lateral / Perfil 90°)',
+        category: 'angles',
+        categoryLabel: 'Comandos de Enquadramento',
+        description: 'Câmera em ângulo lateral de 90° capturando a postura meditativa, perfil esculpido e iluminação quente de recorte.',
+        promptToken: 'side-view profile angle, 90-degree lateral camera view of subject seated in armchair with hand on chin, dramatic moody red and amber key light',
+        gradient: 'from-amber-950 via-rose-950 to-neutral-900',
+        iconName: 'Camera'
+    },
     {
         id: 'frontview',
         tag: '/frontview',
@@ -370,6 +396,54 @@ export const VISUAL_EFFECTS: VisualEffect[] = [
         promptToken: 'cinematic POV perspective, moody film lighting, looking over dark architectural staircase railing, atmospheric noir mood',
         gradient: 'from-slate-800/50 to-amber-900/30',
         iconName: 'Camera'
+    },
+
+    // =========================================================================
+    // ENSAIOS FOTOGRÁFICOS & RETRATOS DE ALTA MODA (Envie seu Rosto)
+    // =========================================================================
+    {
+        id: 'editorialportrait',
+        tag: '/editorialportrait',
+        name: 'Editorial Portrait (Retrato Editorial de Alta Moda)',
+        category: 'portraits',
+        categoryLabel: 'Ensaios Fotográficos',
+        description: 'Ensaio fotográfico editorial refinado com fundo escuro, blazer preto e iluminação de estúdio de alta moda para capa de revista.',
+        promptToken: 'high-end editorial portrait photoshoot, sophisticated tailored black blazer over black mock turtleneck, clean dark minimalist studio backdrop, diffused key light, high fashion aesthetic, natural facial texture',
+        gradient: 'from-neutral-900 via-stone-900 to-black',
+        iconName: 'User'
+    },
+    {
+        id: 'fashioneditorial',
+        tag: '/fashioneditorial',
+        name: 'Fashion Editorial (Editorial de Moda Contemporâneo)',
+        category: 'portraits',
+        categoryLabel: 'Ensaios Fotográficos',
+        description: 'Fotografia de alta costura com corte moderno, postura marcante e atmosfera refinada de passarela.',
+        promptToken: 'contemporary fashion editorial photography, sleek tailored black jacket, sharp posture, high-fashion magazine styling, polished contrast and rich depth',
+        gradient: 'from-stone-900 via-zinc-900 to-neutral-950',
+        iconName: 'User'
+    },
+    {
+        id: 'candidportrait',
+        tag: '/candidportrait',
+        name: 'Candid Portrait (Retrato Cândido & Espontâneo)',
+        category: 'portraits',
+        categoryLabel: 'Ensaios Fotográficos',
+        description: 'Retrato espontâneo com pose orgânica (mão no queixo), olhar reflexivo e natural sem rigidez artificial.',
+        promptToken: 'candid portrait, natural spontaneous pose with hand resting gently on chin, authentic thoughtful facial expression, soft directional studio lighting, intimate atmosphere',
+        gradient: 'from-zinc-900 via-neutral-900 to-stone-900',
+        iconName: 'User'
+    },
+    {
+        id: 'lookbook',
+        tag: '/lookbook',
+        name: 'Lookbook (Estilo Catálogo / Revista de Moda)',
+        category: 'portraits',
+        categoryLabel: 'Ensaios Fotográficos',
+        description: 'Layout de catálogo de moda "LOOK BOOK TIMELESS STYLE MODERN MINDSET", tipografia editorial e composição de luxo.',
+        promptToken: 'luxury fashion lookbook magazine layout, modern catalogue styling with subtle "LOOK BOOK" graphic typography, sleek black suit, confident pose, polished high-fashion finish',
+        gradient: 'from-neutral-950 via-zinc-900 to-black',
+        iconName: 'User'
     },
 
     // =========================================================================
@@ -793,6 +867,50 @@ export const VISUAL_EFFECTS: VisualEffect[] = [
         promptToken: 'soft focus dreamscape, ethereal misty glow, diffused highlights, vintage glamour portrait filtration, romantic ambiance',
         gradient: 'from-emerald-500/30 to-amber-500/20',
         iconName: 'Eye'
+    },
+    {
+        id: 'lens35mm',
+        tag: '/35mm',
+        name: 'Lente 35mm (Perspectiva Documental & Carro)',
+        category: 'lenses',
+        categoryLabel: 'Lentes / Câmeras',
+        description: 'Lente grande-angular clássica 35mm para enquadramento documental: sujeito e cenário ao redor (carro clássico) em proporção equilibrada.',
+        promptToken: 'shot on 35mm prime lens, classic environmental documentary portrait, balanced proportion between subject and red vintage sports car in background, natural optical perspective',
+        gradient: 'from-red-900/40 via-neutral-900 to-black',
+        iconName: 'Aperture'
+    },
+    {
+        id: 'lens50mm',
+        tag: '/50mm',
+        name: 'Lente 50mm (Perspectiva Natural Olho Humano)',
+        category: 'lenses',
+        categoryLabel: 'Lentes / Câmeras',
+        description: 'Lente normal de 50mm reproduzindo a visão humana real: enquadramento de meio corpo equilibrado com separação suave do fundo.',
+        promptToken: 'shot on 50mm prime lens, natural human eye focal length, medium waist-up portrait in front of red classic sports car, organic depth of field, balanced focal length',
+        gradient: 'from-red-950/40 via-zinc-900 to-black',
+        iconName: 'Aperture'
+    },
+    {
+        id: 'lens85mm',
+        tag: '/85mm',
+        name: 'Lente 85mm (Teleobjetiva de Retrato & Bokeh Cremoso)',
+        category: 'lenses',
+        categoryLabel: 'Lentes / Câmeras',
+        description: 'Lente 85mm teleobjetiva de retrato: forte compressão de planos que aproxima o fundo com desfoque cremoso e isola o sujeito com nitidez cirúrgica.',
+        promptToken: 'shot on 85mm f/1.4 telephoto portrait lens, intense optical compression, creamy smooth background bokeh blur, subject isolation with tack-sharp focus, shallow depth of field',
+        gradient: 'from-rose-950/40 via-neutral-900 to-black',
+        iconName: 'Aperture'
+    },
+    {
+        id: 'fisheye',
+        tag: '/fisheye',
+        name: 'Lente Fisheye (Olho de Peixe 180° Curvado)',
+        category: 'lenses',
+        categoryLabel: 'Lentes / Câmeras',
+        description: 'Lente olho de peixe ultra grande-angular com forte distorção esférica hemisférica curva de 180°, sujeito no centro com arquitetura curvada.',
+        promptToken: 'shot on 8mm ultra-wide fisheye lens, 180-degree hemispherical curved barrel distortion, dramatic wide-angle perspective with centered subject in front of vintage car',
+        gradient: 'from-neutral-900 via-stone-900 to-red-950',
+        iconName: 'Aperture'
     },
     {
         id: 'fisheyeorbit',
@@ -1227,45 +1345,45 @@ export const VISUAL_EFFECTS: VisualEffect[] = [
     {
         id: 'goldenhour',
         tag: '/goldenhour',
-        name: 'Golden Hour (Hora de Ouro)',
+        name: 'Golden Hour (Luz Dourada Pôr do Sol)',
         category: 'lighting',
-        categoryLabel: 'Luz & Flares',
-        description: 'Luz quente, macia e avermelhada do pôr do sol, criando sombras longas e contornos dourados.',
-        promptToken: 'golden hour lighting, warm amber sunlight, soft elongated shadows, luminous warm rim light',
+        categoryLabel: 'Iluminação & Luz',
+        description: 'Luz quente, macia e avermelhada do pôr do sol entrando pela janela, criando sombras acolhedoras e brilho suave.',
+        promptToken: 'warm golden hour sunlight streaming through window, soft orange sunset glow, gentle warm shadows cast across face and white shirt, cinematic warm atmosphere',
         gradient: 'from-amber-500/40 to-yellow-600/30',
         iconName: 'Sun'
     },
     {
-        id: 'bluehour',
-        tag: '/bluehour',
-        name: 'Blue Hour (Hora Azul)',
+        id: 'softbox',
+        tag: '/softbox',
+        name: 'Softbox (Iluminação Difusa de Estúdio)',
         category: 'lighting',
-        categoryLabel: 'Luz & Flares',
-        description: 'Crepúsculo profundo com tons de azul marinho frio e luzes urbanas artificiais acesas.',
-        promptToken: 'blue hour twilight, deep indigo and navy atmospheric illumination, contrast of cool sky and warm city lights',
-        gradient: 'from-blue-800/40 to-indigo-900/40',
+        categoryLabel: 'Iluminação & Luz',
+        description: 'Luz suave e homogênea emitida por softbox de estúdio, eliminando sombras duras e proporcionando tonalidade limpa.',
+        promptToken: 'softbox studio lighting, perfectly diffused even light, soft gradual transition shadows, pristine natural skin tones, crisp white shirt portrait',
+        gradient: 'from-slate-700/50 to-amber-100/20',
         iconName: 'Sun'
-    },
-    {
-        id: 'neonlights',
-        tag: '/neonlights',
-        name: 'Neon Lights (Iluminação Neon)',
-        category: 'lighting',
-        categoryLabel: 'Luz & Flares',
-        description: 'Luzes de neon saturadas em tons de magenta, ciano e roxo com reflexos brilhantes.',
-        promptToken: 'vibrant neon lighting, dual-tone magenta and cyan glow, reflective surfaces, cyber aesthetic',
-        gradient: 'from-fuchsia-600/40 to-cyan-600/30',
-        iconName: 'Zap'
     },
     {
         id: 'rimlight',
         tag: '/rimlight',
-        name: 'Rim Light (Luz de Recorte / Silhueta)',
+        name: 'Rim Light (Luz de Borda & Halo Traseiro)',
         category: 'lighting',
-        categoryLabel: 'Luz & Flares',
-        description: 'Filete fino e brilhante de luz de contorno que recorta e separa o sujeito do fundo escuro.',
-        promptToken: 'crisp rim lighting, edge light tracing the silhouette, high contrast separation from dark background',
-        gradient: 'from-cyan-500/30 to-blue-600/20',
+        categoryLabel: 'Iluminação & Luz',
+        description: 'Filete marcante e brilhante de luz de contorno traseira desenhando as bordas dos ombros, pescoço e cabelo em fundo escuro.',
+        promptToken: 'dramatic rim light backlight, intense edge illumination tracing shoulders and hair, strong silhouette separation from dark backdrop, glowing warm rim halo',
+        gradient: 'from-amber-500/40 via-orange-600/30 to-neutral-900',
+        iconName: 'Sun'
+    },
+    {
+        id: 'hardlight',
+        tag: '/hardlight',
+        name: 'Hard Light (Luz Dura & Sombras Nítidas)',
+        category: 'lighting',
+        categoryLabel: 'Iluminação & Luz',
+        description: 'Luz direta e intensa com sombras duras recortadas e padrões geométricos projetados no rosto e camisa branca.',
+        promptToken: 'hard direct sunlight, crisp razor-sharp cast shadows, high contrast illumination, geometric shadow lines across face and white shirt, dramatic chiaroscuro',
+        gradient: 'from-amber-600/40 via-yellow-700/30 to-stone-900',
         iconName: 'Sun'
     },
     {
@@ -1448,8 +1566,21 @@ export const VISUAL_EFFECTS: VisualEffect[] = [
         promptToken: 'ultra-realistic photograph, photorealistic skin pores and natural micro textures, physically accurate optical rendering',
         gradient: 'from-amber-600/40 to-rose-600/30',
         iconName: 'Camera'
+    },
+    {
+        id: 'remaster16k',
+        tag: '/remaster16k',
+        name: 'Ultra-Premium 16K Remaster & Enhancement',
+        category: 'quality',
+        categoryLabel: 'Resolução & Qualidade',
+        description: 'Preservação fiel do sujeito e fundo original com super-resolução 16K, redução de ruído, nitidez óptica e fidelidade máxima.',
+        promptToken: 'Ultra-Premium 16K Professional Remaster & Enhancement. Preserve the image exactly as provided while dramatically improving quality, realism, sharpness, and clarity. Enhance only existing visible details — do not invent, generate, reconstruct, or add facial features, hair, beard strands, pores, wrinkles, clothing details, or textures not present in the source. Maintain the exact face, hairstyle, beard density, expression, skin tone, facial proportions, lighting, colors, clothing, and composition. Improve only through faithful super-resolution, natural sharpening, artifact removal, noise reduction, texture refinement, and realistic detail recovery. Preserve the original background exactly — do not replace, redesign, extend, reimagine, or add elements. Apply subtle improvements to clarity, textures, gradients, edges, lighting fidelity, and resolution while keeping the background visually identical. Professional camera realism, authentic optics, realistic dynamic range, premium color science, clean highlights, rich shadows, natural micro-contrast, crystal-clear focus, luxury commercial photography, medium-format fidelity, magazine-cover finish, production-ready 16K master.',
+        gradient: 'from-amber-500/40 via-yellow-600/30 to-neutral-900',
+        iconName: 'Sparkles'
     }
 ];
+
+export const ULTRA_PREMIUM_16K_PROMPT = `Ultra-Premium 16K Professional Remaster & Enhancement. Preserve the image exactly as provided while dramatically improving quality, realism, sharpness, and clarity. Enhance only existing visible details — do not invent, generate, reconstruct, or add facial features, hair, beard strands, pores, wrinkles, clothing details, or textures not present in the source. Maintain the exact face, hairstyle, beard density, expression, skin tone, facial proportions, lighting, colors, clothing, and composition. Improve only through faithful super-resolution, natural sharpening, artifact removal, noise reduction, texture refinement, and realistic detail recovery. Preserve the original background exactly — do not replace, redesign, extend, reimagine, or add elements. Apply subtle improvements to clarity, textures, gradients, edges, lighting fidelity, and resolution while keeping the background visually identical. Professional camera realism, authentic optics, realistic dynamic range, premium color science, clean highlights, rich shadows, natural micro-contrast, crystal-clear focus, luxury commercial photography, medium-format fidelity, magazine-cover finish, production-ready 16K master.`;
 
 export interface EffectPreset {
     id: string;
@@ -1461,6 +1592,46 @@ export interface EffectPreset {
 }
 
 export const EFFECT_PRESETS: EffectPreset[] = [
+    {
+        id: 'ultra_16k_remaster',
+        title: 'Ultra-Premium 16K Remaster & Enhancement',
+        description: 'Super-resolução 16K com fidelidade absoluta: preserva o rosto, pele, iluminação e fundo original sem alucinações.',
+        effectIds: ['remaster16k'],
+        tagDisplay: '/remaster16k /8k /ultrarealistic',
+        gradient: 'from-amber-500 via-yellow-600 to-stone-900'
+    },
+    {
+        id: 'framing_pack',
+        title: 'Comandos de Enquadramento',
+        description: 'Enquadramentos precisos na poltrona: /topdown, /lowangle, /closeup e /sideview.',
+        effectIds: ['topdown', 'lowangle', 'closeup', 'sideview'],
+        tagDisplay: '/topdown /lowangle /closeup /sideview',
+        gradient: 'from-red-950 via-amber-900 to-stone-900'
+    },
+    {
+        id: 'portraits_pack',
+        title: 'Ensaios Fotográficos (Envie seu Rosto)',
+        description: 'Alta costura e capas: /editorialportrait, /fashioneditorial, /candidportrait e /lookbook.',
+        effectIds: ['editorialportrait', 'fashioneditorial', 'candidportrait', 'lookbook'],
+        tagDisplay: '/editorialportrait /fashioneditorial /candidportrait /lookbook',
+        gradient: 'from-neutral-900 via-stone-800 to-black'
+    },
+    {
+        id: 'lighting_pack',
+        title: 'Iluminação & Luz da Imagem',
+        description: 'Controle de luz profissional: /goldenhour, /softbox, /rimlight e /hardlight.',
+        effectIds: ['goldenhour', 'softbox', 'rimlight', 'hardlight'],
+        tagDisplay: '/goldenhour /softbox /rimlight /hardlight',
+        gradient: 'from-amber-600 via-yellow-600 to-stone-900'
+    },
+    {
+        id: 'lenses_pack',
+        title: 'Lentes / Câmera',
+        description: 'Perspectivas e distorções ópticas: /35mm, /50mm, /85mm e /fisheye.',
+        effectIds: ['lens35mm', 'lens50mm', 'lens85mm', 'fisheye'],
+        tagDisplay: '/35mm /50mm /85mm /fisheye',
+        gradient: 'from-red-900 via-stone-900 to-black'
+    },
     {
         id: 'perspective_hacks_pack',
         title: 'Hacks de Perspectiva & Escala',

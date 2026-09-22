@@ -3,10 +3,11 @@ import {
     Sparkles, Camera, Sun, CloudRain, Palette, Film, Compass, Flame, 
     Search, Check, X, Copy, Zap, ArrowRight, Layers, RefreshCw, 
     Wand2, Eye, Tag, Info, Filter, CheckCircle2, ChevronRight, Sliders,
-    Box, Move, Split, Maximize2
+    Box, Move, Split, Maximize2, User, Aperture
 } from 'lucide-react';
 import { 
-    VISUAL_EFFECTS, VISUAL_EFFECT_CATEGORIES, EFFECT_PRESETS, VisualEffect, EffectCategory 
+    VISUAL_EFFECTS, VISUAL_EFFECT_CATEGORIES, EFFECT_PRESETS, VisualEffect, EffectCategory,
+    ULTRA_PREMIUM_16K_PROMPT
 } from '../utils/visualEffectsData';
 import { TargetPlatform } from '../types';
 
@@ -20,6 +21,98 @@ interface VisualEffectsTabProps {
     targetPlatform?: TargetPlatform;
     onSwitchToArchitect?: () => void;
 }
+
+interface FeaturedEffectItem {
+    id: string;
+    tag: string;
+    name: string;
+    desc: string;
+    angle: string;
+}
+
+interface FeaturedPack {
+    id: 'framing' | 'portraits' | 'lighting' | 'lenses';
+    title: string;
+    badge: string;
+    subtitle: string;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    accentColor: string;
+    gradient: string;
+    borderColor: string;
+    effectIds: string[];
+    items: FeaturedEffectItem[];
+}
+
+const FEATURED_PACKS: FeaturedPack[] = [
+    {
+        id: 'framing',
+        title: 'Comandos de Enquadramento',
+        badge: 'Ângulos & Poltrona',
+        subtitle: 'Enquadramentos precisos do sujeito na poltrona clássica',
+        icon: Camera,
+        accentColor: 'text-amber-400',
+        gradient: 'from-amber-950/60 via-red-950/40 to-stone-900',
+        borderColor: 'border-amber-600/40',
+        effectIds: ['topdown', 'lowangle', 'closeup', 'sideview'],
+        items: [
+            { id: 'topdown', tag: '/topdown', name: 'Top-Down', desc: 'Zenital 90° diretamente de cima com vista aérea vertical', angle: 'Zenital 90°' },
+            { id: 'lowangle', tag: '/lowangle', name: 'Low Angle', desc: 'Câmera no chão apontando para cima com imponência', angle: 'Contra-Plongée' },
+            { id: 'closeup', tag: '/closeup', name: 'Close-Up', desc: 'Plano fechado no rosto capturando olhar e expressão', angle: 'Detalhes' },
+            { id: 'sideview', tag: '/sideview', name: 'Side-View', desc: 'Visão lateral 90° meditativa com mão no queixo', angle: 'Perfil 90°' },
+        ]
+    },
+    {
+        id: 'portraits',
+        title: 'Ensaios Fotográficos',
+        badge: 'Envie seu Rosto',
+        subtitle: 'Envie uma foto do seu rosto e o comando para ensaios de alta moda',
+        icon: User,
+        accentColor: 'text-slate-200',
+        gradient: 'from-zinc-950 via-stone-900 to-black',
+        borderColor: 'border-zinc-600/40',
+        effectIds: ['editorialportrait', 'fashioneditorial', 'candidportrait', 'lookbook'],
+        items: [
+            { id: 'editorialportrait', tag: '/editorialportrait', name: 'Editorial Portrait', desc: 'Blazer preto sob medida, fundo escuro e iluminação de revista', angle: 'Capa Editorial' },
+            { id: 'fashioneditorial', tag: '/fashioneditorial', name: 'Fashion Editorial', desc: 'Editorial contemporâneo de passarela com postura marcante', angle: 'Alta Costura' },
+            { id: 'candidportrait', tag: '/candidportrait', name: 'Candid Portrait', desc: 'Retrato espontâneo com mão no queixo e olhar reflexivo', angle: 'Espontâneo' },
+            { id: 'lookbook', tag: '/lookbook', name: 'Lookbook', desc: 'Estilo catálogo moderno com layout gráfico "LOOK BOOK"', angle: 'Catálogo de Luxo' },
+        ]
+    },
+    {
+        id: 'lighting',
+        title: 'ILUMINAÇÃO',
+        badge: 'Luz da Fotografia',
+        subtitle: 'Comandos para transformar a iluminação da imagem',
+        icon: Sun,
+        accentColor: 'text-orange-400',
+        gradient: 'from-amber-950/70 via-orange-950/50 to-stone-900',
+        borderColor: 'border-orange-600/40',
+        effectIds: ['goldenhour', 'softbox', 'rimlight', 'hardlight'],
+        items: [
+            { id: 'goldenhour', tag: '/goldenhour', name: 'Golden Hour', desc: 'Luz dourada quente do pôr do sol entrando pela janela', angle: 'Pôr do Sol' },
+            { id: 'softbox', tag: '/softbox', name: 'Softbox', desc: 'Iluminação difusa de estúdio uniforme sem sombras duras', angle: 'Luz Suave' },
+            { id: 'rimlight', tag: '/rimlight', name: 'Rim Light', desc: 'Luz de contorno traseiro brilhante desenhando a silhueta', angle: 'Luz de Borda' },
+            { id: 'hardlight', tag: '/hardlight', name: 'Hard Light', desc: 'Luz direta e sombras nítidas geométricas projetadas no rosto', angle: 'Alto Contraste' },
+        ]
+    },
+    {
+        id: 'lenses',
+        title: 'LENTES / CAMERA',
+        badge: 'Óptica & Distorção',
+        subtitle: 'Comandos para mudar a lente óptica da fotografia',
+        icon: Aperture,
+        accentColor: 'text-rose-400',
+        gradient: 'from-red-950/60 via-zinc-950 to-black',
+        borderColor: 'border-red-700/40',
+        effectIds: ['lens35mm', 'lens50mm', 'lens85mm', 'fisheye'],
+        items: [
+            { id: 'lens35mm', tag: '/35mm', name: 'Lente 35mm', desc: 'Grande-angular documental: sujeito e carro clássico em equilíbrio', angle: '35mm Prime' },
+            { id: 'lens50mm', tag: '/50mm', name: 'Lente 50mm', desc: 'Campo de visão natural do olho humano em meio corpo', angle: '50mm Normal' },
+            { id: 'lens85mm', tag: '/85mm', name: 'Lente 85mm', desc: 'Teleobjetiva de retrato com fundo aproximado e bokeh cremoso', angle: '85mm Tele' },
+            { id: 'fisheye', tag: '/fisheye', name: 'Lente Fisheye', desc: 'Olho de peixe 180° com distorção esférica hemisférica acentuada', angle: 'Fisheye 180°' },
+        ]
+    }
+];
 
 export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
     onApplyPrompt,
@@ -35,6 +128,7 @@ export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
     const [selectedEffectIds, setSelectedEffectIds] = useState<string[]>([
         'forcedperspective', 'leadinglines', 'depthshot', '8k'
     ]);
+    const [activeFeaturedPack, setActiveFeaturedPack] = useState<'framing' | 'portraits' | 'lighting' | 'lenses'>('framing');
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [includeColon, setIncludeColon] = useState<boolean>(false); // Alternar entre /tag e /tag:
@@ -167,6 +261,8 @@ export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
 
     const renderCategoryIcon = (catId: string) => {
         switch (catId) {
+            case 'portraits': return <User size={13} />;
+            case 'lenses': return <Aperture size={13} />;
             case 'perspective': return <Box size={13} />;
             case 'angles': return <Camera size={13} />;
             case 'movement': return <Move size={13} />;
@@ -188,6 +284,8 @@ export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
 
     const renderEffectIcon = (iconName: string) => {
         switch (iconName) {
+            case 'User': return <User size={13} />;
+            case 'Aperture': return <Aperture size={13} />;
             case 'Box': return <Box size={13} />;
             case 'Move': return <Move size={13} />;
             case 'Layers': return <Layers size={13} />;
@@ -253,6 +351,195 @@ export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
                         </button>
                     )}
                 </div>
+            </div>
+
+            {/* BOTÃO MASTER: ULTRA-PREMIUM 16K PROFESSIONAL REMASTER & ENHANCEMENT */}
+            <div className="p-3.5 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/80 via-stone-900 to-yellow-950/60 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
+                    <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0 mt-0.5">
+                        <Sparkles size={20} />
+                    </div>
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-black text-amber-300 uppercase tracking-wide">
+                                Ultra-Premium 16K Professional Remaster & Enhancement
+                            </span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-500/30 font-bold">
+                                16K Master Fiel
+                            </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-relaxed max-w-2xl">
+                            Preserva a imagem exatamente como fornecida (rosto, expressão, cabelo, iluminação e fundo) aplicando super-resolução, nitidez óptica e micro-contraste sem alucinações.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                    <button
+                        onClick={() => {
+                            onApplyPrompt(ULTRA_PREMIUM_16K_PROMPT);
+                            if (!selectedEffectIds.includes('remaster16k')) {
+                                setSelectedEffectIds(prev => [...prev, 'remaster16k']);
+                            }
+                        }}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all active:scale-95 hover:scale-105"
+                    >
+                        <Sparkles size={14} className="text-slate-950" />
+                        <span>Selecionar Remaster 16K</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* COLEÇÃO ESPECIAL DE FOTOGRAFIA & ENSAIOS (Referência das Imagens) */}
+            <div className="space-y-3 p-3.5 bg-slate-950/80 rounded-2xl border border-violet-500/20 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-gradient-to-br from-amber-500/20 to-violet-500/20 text-amber-300 border border-amber-500/30">
+                            <Sparkles size={14} />
+                        </div>
+                        <div>
+                            <div className="text-xs font-bold text-white flex items-center gap-2">
+                                <span>Coleções Exclusivas de Fotografia</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-mono border border-violet-500/30">
+                                    4 Novos Packs
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400">
+                                Enquadramento, Ensaios de Rosto, Iluminação de Estúdio & Lentes Ópticas
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Abas das 4 Coleções Especiais */}
+                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                        {FEATURED_PACKS.map(pack => {
+                            const isTabActive = activeFeaturedPack === pack.id;
+                            const IconComponent = pack.icon;
+                            return (
+                                <button
+                                    key={pack.id}
+                                    onClick={() => setActiveFeaturedPack(pack.id)}
+                                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border ${
+                                        isTabActive
+                                            ? 'bg-slate-800 text-white border-violet-400 shadow-md ring-1 ring-violet-400/40'
+                                            : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700'
+                                    }`}
+                                >
+                                    <IconComponent size={13} className={pack.accentColor} />
+                                    <span>{pack.title}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Exibição do Pack Selecionado */}
+                {(() => {
+                    const currentPack = FEATURED_PACKS.find(p => p.id === activeFeaturedPack) || FEATURED_PACKS[0];
+                    const PackIcon = currentPack.icon;
+                    const allSelectedInPack = currentPack.effectIds.every(id => selectedEffectIds.includes(id));
+
+                    return (
+                        <div className={`p-3.5 rounded-xl border ${currentPack.borderColor} bg-gradient-to-br ${currentPack.gradient} space-y-3 transition-all relative overflow-hidden`}>
+                            {/* Header do Pack */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 relative z-10">
+                                <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                        <PackIcon size={16} className={currentPack.accentColor} />
+                                        <h3 className="text-sm font-black text-white tracking-wide uppercase">
+                                            {currentPack.title}
+                                        </h3>
+                                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/10 text-slate-200 border border-white/10">
+                                            {currentPack.badge}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-300 font-medium">
+                                        {currentPack.subtitle}
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <button
+                                        onClick={() => {
+                                            if (allSelectedInPack) {
+                                                setSelectedEffectIds(prev => prev.filter(id => !currentPack.effectIds.includes(id)));
+                                            } else {
+                                                setSelectedEffectIds(prev => Array.from(new Set([...prev, ...currentPack.effectIds])));
+                                            }
+                                        }}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border shadow-sm ${
+                                            allSelectedInPack
+                                                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
+                                                : 'bg-violet-600 hover:bg-violet-500 text-white border-violet-400'
+                                        }`}
+                                    >
+                                        <CheckCircle2 size={13} />
+                                        <span>{allSelectedInPack ? 'Desmarcar Pack' : 'Selecionar os 4 Comandos'}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Dica contextual de uso */}
+                            {currentPack.id === 'portraits' && (
+                                <div className="p-2 rounded-lg bg-black/40 border border-white/10 text-[11px] text-amber-200/90 flex items-center gap-2">
+                                    <User size={14} className="text-amber-400 shrink-0" />
+                                    <span>
+                                        <strong>Dica Pro:</strong> Envie uma foto do seu rosto no carregador de imagem e adicione um destes comandos para gerar seu ensaio editorial com alta fidelidade facial!
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Grid 4 Cards no estilo exato da folha de referência */}
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 relative z-10">
+                                {currentPack.items.map(item => {
+                                    const isSelected = selectedEffectIds.includes(item.id);
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => handleToggleEffect(item.id)}
+                                            className={`p-3 rounded-xl border text-left transition-all duration-200 flex flex-col justify-between group relative overflow-hidden ${
+                                                isSelected
+                                                    ? 'bg-black/90 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400'
+                                                    : 'bg-black/60 border-white/10 hover:border-white/30 hover:bg-black/80'
+                                            }`}
+                                        >
+                                            <div className="space-y-1.5 mb-3">
+                                                <div className="flex items-center justify-between text-[10px]">
+                                                    <span className="font-mono text-slate-400 uppercase tracking-wider">
+                                                        {item.angle}
+                                                    </span>
+                                                    <div className={`w-4 h-4 rounded-full flex items-center justify-center border transition-all ${
+                                                        isSelected
+                                                            ? 'bg-cyan-500 border-cyan-300 text-slate-950 font-bold'
+                                                            : 'border-slate-700 bg-slate-900 text-transparent'
+                                                    }`}>
+                                                        <Check size={10} className={isSelected ? 'block' : 'hidden'} />
+                                                    </div>
+                                                </div>
+                                                <h4 className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors">
+                                                    {item.name}
+                                                </h4>
+                                                <p className="text-[10px] text-slate-400 line-clamp-2 leading-tight">
+                                                    {item.desc}
+                                                </p>
+                                            </div>
+
+                                            {/* Tag Pill Style ChatGPT / OpenAI como na foto original */}
+                                            <div className={`px-2.5 py-1 rounded-full border text-[11px] font-mono font-black flex items-center justify-center gap-1.5 transition-all ${
+                                                isSelected
+                                                    ? 'bg-cyan-400 text-slate-950 border-cyan-300 shadow-md font-extrabold'
+                                                    : 'bg-zinc-900/90 text-cyan-300 border-zinc-700/80 group-hover:border-cyan-400/60'
+                                            }`}>
+                                                <Sparkles size={11} className={isSelected ? 'text-slate-950' : 'text-cyan-400'} />
+                                                <span>{formatTag(item.tag)}</span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Presets Rápidos de 1 Clique */}

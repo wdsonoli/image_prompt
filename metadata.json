@@ -1,6 +1,6 @@
 {
   "name": "Image prompt 2.5",
-  "description": "Advanced image-to-prompt generator with multi-vision intelligence suite (Gemini, GPT-4o, Claude 3.7, DeepSeek, Midjourney describe, Flux.1, Ideogram 2.0, Consensus Ensemble), 105+ photographic effects & camera angles gallery (/forcedperspective, /bulletfreeze, /prismflare, /puddleframe, /cameraarc), background element extraction, side-by-side comparison, and visual generation.",
+  "description": "Advanced image-to-prompt generator with multi-vision suite (Gemini, GPT-4o, Claude 3.7, Flux.1, Midjourney describe), 120+ photographic effects with special collections for framing (/topdown, /sideview), fashion photoshoots (/editorialportrait, /lookbook), lighting (/softbox, /hardlight), and optical lenses (/35mm, /85mm, /fisheye).",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

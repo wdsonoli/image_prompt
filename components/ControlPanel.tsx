@@ -13,6 +13,7 @@ import {
     Wind, Layers, Boxes, Target, Image as ImageIcon, Flame, Compass, Scan
 } from 'lucide-react';
 import { Tooltip } from './Tooltip';
+import { ULTRA_PREMIUM_16K_PROMPT } from '../utils/visualEffectsData';
 
 interface ControlPanelProps {
     settings: PromptSettings;
@@ -641,7 +642,37 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 </div>
             </div>
 
-            <div className="pt-4 mt-auto">
+            <div className="pt-4 mt-auto space-y-2">
+                <button
+                    onClick={() => {
+                        const current = settings.basePrompt || '';
+                        if (current.includes('Ultra-Premium 16K Professional Remaster')) {
+                            const cleaned = current
+                                .replace(ULTRA_PREMIUM_16K_PROMPT, '')
+                                .replace(/Ultra-Premium 16K Professional Remaster & Enhancement[\s\S]*?production-ready 16K master\./gi, '')
+                                .trim();
+                            handleChange('basePrompt', cleaned);
+                        } else if (!current.trim()) {
+                            handleChange('basePrompt', ULTRA_PREMIUM_16K_PROMPT);
+                        } else {
+                            handleChange('basePrompt', current.trim() + '\n\n' + ULTRA_PREMIUM_16K_PROMPT);
+                        }
+                    }}
+                    className={`w-full py-2.5 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2 border shadow-md ${
+                        settings.basePrompt?.includes('Ultra-Premium 16K Professional Remaster')
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold shadow-amber-500/20'
+                            : 'bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-stone-900 border-amber-500/40 text-amber-300 hover:text-white hover:bg-amber-500/20'
+                    }`}
+                    title="Ultra-Premium 16K Professional Remaster & Enhancement"
+                >
+                    <Sparkles size={14} className={settings.basePrompt?.includes('Ultra-Premium 16K Professional Remaster') ? 'text-slate-950 animate-pulse' : 'text-amber-400'} />
+                    <span>
+                        {settings.basePrompt?.includes('Ultra-Premium 16K Professional Remaster')
+                            ? '✓ 16K Remaster Ativo'
+                            : 'Ultra-Premium 16K Remaster'}
+                    </span>
+                </button>
+
                 <button 
                     onClick={onGenerate} 
                     className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg font-black text-xs shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95 uppercase tracking-widest"
