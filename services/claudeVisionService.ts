@@ -124,8 +124,8 @@ Return ONLY the final prompt text without meta-commentary or markdown conversati
 
     // 2. High-fidelity Claude Vision prompt architecture powered by Gemini backend
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+    let response;
+    const requestPayload = {
         contents: {
             parts: [
                 {
@@ -142,7 +142,20 @@ Return ONLY the final prompt text without meta-commentary or markdown conversati
         config: {
             temperature: 0.5,
         }
-    });
+    };
+
+    try {
+        response = await ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            ...requestPayload
+        });
+    } catch (flashErr) {
+        console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
+        response = await ai.models.generateContent({
+            model: 'gemini-3.5-flash',
+            ...requestPayload
+        });
+    }
 
     if (!response.text) throw new Error("Claude Vision returned an empty response.");
     return response.text.trim();

@@ -49,8 +49,8 @@ FORMAT RULES:
    ${isRemoveBranding ? '--no text, logo, brand, watermark, label' : ''}
 7. Return ONLY the raw prompt. Do NOT wrap in quotes, do NOT write markdown headings or explanations.`;
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+    let response;
+    const requestPayload = {
         contents: {
             parts: [
                 {
@@ -67,7 +67,20 @@ FORMAT RULES:
         config: {
             temperature: 0.6,
         }
-    });
+    };
+
+    try {
+        response = await ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            ...requestPayload
+        });
+    } catch (flashErr) {
+        console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
+        response = await ai.models.generateContent({
+            model: 'gemini-3.5-flash',
+            ...requestPayload
+        });
+    }
 
     if (!response.text) throw new Error("Midjourney Vision returned an empty response.");
     return response.text.trim();

@@ -60,8 +60,8 @@ ${isRemoveBranding ? 'Directive: UNBRANDED CLEAN PRODUCT - NO LOGOS, NO LABELS, 
 
 FORMAT RULE: Output ONLY the synthesized master prompt ready for production generation, with no introductory text or markdown labels.`;
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+    let response;
+    const requestPayload = {
         contents: {
             parts: [
                 {
@@ -78,7 +78,20 @@ FORMAT RULE: Output ONLY the synthesized master prompt ready for production gene
         config: {
             temperature: 0.6,
         }
-    });
+    };
+
+    try {
+        response = await ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            ...requestPayload
+        });
+    } catch (flashErr) {
+        console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
+        response = await ai.models.generateContent({
+            model: 'gemini-3.5-flash',
+            ...requestPayload
+        });
+    }
 
     if (!response.text) throw new Error("Consenso Multi-Visão returned an empty response.");
     return response.text.trim();

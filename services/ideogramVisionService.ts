@@ -49,8 +49,8 @@ Analyze the image specifically looking for:
 6. Target style: ${settings.style}.
 7. Return ONLY the raw prompt optimized for Ideogram 2.0.`;
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+    let response;
+    const requestPayload = {
         contents: {
             parts: [
                 {
@@ -67,7 +67,20 @@ Analyze the image specifically looking for:
         config: {
             temperature: 0.5,
         }
-    });
+    };
+
+    try {
+        response = await ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            ...requestPayload
+        });
+    } catch (flashErr) {
+        console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
+        response = await ai.models.generateContent({
+            model: 'gemini-3.5-flash',
+            ...requestPayload
+        });
+    }
 
     if (!response.text) throw new Error("Ideogram Vision returned an empty response.");
     return response.text.trim();

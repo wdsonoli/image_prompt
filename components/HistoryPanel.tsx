@@ -53,12 +53,12 @@ const HistoryItemCard: React.FC<{ item: HistoryItem, onRevisit: (id: string) => 
             </div>
             <div className="bg-slate-900/50 px-3 py-2 border-t border-slate-700 flex justify-between items-center">
                 <span className="text-slate-500 text-[10px] font-mono">{timeAgo(item.timestamp)}</span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                     <Tooltip content="Revisit this state">
-                        <button onClick={() => onRevisit(item.id)} className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded-md transition-colors"><Eye size={14} /></button>
+                        <button onClick={() => onRevisit(item.id)} className="p-2 sm:p-1.5 text-slate-400 hover:text-blue-400 hover:bg-slate-700 rounded-md transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"><Eye size={15} /></button>
                     </Tooltip>
                      <Tooltip content="Delete this item">
-                        <button onClick={() => onDelete(item.id)} className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-md transition-colors"><Trash size={14} /></button>
+                        <button onClick={() => onDelete(item.id)} className="p-2 sm:p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-md transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"><Trash size={15} /></button>
                     </Tooltip>
                 </div>
             </div>

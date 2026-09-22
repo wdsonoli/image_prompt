@@ -815,42 +815,44 @@ const App: React.FC = () => {
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
             <header className="bg-slate-900/50 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-gradient-to-br from-blue-500 to-violet-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
-                            <Zap size={24} className="text-white" />
+                <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <div className="bg-gradient-to-br from-blue-500 to-violet-600 p-1.5 sm:p-2 rounded-lg shadow-lg shadow-blue-500/20">
+                            <Zap size={20} className="text-white sm:w-6 sm:h-6" />
                         </div>
-                        <h1 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400 tracking-tight">VPA v2.5</h1>
+                        <h1 className="text-lg sm:text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400 tracking-tight">VPA v2.5</h1>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         <button
                             onClick={() => setIsGemini3ProModalOpen(true)}
-                            className="flex items-center gap-2 px-3.5 py-2 text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 rounded-lg shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
+                            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 text-xs font-black text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 rounded-lg shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer min-h-[38px]"
                             title="Abrir Gerador de Imagem Gemini 3 Pro 4K"
                         >
-                            <Sparkles size={15} className="text-slate-950" />
-                            <span>Gerador Gemini 3 Pro 4K</span>
+                            <Sparkles size={14} className="text-slate-950 shrink-0" />
+                            <span className="hidden sm:inline">Gerador Gemini 3 Pro 4K</span>
+                            <span className="sm:hidden font-extrabold">Gemini 4K</span>
                         </button>
                         <button 
                             onClick={() => setIsHistoryOpen(true)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-slate-300 bg-slate-800/80 border border-slate-700 rounded-lg hover:bg-slate-700 transition-all active:scale-95"
+                            className="flex items-center justify-center gap-2 p-2 sm:px-3 sm:py-2 text-sm font-bold text-slate-300 bg-slate-800/80 border border-slate-700 rounded-lg hover:bg-slate-700 transition-all active:scale-95 min-h-[38px] min-w-[38px]"
                             title="Histórico"
                         >
                             <History size={16} />
+                            <span className="hidden md:inline text-xs">Histórico</span>
                         </button>
                     </div>
                 </div>
             </header>
 
-            <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
+            <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-4 py-4 sm:py-8">
                 {error && (
-                    <div className="mb-6 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300">
-                        <span className="text-xs font-bold uppercase tracking-wider">{error}</span>
+                    <div className="mb-4 sm:mb-6 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-300 text-xs font-bold uppercase tracking-wider">
+                        <span>{error}</span>
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                    <div className="lg:col-span-5 space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+                    <div className="lg:col-span-5 space-y-5 sm:space-y-6">
                         {!activeImage ? (
                             <DropZone 
                                 onFilesSelected={handleFilesSelected} 
@@ -880,10 +882,10 @@ const App: React.FC = () => {
 
                     <div className="lg:col-span-7">
                         {/* Tab Switcher: Arquiteto vs Galeria de Efeitos */}
-                        <div className="flex items-center gap-2 p-1.5 bg-slate-900/90 border border-slate-800 rounded-xl mb-6 backdrop-blur-md shadow-lg">
+                        <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-slate-900/90 border border-slate-800 rounded-xl mb-5 sm:mb-6 backdrop-blur-md shadow-lg">
                             <button 
                                 onClick={() => setActiveControlTab('architect')}
-                                className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+                                className={`flex-1 py-2 sm:py-2.5 px-2.5 sm:px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all min-h-[40px] ${
                                     activeControlTab === 'architect' 
                                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25 ring-1 ring-blue-400' 
                                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -894,16 +896,16 @@ const App: React.FC = () => {
                             </button>
                             <button 
                                 onClick={() => setActiveControlTab('effects')}
-                                className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all relative ${
+                                className={`flex-1 py-2 sm:py-2.5 px-2.5 sm:px-4 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[40px] ${
                                     activeControlTab === 'effects' 
                                         ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 ring-1 ring-violet-400' 
                                         : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                                 }`}
                             >
                                 <Sparkles size={15} className={activeControlTab === 'effects' ? 'text-amber-300' : 'text-violet-400'} />
-                                <span>Efeitos Visuais (/tags)</span>
-                                <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-violet-400/20 text-violet-200 border border-violet-400/30">
-                                    80+ Efeitos
+                                <span>Efeitos Visuais</span>
+                                <span className="hidden sm:inline-block px-2 py-0.5 text-[9px] font-black rounded-full bg-violet-400/20 text-violet-200 border border-violet-400/30">
+                                    80+
                                 </span>
                             </button>
                         </div>

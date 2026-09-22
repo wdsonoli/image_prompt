@@ -54,8 +54,8 @@ export const analyzeWithWhisk = async (
         const creativeDirectives = [lightingInstruction, angleInstruction, positionInstruction].filter(Boolean).join('\n');
 
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+        let response;
+        const requestPayload = {
             contents: {
                 parts: [
                     {
@@ -83,7 +83,20 @@ export const analyzeWithWhisk = async (
                     }
                 ]
             }
-        });
+        };
+
+        try {
+            response = await ai.models.generateContent({
+                model: 'gemini-3.8-flash',
+                ...requestPayload
+            });
+        } catch (flashErr) {
+            console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
+            response = await ai.models.generateContent({
+                model: 'gemini-3.5-flash',
+                ...requestPayload
+            });
+        }
 
         return response.text?.trim() || "Whisk analysis failed.";
     } catch (error) {

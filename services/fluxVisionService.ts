@@ -44,8 +44,8 @@ PROMPT CRITERIA:
 6. Camera angle: ${settings.cameraAngle !== 'none' ? settings.cameraAngle.replace(/_/g, ' ') : 'eye-level candid perspective'}
 7. Return ONLY the final prompt text in English, ready to paste into Flux.1.`;
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+    let response;
+    const requestPayload = {
         contents: {
             parts: [
                 {
@@ -62,7 +62,20 @@ PROMPT CRITERIA:
         config: {
             temperature: 0.5,
         }
-    });
+    };
+
+    try {
+        response = await ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            ...requestPayload
+        });
+    } catch (flashErr) {
+        console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
+        response = await ai.models.generateContent({
+            model: 'gemini-3.5-flash',
+            ...requestPayload
+        });
+    }
 
     if (!response.text) throw new Error("Flux.1 Vision returned an empty response.");
     return response.text.trim();

@@ -341,7 +341,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                 <div
                     id="dropzone-file-area"
                     className={`
-                        relative border-2 border-dashed m-4 rounded-xl p-8 sm:p-10 text-center transition-all duration-300 group
+                        relative border-2 border-dashed m-2.5 sm:m-4 rounded-xl p-5 sm:p-10 text-center transition-all duration-300 group
                         ${isDragOver
                             ? 'border-blue-500 bg-blue-500/10 scale-[0.99]'
                             : 'border-slate-700 hover:border-blue-400 hover:bg-slate-800/40 bg-slate-800/10'
@@ -361,18 +361,18 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                         onChange={handleFileChange}
                     />
 
-                    <div className="flex flex-col items-center justify-center space-y-4">
+                    <div className="flex flex-col items-center justify-center space-y-3 sm:space-y-4">
                         <div
                             onClick={() => fileInputRef.current?.click()}
-                            className={`p-4 rounded-full bg-slate-800 border border-slate-700 transition-transform duration-300 cursor-pointer ${
+                            className={`p-3.5 sm:p-4 rounded-full bg-slate-800 border border-slate-700 transition-transform duration-300 cursor-pointer ${
                                 isDragOver ? 'scale-110 text-blue-400 border-blue-500' : 'text-slate-400 group-hover:text-blue-400 group-hover:border-blue-500/50'
                             }`}
                         >
-                            {isDragOver ? <Upload size={38} className="animate-bounce" /> : <ImageIcon size={38} />}
+                            {isDragOver ? <Upload size={32} className="animate-bounce sm:w-[38px] sm:h-[38px]" /> : <ImageIcon size={32} className="sm:w-[38px] sm:h-[38px]" />}
                         </div>
 
                         <div>
-                            <h3 className="text-base sm:text-lg font-bold text-slate-200 mb-1">
+                            <h3 className="text-sm sm:text-lg font-bold text-slate-200 mb-1">
                                 {isDragOver ? 'Solte as imagens aqui' : 'Arraste e solte imagens ou arquivos aqui'}
                             </h3>
                             <p className="text-slate-400 text-xs sm:text-sm">
@@ -380,22 +380,22 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                             </p>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 sm:gap-3 pt-1 w-full max-w-sm sm:max-w-none">
                             <button
                                 id="btn-select-files"
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs sm:text-sm transition-all shadow-lg shadow-blue-600/20 active:scale-95 flex items-center gap-2"
+                                className="px-5 py-3 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs sm:text-sm transition-all shadow-lg shadow-blue-600/20 active:scale-95 flex items-center justify-center gap-2 min-h-[44px]"
                             >
                                 <Upload size={16} />
-                                Selecionar do Computador
+                                <span>Selecionar do Aparelho</span>
                             </button>
 
                             <button
                                 id="btn-paste-clipboard-image"
                                 type="button"
                                 onClick={handlePasteImageFromClipboard}
-                                className={`px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all border flex items-center gap-2 active:scale-95 ${
+                                className={`px-4 py-3 sm:py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all border flex items-center justify-center gap-2 active:scale-95 min-h-[44px] ${
                                     filePasteFeedback
                                         ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300'
                                         : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:border-blue-500/50'
@@ -422,16 +422,16 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                                     setActiveTab('link');
                                     setTimeout(() => urlInputRef.current?.focus(), 100);
                                 }}
-                                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs sm:text-sm transition-all border border-slate-700 flex items-center gap-2 active:scale-95"
+                                className="px-4 py-3 sm:py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs sm:text-sm transition-all border border-slate-700 flex items-center justify-center gap-2 active:scale-95 min-h-[44px]"
                             >
                                 <Link2 size={16} />
-                                Usar Link / URL
+                                <span>Usar Link / URL</span>
                             </button>
                         </div>
 
-                        <div className="pt-2 text-[11px] text-slate-400 flex items-center gap-1.5 bg-slate-950/40 px-3 py-1.5 rounded-lg border border-slate-800">
+                        <div className="pt-2 text-[10px] sm:text-[11px] text-slate-400 flex items-center gap-1.5 bg-slate-950/40 px-3 py-1.5 rounded-lg border border-slate-800">
                             <Sparkles size={13} className="text-blue-400 shrink-0" />
-                            <span>Pressione <strong>Ctrl+V</strong> (ou <strong>Cmd+V</strong>) em qualquer lugar para colar imagens direto da área de transferência</span>
+                            <span>Pressione <strong>Ctrl+V</strong> (ou toque em Colar Imagem) para importar da área de transferência</span>
                         </div>
                     </div>
                 </div>
@@ -439,7 +439,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
 
             {/* Conteúdo da Aba 2: Enviar via Link */}
             {activeTab === 'link' && (
-                <div id="dropzone-link-area" className="p-6 sm:p-8 space-y-5 animate-in fade-in duration-200">
+                <div id="dropzone-link-area" className="p-4 sm:p-8 space-y-4 sm:space-y-5 animate-in fade-in duration-200">
                     <div className="text-center sm:text-left">
                         <div className="flex items-center gap-2 justify-center sm:justify-start mb-1">
                             <Globe size={18} className="text-blue-400" />
@@ -453,13 +453,13 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                     </div>
 
                     {/* Barra de Ação Rápida: Colar com 1 Clique e Autorização */}
-                    <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                    <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
                         <button
                             id="btn-prominent-paste-click"
                             type="button"
                             onClick={() => handlePasteFromClipboard(true)}
                             disabled={isLoadingUrl || isReadingClipboard}
-                            className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 border ${
+                            className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 border min-h-[42px] ${
                                 pasteSuccess
                                     ? 'bg-emerald-600/30 border-emerald-500 text-emerald-200 shadow-emerald-600/20'
                                     : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white border-blue-500/50 shadow-blue-500/25'
@@ -488,7 +488,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                             id="btn-toggle-paste-on-click"
                             type="button"
                             onClick={togglePasteOnClick}
-                            className={`px-3 py-2 rounded-xl text-xs font-medium border flex items-center gap-2 transition-all ${
+                            className={`px-3 py-2 rounded-xl text-xs font-medium border flex items-center justify-center gap-2 transition-all min-h-[40px] ${
                                 pasteOnClickEnabled
                                     ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/40'
                                     : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -496,7 +496,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                             title="Clique para ativar/desativar a colagem automática ao clicar dentro do campo de texto"
                         >
                             <ShieldCheck size={15} className={pasteOnClickEnabled ? 'text-emerald-400' : 'text-slate-500'} />
-                            <span>Colar ao clicar no campo: <strong className="uppercase font-bold tracking-wide">{pasteOnClickEnabled ? 'Autorizado' : 'Inativo'}</strong></span>
+                            <span>Colar ao clicar no campo: <strong className="uppercase font-bold tracking-wide">{pasteOnClickEnabled ? 'ON' : 'OFF'}</strong></span>
                         </button>
                     </div>
 
@@ -577,11 +577,11 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                                     }
                                 }}
                                 disabled={isLoadingUrl}
-                                placeholder={pasteOnClickEnabled ? "Clique para colar link automaticamente (ou digite uma URL)" : "Cole aqui o link da imagem (ex: https://...)"}
-                                className="w-full bg-slate-950/80 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-100 placeholder-slate-500 text-sm rounded-xl pl-10 pr-36 py-3.5 outline-none transition-all cursor-text"
+                                placeholder={pasteOnClickEnabled ? "Cole ou clique para colar URL..." : "Cole aqui o link da imagem..."}
+                                className="w-full bg-slate-950/80 border border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-100 placeholder-slate-500 text-xs sm:text-sm rounded-xl pl-10 pr-24 sm:pr-36 py-3.5 outline-none transition-all cursor-text"
                             />
 
-                            <div className="absolute right-2 flex items-center gap-1.5">
+                            <div className="absolute right-2 flex items-center gap-1">
                                 {urlInput && !isLoadingUrl && (
                                     <button
                                         id="btn-clear-url"
@@ -602,7 +602,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                                     type="button"
                                     onClick={() => handlePasteFromClipboard(true)}
                                     disabled={isLoadingUrl || isReadingClipboard}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border flex items-center gap-1.5 active:scale-95 ${
+                                    className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border flex items-center gap-1 active:scale-95 ${
                                         pasteSuccess
                                             ? 'bg-emerald-600/30 border-emerald-500 text-emerald-300'
                                             : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border-blue-500/40 hover:border-blue-400'
@@ -612,7 +612,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                                     {isReadingClipboard ? (
                                         <>
                                             <Loader2 size={13} className="animate-spin text-blue-400" />
-                                            <span className="text-[11px]">Lendo...</span>
+                                            <span className="text-[11px] hidden sm:inline">Lendo...</span>
                                         </>
                                     ) : pasteSuccess ? (
                                         <>
@@ -622,7 +622,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                                     ) : (
                                         <>
                                             <MousePointerClick size={14} className="text-blue-400" />
-                                            <span className="text-[11px]">Colar com Clique</span>
+                                            <span className="text-[11px]">Colar</span>
                                         </>
                                     )}
                                 </button>
@@ -630,12 +630,12 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                         </div>
 
                         {/* Botão de Envio Principal */}
-                        <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
                             <button
                                 id="btn-submit-url"
                                 type="submit"
                                 disabled={!urlInput.trim() || isLoadingUrl}
-                                className="flex-1 py-3 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-lg shadow-blue-600/20 active:scale-98 flex items-center justify-center gap-2"
+                                className="flex-1 py-3 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-blue-600/20 active:scale-98 flex items-center justify-center gap-2 min-h-[44px]"
                             >
                                 {isLoadingUrl ? (
                                     <>
@@ -655,7 +655,7 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                                 type="button"
                                 onClick={() => setActiveTab('file')}
                                 disabled={isLoadingUrl}
-                                className="py-3 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 text-sm font-medium transition-all border border-slate-700 flex items-center justify-center gap-2"
+                                className="py-3 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 text-xs sm:text-sm font-medium transition-all border border-slate-700 flex items-center justify-center gap-2 min-h-[44px]"
                             >
                                 <Upload size={15} />
                                 <span>Usar Arquivo</span>

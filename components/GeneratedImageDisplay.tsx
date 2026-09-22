@@ -120,26 +120,26 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
                 onPointerMove={isLarge ? handleFullscreenPointerMove : handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
-                className={`relative overflow-hidden rounded-xl bg-slate-950 select-none cursor-ew-resize border border-slate-700 shadow-2xl mx-auto w-full ${
-                    isLarge ? 'h-[75vh] max-w-5xl' : 'h-[360px] sm:h-[420px] max-w-full'
+                className={`relative overflow-hidden rounded-xl bg-slate-950 select-none cursor-ew-resize border border-slate-700 shadow-2xl mx-auto w-full touch-none ${
+                    isLarge ? 'h-[75vh] max-w-5xl' : 'h-[320px] sm:h-[420px] max-w-full'
                 }`}
             >
                 {/* Imagem Gerada (Base / Direita) */}
                 <img 
                     src={imageUrl} 
                     alt="Generated content" 
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
                 />
 
                 {/* Imagem Original (Overlay / Esquerda com recorte dinâmico) */}
                 <div 
-                    className="absolute inset-0 overflow-hidden pointer-events-none"
+                    className="absolute inset-0 overflow-hidden pointer-events-none select-none"
                     style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
                 >
                     <img 
                         src={originalImageUrl} 
                         alt="Original content" 
-                        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                        className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
                     />
                 </div>
 
@@ -148,8 +148,8 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
                     className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_10px_rgba(0,0,0,0.8)] z-20 pointer-events-none"
                     style={{ left: `${sliderPos}%` }}
                 >
-                    <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-slate-900 border-2 border-white text-white shadow-xl flex items-center justify-center pointer-events-auto cursor-ew-resize hover:scale-110 active:scale-95 transition-transform">
-                        <ArrowLeftRight size={16} />
+                    <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-10 h-10 sm:w-9 sm:h-9 rounded-full bg-slate-900 border-2 border-white text-white shadow-xl flex items-center justify-center pointer-events-auto cursor-ew-resize hover:scale-110 active:scale-95 transition-transform touch-none">
+                        <ArrowLeftRight size={18} />
                     </div>
                 </div>
 
@@ -231,8 +231,8 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
                             className="max-h-full max-w-full rounded-lg object-contain border border-slate-700 shadow-xl"
                         />
 
-                        {/* Overlay de Ações ao passar o mouse */}
-                        <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 p-4 rounded-b-xl backdrop-blur-xs">
+                        {/* Overlay de Ações ao passar o mouse ou visível no celular */}
+                        <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex flex-col items-center justify-center gap-3 p-4 rounded-b-xl backdrop-blur-xs">
                             <button 
                                 type="button"
                                 onClick={handleDownload}
@@ -253,16 +253,17 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
                         </div>
                     </div>
 
-                    <div className="px-3.5 py-2 bg-slate-950/50 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
-                        <span className="flex items-center gap-1 text-blue-400 font-semibold">
-                            <Zap size={10} /> Alta Resolução
+                    <div className="px-3.5 py-2.5 bg-slate-950/50 border-t border-slate-800/80 text-xs text-slate-400 flex items-center justify-between">
+                        <span className="flex items-center gap-1 text-blue-400 font-semibold text-[11px]">
+                            <Zap size={12} /> Alta Resolução
                         </span>
                         <button 
                             type="button" 
                             onClick={handleDownload}
-                            className="text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 transition-colors"
+                            className="bg-blue-600 sm:bg-transparent text-white sm:text-blue-400 sm:hover:text-blue-300 px-3 py-1.5 sm:p-0 rounded-lg sm:rounded-none font-medium flex items-center gap-1.5 transition-colors text-xs active:scale-95"
                         >
-                            <Download size={11} /> Baixar
+                            <Download size={13} />
+                            <span>{isDownloaded ? 'Baixado' : 'Baixar Imagem'}</span>
                         </button>
                     </div>
                 </div>
@@ -275,15 +276,16 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
         if (!imageUrl) return null;
 
         return (
-            <div className="relative group flex items-center justify-center w-full">
+            <div className="relative group flex flex-col items-center justify-center w-full">
                 <img 
                     src={imageUrl} 
                     alt="Generated content" 
                     className={`max-w-full rounded-lg shadow-2xl border border-slate-700 object-contain ${
-                        isLarge ? 'max-h-[75vh]' : 'max-h-[500px]'
+                        isLarge ? 'max-h-[75vh]' : 'max-h-[360px] sm:max-h-[500px]'
                     }`}
                 />
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-4 p-4 rounded-lg">
+                {/* Desktop hover overlay */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex flex-col items-center justify-center gap-4 p-4 rounded-lg">
                     <button 
                         type="button"
                         onClick={handleDownload}
@@ -298,6 +300,26 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
                             <>
                                 <Download size={16} />
                                 <span>Download PNG</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+                {/* Mobile direct download button */}
+                <div className="w-full mt-3 sm:hidden">
+                    <button
+                        type="button"
+                        onClick={handleDownload}
+                        className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-xl font-semibold text-xs transition-all shadow-lg active:scale-95 min-h-[44px]"
+                    >
+                        {isDownloaded ? (
+                            <>
+                                <Check size={16} className="text-emerald-300" />
+                                <span>Imagem Baixada com Sucesso!</span>
+                            </>
+                        ) : (
+                            <>
+                                <Download size={16} />
+                                <span>Baixar Imagem Gerada (PNG)</span>
                             </>
                         )}
                     </button>

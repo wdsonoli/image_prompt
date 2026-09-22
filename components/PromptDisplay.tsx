@@ -99,19 +99,19 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
     return (
         <div className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 shadow-xl flex flex-col h-full min-h-[300px]">
             {/* Header da Barra de Ferramentas */}
-            <div className="bg-slate-900/80 px-4 py-3 border-b border-slate-700/80 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-slate-300 font-medium text-sm">
-                    <Terminal size={18} className="text-blue-400" />
+            <div className="bg-slate-900/80 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-slate-700/80 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-slate-300 font-medium text-xs sm:text-sm">
+                    <Terminal size={17} className="text-blue-400" />
                     <span>Generated Prompt</span>
                 </div>
                 
-                <div className="flex items-center gap-2 relative">
+                <div className="flex items-center gap-1.5 sm:gap-2 relative flex-wrap">
                     {/* BOTÃO ULTRA-PREMIUM 16K PROFESSIONAL REMASTER & ENHANCEMENT */}
                     <div className="relative">
                         <div className="flex items-center rounded-lg overflow-hidden border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)] bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-stone-900">
                             <button
                                 onClick={handleToggle16k}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all ${
+                                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold transition-all ${
                                     is16kActive
                                         ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-md font-extrabold'
                                         : 'text-amber-300 hover:text-white hover:bg-amber-500/20'
@@ -119,7 +119,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                                 title="Ultra-Premium 16K Professional Remaster & Enhancement"
                             >
                                 <Sparkles size={13} className={is16kActive ? 'text-slate-950 animate-pulse' : 'text-amber-400'} />
-                                <span>{is16kActive ? '16K Remaster Ativo' : 'Ultra-Premium 16K'}</span>
+                                <span>{is16kActive ? '16K Ativo' : 'Ultra 16K'}</span>
                             </button>
 
                             <button
@@ -135,12 +135,12 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
 
                         {/* Dropdown de opções do 16K Remaster */}
                         {show16kMenu && (
-                            <div className="absolute right-0 top-full mt-2 w-72 p-2.5 rounded-xl bg-slate-900/95 border border-amber-500/40 shadow-2xl backdrop-blur-xl z-50 space-y-1.5 text-xs animate-in fade-in zoom-in-95 duration-150">
+                            <div className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-32px)] p-2.5 rounded-xl bg-slate-900/95 border border-amber-500/40 shadow-2xl backdrop-blur-xl z-50 space-y-1.5 text-xs animate-in fade-in zoom-in-95 duration-150">
                                 <div className="flex items-center justify-between px-1 pb-1 border-b border-slate-800 text-[11px] font-bold text-amber-400">
                                     <span className="flex items-center gap-1">
                                         <Sparkles size={12} /> Ultra-Premium 16K Remaster
                                     </span>
-                                    <button onClick={() => setShow16kMenu(false)} className="text-slate-500 hover:text-white">
+                                    <button onClick={() => setShow16kMenu(false)} className="text-slate-500 hover:text-white p-1">
                                         <X size={12} />
                                     </button>
                                 </div>
@@ -188,7 +188,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                     <button 
                         onClick={handleCopy}
                         disabled={!localPrompt}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors disabled:opacity-50"
                     >
                         {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
                         {copied ? 'Copied!' : 'Copy'}

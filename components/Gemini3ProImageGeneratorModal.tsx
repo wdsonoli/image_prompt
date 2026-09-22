@@ -196,28 +196,25 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
     const is16kFormulaActive = promptText.includes('Ultra-Premium 16K Professional Remaster');
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-5xl max-h-[96vh] sm:max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-slate-900 via-amber-950/30 to-slate-900 px-6 py-4 border-b border-slate-800 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-950 shadow-lg shadow-amber-500/20 font-black">
-                            <Sparkles size={20} />
+                <div className="bg-gradient-to-r from-slate-900 via-amber-950/30 to-slate-900 px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-800 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 text-slate-950 shadow-lg shadow-amber-500/20 font-black shrink-0">
+                            <Sparkles size={18} className="sm:w-5 sm:h-5" />
                         </div>
-                        <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
-                                    Gerador de Imagem Gemini 3 Pro 4K
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                <h2 className="text-sm sm:text-lg font-black text-white tracking-tight truncate">
+                                    Gemini 3 Pro 4K
                                 </h2>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                    Ultra-Res 4K
-                                </span>
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                                    {model}
+                                <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                    Ultra 4K
                                 </span>
                             </div>
-                            <p className="text-xs text-slate-400">
-                                Renderização nativa de alta fidelidade óptica com super-resolução e fidelidade de texturas.
+                            <p className="text-[11px] sm:text-xs text-slate-400 truncate hidden xs:block">
+                                Renderização nativa de alta fidelidade óptica com super-resolução.
                             </p>
                         </div>
                     </div>
@@ -225,7 +222,7 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
                     <button
                         onClick={onClose}
                         disabled={isGenerating}
-                        className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
+                        className="p-1.5 sm:p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-50 shrink-0 min-h-[38px] min-w-[38px] flex items-center justify-center"
                         title="Fechar (Esc)"
                     >
                         <X size={20} />
@@ -590,25 +587,25 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
                                         onPointerDown={handlePointerDown}
                                         onPointerMove={handlePointerMove}
                                         onPointerUp={handlePointerUp}
-                                        className="relative w-full h-full min-h-[300px] select-none cursor-ew-resize overflow-hidden"
+                                        className="relative w-full h-full min-h-[260px] sm:min-h-[300px] select-none cursor-ew-resize overflow-hidden touch-none"
                                     >
                                         {/* Imagem Gerada 4K (Depois) */}
                                         <img
                                             src={generatedUrl}
                                             alt="Gemini 3 Pro 4K Render"
-                                            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                                            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
                                             referrerPolicy="no-referrer"
                                         />
 
                                         {/* Imagem Original (Antes) com clip-path */}
                                         <div
-                                            className="absolute inset-0 overflow-hidden pointer-events-none"
+                                            className="absolute inset-0 overflow-hidden pointer-events-none select-none"
                                             style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
                                         >
                                             <img
                                                 src={activeImage.previewUrl}
                                                 alt="Original"
-                                                className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                                                className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
                                                 referrerPolicy="no-referrer"
                                             />
                                         </div>
@@ -618,8 +615,8 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
                                             className="absolute top-0 bottom-0 w-1 bg-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.8)] pointer-events-none"
                                             style={{ left: `${sliderPos}%` }}
                                         >
-                                            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-slate-900 border-2 border-amber-400 flex items-center justify-center shadow-xl">
-                                                <Sparkles size={12} className="text-amber-400" />
+                                            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 sm:w-7 sm:h-7 rounded-full bg-slate-900 border-2 border-amber-400 flex items-center justify-center shadow-xl touch-none">
+                                                <Sparkles size={14} className="text-amber-400" />
                                             </div>
                                         </div>
 

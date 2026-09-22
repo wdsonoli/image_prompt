@@ -46,8 +46,8 @@ export const generateHuggingFacePrompt = async (
         }
 
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
+        let response;
+        const requestPayload = {
             contents: {
                 parts: [
                     {
@@ -63,7 +63,20 @@ Format as a single comprehensive paragraph suitable for text-to-image synthesis.
                     }
                 ]
             }
-        });
+        };
+
+        try {
+            response = await ai.models.generateContent({
+                model: 'gemini-3.8-flash',
+                ...requestPayload
+            });
+        } catch (flashErr) {
+            console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
+            response = await ai.models.generateContent({
+                model: 'gemini-3.5-flash',
+                ...requestPayload
+            });
+        }
 
         const caption = response.text ? response.text.trim() : "Detailed scene photograph";
         return constructPromptFromCaption(caption, settings);

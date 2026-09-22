@@ -42,9 +42,8 @@ export const analyzeWithGoogleVision = async (
             ? 'Background & Environment Isolation (Exclude foreground subject)' 
             : (is3dLogo ? '3D Seal Reconstruction' : (isMockup ? 'Clay Mockup' : 'Literal mapping'));
 
-        const response = await ai.models.generateContent({
-            // Mantido Flash pela velocidade e precisão em detecção técnica de labels e formas
-            model: 'gemini-2.5-flash',
+        let response;
+        const requestPayload = {
             contents: {
                 parts: [
                     {
@@ -81,7 +80,20 @@ export const analyzeWithGoogleVision = async (
                 6. OUTPUT: Return only the technical prompt optimized for high-end image generators like Flux or Midjourney.`,
                 temperature: 0.2 // Baixa temperatura para maior consistência técnica
             }
-        });
+        };
+
+        try {
+            response = await ai.models.generateContent({
+                model: 'gemini-3.8-flash',
+                ...requestPayload
+            });
+        } catch (flashErr) {
+            console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
+            response = await ai.models.generateContent({
+                model: 'gemini-3.5-flash',
+                ...requestPayload
+            });
+        }
 
         return response.text?.trim() || "Google Vision recognition failed.";
     } catch (error) {

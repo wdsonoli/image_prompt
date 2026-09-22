@@ -190,28 +190,29 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     const isGeneralActive = settings.mode === 'general' && !settings.is3dLogo && !isRemoveBrandingActive;
 
     return (
-        <div className="bg-slate-800/90 rounded-xl p-5 border border-slate-700 backdrop-blur-md h-full flex flex-col relative shadow-2xl">
+        <div className="bg-slate-800/90 rounded-xl p-3.5 sm:p-5 border border-slate-700 backdrop-blur-md h-full flex flex-col relative shadow-2xl">
             <button 
                 onClick={onOpenSettings} 
-                className="absolute top-5 right-5 text-slate-500 hover:text-blue-400 transition-colors p-1"
+                className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 text-slate-500 hover:text-blue-400 transition-colors p-1.5 rounded-lg hover:bg-slate-700/50"
                 title="Configurações de API"
             >
                 <Cog size={18} />
             </button>
 
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-blue-400 flex items-center gap-2">
+            <div className="flex items-center justify-between mb-4 pr-8">
+                <h2 className="text-base sm:text-lg font-bold text-blue-400 flex items-center gap-2">
                     <Settings size={18} />
                     <span>Arquiteto de Prompt</span>
                 </h2>
                 {onSwitchToEffects && (
                     <button
                         onClick={onSwitchToEffects}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-violet-500/40 text-violet-300 hover:text-white hover:border-violet-400 transition-all text-xs font-bold mr-6"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-violet-500/40 text-violet-300 hover:text-white hover:border-violet-400 transition-all text-xs font-bold"
                         title="Abrir Galeria de Efeitos (/tags)"
                     >
                         <Sparkles size={13} className="text-amber-300" />
-                        <span>Ver Efeitos (/tags)</span>
+                        <span className="hidden sm:inline">Ver Efeitos (/tags)</span>
+                        <span className="sm:hidden">Efeitos</span>
                     </button>
                 )}
             </div>
@@ -368,7 +369,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                                 <span>Search Grounding: {settings.enableSearchGrounding ? 'ON' : 'OFF'}</span>
                             </button>
                         </div>
-                        <div className="grid grid-cols-4 gap-1.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                             {[
                                 { 
                                     id: 'gemini', 
@@ -388,9 +389,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                                     key={ai.id}
                                     disabled={!hasImage || ai.loading}
                                     onClick={ai.action}
-                                    className={`flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-[8px] font-black ${ai.color} ${ai.border} hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px]`}
+                                    className={`flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-[9px] sm:text-[8px] font-black ${ai.color} ${ai.border} hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95`}
                                 >
-                                    {ai.loading ? <Loader2 size={13} className="animate-spin mb-1" /> : <ai.icon size={13} className="mb-1" />}
+                                    {ai.loading ? <Loader2 size={14} className="animate-spin mb-1" /> : <ai.icon size={14} className="mb-1" />}
                                     <span className="leading-tight">{ai.label}</span>
                                     <span className="text-[7px] text-slate-400 font-normal">{ai.sub}</span>
                                 </button>
@@ -407,7 +408,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <button 
                                 disabled={!hasImage || isGeneratingMidjourney}
                                 onClick={onAnalyzeMidjourney}
-                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 rounded-lg text-[8px] font-black text-cyan-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-cyan-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
                             >
                                 {isGeneratingMidjourney ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Camera size={13} className="mb-0.5 text-cyan-400" />}
                                 <span className="leading-tight">MIDJOURNEY</span>
@@ -417,7 +418,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <button 
                                 disabled={!hasImage || isGeneratingFlux}
                                 onClick={onAnalyzeFlux}
-                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-rose-500/50 rounded-lg text-[8px] font-black text-rose-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-rose-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-rose-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
                             >
                                 {isGeneratingFlux ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Flame size={13} className="mb-0.5 text-rose-400" />}
                                 <span className="leading-tight">FLUX.1</span>
@@ -427,7 +428,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <button 
                                 disabled={!hasImage || isGeneratingIdeogram}
                                 onClick={onAnalyzeIdeogram}
-                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-fuchsia-500/50 rounded-lg text-[8px] font-black text-fuchsia-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-fuchsia-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-fuchsia-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
                             >
                                 {isGeneratingIdeogram ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Type size={13} className="mb-0.5 text-fuchsia-400" />}
                                 <span className="leading-tight">IDEOGRAM 2.0</span>
@@ -445,7 +446,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <button 
                                 disabled={!hasImage || isGeneratingGoogleVision}
                                 onClick={onAnalyzeGoogleVision}
-                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-orange-500/50 rounded-lg text-[8px] font-black text-orange-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-orange-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-orange-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
                             >
                                 {isGeneratingGoogleVision ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Eye size={13} className="mb-0.5 text-orange-400" />}
                                 <span className="leading-tight">GOOGLE VISION</span>
@@ -455,7 +456,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <button 
                                 disabled={!hasImage || isGeneratingWhisk}
                                 onClick={onAnalyzeWhisk}
-                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-yellow-500/50 rounded-lg text-[8px] font-black text-yellow-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-yellow-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-yellow-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
                             >
                                 {isGeneratingWhisk ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Wand2 size={13} className="mb-0.5 text-yellow-400" />}
                                 <span className="leading-tight">WHISK AI</span>
@@ -465,7 +466,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <button 
                                 disabled={!hasImage || isGeneratingHuggingFace}
                                 onClick={onAnalyzeHuggingFace}
-                                className="flex flex-col items-center justify-center p-1.5 bg-slate-950/70 border border-slate-800 hover:border-lime-500/50 rounded-lg text-[8px] font-black text-lime-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[48px]"
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-lime-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-lime-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
                             >
                                 {isGeneratingHuggingFace ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Scan size={13} className="mb-0.5 text-lime-400" />}
                                 <span className="leading-tight">HUGGING FACE</span>
@@ -497,20 +498,20 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 </div>
 
                 {/* Iluminação e Ângulos */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-2">
                          <div className="flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
                             <Sun size={12} className="text-orange-400"/>
                             <span>Luz</span>
                         </div>
-                        <div className="grid grid-cols-5 gap-1">
+                        <div className="grid grid-cols-5 gap-1.5">
                             {LIGHTING_OPTIONS.map(light => (
                                 <Tooltip key={light.id} content={light.label} position="top">
                                     <button
                                         onClick={() => handleChange('lighting', light.id)}
-                                        className={`p-1.5 rounded-md border flex items-center justify-center transition-all ${settings.lighting === light.id ? 'bg-orange-600/20 border-orange-500 text-orange-400' : 'bg-slate-900/50 border-slate-700 text-slate-500'}`}
+                                        className={`p-2 sm:p-1.5 rounded-md border flex items-center justify-center transition-all min-h-[36px] ${settings.lighting === light.id ? 'bg-orange-600/20 border-orange-500 text-orange-400' : 'bg-slate-900/50 border-slate-700 text-slate-500'}`}
                                     >
-                                        <light.icon size={12} />
+                                        <light.icon size={13} />
                                     </button>
                                 </Tooltip>
                             ))}
@@ -521,14 +522,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <Camera size={12} className="text-violet-400"/>
                             <span>Ângulo Profissional</span>
                         </div>
-                        <div className="grid grid-cols-5 gap-1">
+                        <div className="grid grid-cols-5 gap-1.5">
                             {CAMERA_ANGLES.map(angle => (
                                 <Tooltip key={angle.id} content={angle.label} position="top">
                                     <button
                                         onClick={() => handleChange('cameraAngle', angle.id)}
-                                        className={`p-1.5 rounded-md border flex items-center justify-center transition-all ${settings.cameraAngle === angle.id ? 'bg-violet-600/20 border-violet-500 text-violet-400' : 'bg-slate-900/50 border-slate-700 text-slate-500'}`}
+                                        className={`p-2 sm:p-1.5 rounded-md border flex items-center justify-center transition-all min-h-[36px] ${settings.cameraAngle === angle.id ? 'bg-violet-600/20 border-violet-500 text-violet-400' : 'bg-slate-900/50 border-slate-700 text-slate-500'}`}
                                     >
-                                        <angle.icon size={12} />
+                                        <angle.icon size={13} />
                                     </button>
                                 </Tooltip>
                             ))}
@@ -605,19 +606,19 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 </div>
 
                 {/* AR e Plataforma */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-2">
                         <label className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1">
                             <Maximize size={10} /> Proporção
                         </label>
-                        <div className="grid grid-cols-5 gap-1">
+                        <div className="grid grid-cols-5 gap-1.5">
                             {ASPECT_RATIOS.map(ratio => (
                                 <Tooltip key={ratio.id} content={ratio.label} position="top">
                                     <button
                                         onClick={() => handleChange('aspectRatio', ratio.id)}
-                                        className={`p-1.5 rounded-md border flex items-center justify-center transition-all ${settings.aspectRatio === ratio.id ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-slate-900/50 border-slate-700 text-slate-500'}`}
+                                        className={`p-2 sm:p-1.5 rounded-md border flex items-center justify-center transition-all min-h-[36px] ${settings.aspectRatio === ratio.id ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'bg-slate-900/50 border-slate-700 text-slate-500'}`}
                                     >
-                                        <ratio.icon size={12} />
+                                        <ratio.icon size={13} />
                                     </button>
                                 </Tooltip>
                             ))}
@@ -630,7 +631,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         <select 
                             value={settings.targetPlatform} 
                             onChange={(e) => handleChange('targetPlatform', e.target.value as TargetPlatform)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-md px-1.5 py-1 text-[10px] text-slate-300 font-bold outline-none h-8 focus:border-blue-500 transition-all"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-md px-2 py-1.5 text-xs text-slate-300 font-bold outline-none h-9 focus:border-blue-500 transition-all cursor-pointer"
                         >
                             <option value="midjourney">Midjourney (v6.1)</option>
                             <option value="flux">Flux.1 Pro</option>

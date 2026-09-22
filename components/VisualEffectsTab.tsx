@@ -506,7 +506,7 @@ export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
                             )}
 
                             {/* Grid 4 Cards no estilo exato da folha de referência */}
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 relative z-10">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 relative z-10">
                                 {currentPack.items.map(item => {
                                     const isSelected = selectedEffectIds.includes(item.id);
                                     return (
@@ -726,7 +726,7 @@ export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
                         Nenhum efeito encontrado para "{searchQuery}".
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
                         {filteredEffects.map((effect) => {
                             const isSelected = selectedEffectIds.includes(effect.id);
                             return (
