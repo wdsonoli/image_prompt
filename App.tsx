@@ -25,6 +25,7 @@ import { generateHuggingFacePrompt } from './services/huggingFaceService';
 import { generateConsensusPrompt } from './services/multiVisionConsensusService';
 import { BackgroundElementsView } from './components/BackgroundElementsView';
 import { VisualEffectsTab } from './components/VisualEffectsTab';
+import { loadHistory, saveHistory, deleteHistoryItem, clearHistory, compressBase64Image } from './utils/historyStorage';
 import { Zap, History, Sparkles, Sliders } from 'lucide-react';
 
 const COMPOSITION_KEYWORDS: Record<string, string> = {
@@ -146,25 +147,42 @@ const App: React.FC = () => {
     });
 
     useEffect(() => {
-        try {
-            const savedHistory = localStorage.getItem('promptHistory');
-            if (savedHistory) setHistory(JSON.parse(savedHistory));
-        } catch (error) {
-            console.error("Failed to load history", error);
-        }
+        // Load history safely from IndexedDB and automatically migrate/free legacy localStorage
+        loadHistory().then(saved => {
+            if (saved && saved.length > 0) {
+                setHistory(saved);
+            }
+        }).catch(err => {
+            console.warn("Failed to load history from storage", err);
+        });
     }, []);
 
     useEffect(() => {
-        try {
-            localStorage.setItem('promptHistory', JSON.stringify(history));
-        } catch (error) {
-            console.error("Failed to save history", error);
-        }
+        // Persist history safely without hitting localStorage quotas
+        saveHistory(history).catch(err => {
+            console.warn("Failed to save history", err);
+        });
     }, [history]);
 
-    const addToHistory = (item: Omit<HistoryItem, 'id' | 'timestamp'>) => {
+    const addToHistory = async (item: Omit<HistoryItem, 'id' | 'timestamp'>) => {
+        let compressedBase64 = item.baseImage.base64Data;
+        let mime = item.baseImage.mimeType;
+
+        try {
+            const compressed = await compressBase64Image(item.baseImage.base64Data, item.baseImage.mimeType, 1024, 0.82);
+            compressedBase64 = compressed.base64Data;
+            mime = compressed.mimeType;
+        } catch {
+            // Keep original if compression fails
+        }
+
         const newItem: HistoryItem = {
             ...item,
+            baseImage: {
+                ...item.baseImage,
+                base64Data: compressedBase64,
+                mimeType: mime
+            },
             id: Date.now().toString(),
             timestamp: Date.now()
         };
@@ -175,33 +193,37 @@ const App: React.FC = () => {
         const item = history.find(h => h.id === id);
         if (!item) return;
 
-        const byteCharacters = atob(item.baseImage.base64Data);
-        const byteArrays = [];
-        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-            const slice = byteCharacters.slice(offset, offset + 512);
-            const byteNumbers = new Array(slice.length);
-            for (let i = 0; i < slice.length; i++) {
-                byteNumbers[i] = slice.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            byteArrays.push(byteArray);
-        }
-        const blob = new Blob(byteArrays, { type: item.baseImage.mimeType });
-        const file = new File([blob], item.baseImage.name, { type: item.baseImage.mimeType });
-        const previewUrl = URL.createObjectURL(file);
-        
-        const newImage: UploadedImage = {
-            id: `history-${item.id}`, file, previewUrl, name: file.name, analysis: null,
-            base64Data: item.baseImage.base64Data, mimeType: item.baseImage.mimeType,
-        };
-        setImages([newImage]);
-        setSelectedImageId(newImage.id);
-
         try {
-            const analysis = await analyzeImage(file);
-            setImages(prev => prev.map(img => img.id === newImage.id ? { ...img, analysis } : img));
+            const byteCharacters = atob(item.baseImage.base64Data);
+            const byteArrays = [];
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                const slice = byteCharacters.slice(offset, offset + 512);
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            const blob = new Blob(byteArrays, { type: item.baseImage.mimeType });
+            const file = new File([blob], item.baseImage.name, { type: item.baseImage.mimeType });
+            const previewUrl = URL.createObjectURL(file);
+            
+            const newImage: UploadedImage = {
+                id: `history-${item.id}`, file, previewUrl, name: file.name, analysis: null,
+                base64Data: item.baseImage.base64Data, mimeType: item.baseImage.mimeType,
+            };
+            setImages([newImage]);
+            setSelectedImageId(newImage.id);
+
+            try {
+                const analysis = await analyzeImage(file);
+                setImages(prev => prev.map(img => img.id === newImage.id ? { ...img, analysis } : img));
+            } catch (err) {
+                console.error("Failed to re-analyze", err);
+            }
         } catch (err) {
-            console.error("Failed to re-analyze", err);
+            console.error("Failed to restore history image", err);
         }
 
         setSettings(item.settings);
@@ -212,10 +234,12 @@ const App: React.FC = () => {
 
     const handleDeleteHistory = (id: string) => {
         setHistory(prev => prev.filter(item => item.id !== id));
+        deleteHistoryItem(id).catch(() => {});
     };
 
     const handleClearHistory = () => {
         setHistory([]);
+        clearHistory().catch(() => {});
     };
 
     const saveApiKeys = (newOpenAIKey: string, newDeepseekKey: string, newAnthropicKey = '', newHfToken = '') => {

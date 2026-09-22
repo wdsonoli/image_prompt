@@ -31,7 +31,11 @@ const HistoryItemCard: React.FC<{ item: HistoryItem, onRevisit: (id: string) => 
         return Math.floor(seconds) + "s ago";
     };
 
-    const baseImageUrl = `data:${item.baseImage.mimeType};base64,${item.baseImage.base64Data}`;
+    const baseImageUrl = item.baseImage?.base64Data
+        ? (item.baseImage.base64Data.startsWith('data:')
+            ? item.baseImage.base64Data
+            : `data:${item.baseImage.mimeType || 'image/jpeg'};base64,${item.baseImage.base64Data}`)
+        : '';
 
     return (
         <div className="bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
