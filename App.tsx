@@ -8,9 +8,9 @@ import { ImagePreview } from './components/ImagePreview';
 import { ApiSettingsModal } from './components/ApiSettingsModal';
 import { GeneratedImageDisplay } from './components/GeneratedImageDisplay';
 import { HistoryPanel } from './components/HistoryPanel';
-import { UploadedImage, PromptSettings, STYLE_TEMPLATES, DETAIL_LEVEL_MAP, HistoryItem, TargetPlatform, BackgroundDecomposition } from './types';
+import { UploadedImage, PromptSettings, STYLE_TEMPLATES, DETAIL_LEVEL_MAP, HistoryItem, TargetPlatform, BackgroundDecomposition, SearchGroundingData } from './types';
 import { analyzeImage } from './utils/analysis';
-import { generateGeminiPrompt, extractBackgroundDecomposition } from './services/geminiService';
+import { generateGeminiPrompt, extractBackgroundDecomposition, generateGroundedGeminiPrompt, enrichPromptWithSearchGrounding } from './services/geminiService';
 import { generateOpenAIPrompt } from './services/openaiService';
 import { generateDeepseekPrompt } from './services/deepseekService';
 import { generateImage } from './services/imageGenService';
@@ -125,6 +125,9 @@ const App: React.FC = () => {
     const [isGeneratingConsensus, setIsGeneratingConsensus] = useState(false);
     const [activeControlTab, setActiveControlTab] = useState<'architect' | 'effects'>('architect');
     const [isGemini3ProModalOpen, setIsGemini3ProModalOpen] = useState(false);
+    const [geminiModalMode, setGeminiModalMode] = useState<'create' | 'edit'>('create');
+    const [searchGroundingData, setSearchGroundingData] = useState<SearchGroundingData | null>(null);
+    const [isGeneratingSearchGrounding, setIsGeneratingSearchGrounding] = useState(false);
     
     const [settings, setSettings] = useState<PromptSettings>({
         basePrompt: '',
@@ -332,8 +335,110 @@ const App: React.FC = () => {
         }
     };
 
+    const handleOpenGemini3ProGenerator = () => {
+        setGeminiModalMode('create');
+        setIsGemini3ProModalOpen(true);
+    };
+
+    const handleOpenImageEditor = () => {
+        setGeminiModalMode('edit');
+        setIsGemini3ProModalOpen(true);
+    };
+
+    const handleAnalyzeSearchGrounding = async () => {
+        if (!activeImage) return;
+        setIsGeneratingSearchGrounding(true);
+        setError(null);
+        try {
+            const result = await generateGroundedGeminiPrompt(
+                activeImage.file, 
+                { ...settings, enableSearchGrounding: true },
+                activeImage.base64Data ? { base64: activeImage.base64Data, mimeType: activeImage.mimeType! } : undefined
+            );
+            setPrompt(result.prompt);
+            setSearchGroundingData(result.grounding);
+            if (settings.mode === 'extract_background' && !backgroundData) {
+                extractBackgroundDecomposition(activeImage.file, settings, { base64: activeImage.base64Data!, mimeType: activeImage.mimeType! })
+                    .then(bg => setBackgroundData(bg))
+                    .catch(() => {});
+            }
+        } catch (err: any) {
+            console.error("Erro na análise com Search Grounding:", err);
+            setError(err.message || "Falha na análise com Google Search Grounding.");
+        } finally {
+            setIsGeneratingSearchGrounding(false);
+        }
+    };
+
+    const handleEnrichWithSearch = async () => {
+        if (!prompt) return;
+        setIsGeneratingSearchGrounding(true);
+        setError(null);
+        try {
+            const result = await enrichPromptWithSearchGrounding(prompt, settings.targetPlatform);
+            setPrompt(result.prompt);
+            setSearchGroundingData(result.grounding);
+        } catch (err: any) {
+            console.error("Erro ao enriquecer prompt com pesquisa Google:", err);
+            setError(err.message || "Falha ao enriquecer prompt com pesquisa Google.");
+        } finally {
+            setIsGeneratingSearchGrounding(false);
+        }
+    };
+
+    const handleSetAsActiveImage = async (dataUrl: string, name: string) => {
+        try {
+            const parts = dataUrl.split(',');
+            const mimeMatch = parts[0]?.match(/:(.*?);/);
+            const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+            const base64Data = parts[1] || '';
+
+            const byteCharacters = atob(base64Data);
+            const byteArrays = [];
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                const slice = byteCharacters.slice(offset, offset + 512);
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                byteArrays.push(new Uint8Array(byteNumbers));
+            }
+            const blob = new Blob(byteArrays, { type: mimeType });
+            const file = new File([blob], name || 'gemini-edited.png', { type: mimeType });
+            const previewUrl = URL.createObjectURL(file);
+
+            const newImage: UploadedImage = {
+                id: `gen-${Date.now()}`,
+                file,
+                previewUrl,
+                name: file.name,
+                analysis: null,
+                base64Data,
+                mimeType,
+            };
+
+            setImages(prev => [newImage, ...prev]);
+            setSelectedImageId(newImage.id);
+            setSearchGroundingData(null);
+
+            try {
+                const analysis = await analyzeImage(file);
+                setImages(prev => prev.map(img => img.id === newImage.id ? { ...img, analysis } : img));
+            } catch (err) {
+                console.error("Failed to analyze newly set image", err);
+            }
+        } catch (err) {
+            console.error("Failed to set as active image", err);
+            setError("Erro ao carregar a imagem gerada no aplicativo.");
+        }
+    };
+
     const handleGeminiAnalysis = async () => {
         if (!activeImage) return;
+        if (settings.enableSearchGrounding) {
+            await handleAnalyzeSearchGrounding();
+            return;
+        }
         setIsGeneratingGemini(true); 
         try { 
             if (settings.mode === 'extract_background') {
@@ -761,10 +866,12 @@ const App: React.FC = () => {
                                         setImages([]); 
                                         setPrompt(''); 
                                         setBackgroundData(null);
+                                        setSearchGroundingData(null);
                                     }} 
                                     onRemoveBackground={() => setSettings(s => ({ ...s, removeBackground: !s.removeBackground }))}
                                     isRemovingBackground={settings.removeBackground}
                                     onCropSave={handleCropSave}
+                                    onOpenImageEditor={handleOpenImageEditor}
                                 />
                                 {activeImage.analysis && <AnalysisResultView analysis={activeImage.analysis} imageName={activeImage.name} />}
                             </div>
@@ -836,7 +943,10 @@ const App: React.FC = () => {
                                     isGeneratingTF={isGeneratingTF}
                                     hasImage={!!activeImage}
                                     onSwitchToEffects={() => setActiveControlTab('effects')}
-                                    onOpenGemini3ProGenerator={() => setIsGemini3ProModalOpen(true)}
+                                    onOpenGemini3ProGenerator={handleOpenGemini3ProGenerator}
+                                    onOpenImageEditor={handleOpenImageEditor}
+                                    onAnalyzeSearchGrounding={handleAnalyzeSearchGrounding}
+                                    isGeneratingSearchGrounding={isGeneratingSearchGrounding}
                                 />
                             ) : (
                                 <VisualEffectsTab 
@@ -859,7 +969,11 @@ const App: React.FC = () => {
                                     onUpdatePrompt={setPrompt} 
                                     onCreateImage={handleCreateVisual} 
                                     isGeneratingImage={isGeneratingVisual}
-                                    onOpenGemini3ProGenerator={() => setIsGemini3ProModalOpen(true)}
+                                    onOpenGemini3ProGenerator={handleOpenGemini3ProGenerator}
+                                    onOpenImageEditor={handleOpenImageEditor}
+                                    searchGroundingData={searchGroundingData}
+                                    onEnrichWithSearch={handleEnrichWithSearch}
+                                    isGeneratingSearchGrounding={isGeneratingSearchGrounding}
                                 />
                                 {backgroundData && (
                                     <BackgroundElementsView 
@@ -885,6 +999,7 @@ const App: React.FC = () => {
             <Gemini3ProImageGeneratorModal
                 isOpen={isGemini3ProModalOpen}
                 onClose={() => setIsGemini3ProModalOpen(false)}
+                initialMode={geminiModalMode}
                 initialPrompt={prompt}
                 activeImage={activeImage ? {
                     previewUrl: activeImage.previewUrl,
@@ -892,6 +1007,7 @@ const App: React.FC = () => {
                     mimeType: activeImage.mimeType,
                     name: activeImage.name
                 } : null}
+                onSetAsActiveImage={handleSetAsActiveImage}
                 onImageGenerated={(url, usedPrompt) => {
                     setGeneratedImageUrl(url);
                     if (activeImage?.base64Data && activeImage.mimeType) {

@@ -1,7 +1,11 @@
 
 import React, { useState } from 'react';
-import { Copy, Check, Terminal, Edit3, ImagePlus, Sparkles, ShieldCheck, ChevronDown, RefreshCw, X } from 'lucide-react';
+import { 
+    Copy, Check, Terminal, Edit3, ImagePlus, Sparkles, ShieldCheck, 
+    ChevronDown, RefreshCw, X, Globe, Search, ExternalLink, Wand2, Loader2 
+} from 'lucide-react';
 import { ULTRA_PREMIUM_16K_PROMPT } from '../utils/visualEffectsData';
+import { SearchGroundingData } from '../types';
 
 interface PromptDisplayProps {
     prompt: string;
@@ -9,6 +13,10 @@ interface PromptDisplayProps {
     onCreateImage: () => void;
     isGeneratingImage: boolean;
     onOpenGemini3ProGenerator?: () => void;
+    onOpenImageEditor?: () => void;
+    searchGroundingData?: SearchGroundingData | null;
+    onEnrichWithSearch?: () => void;
+    isGeneratingSearchGrounding?: boolean;
 }
 
 export const PromptDisplay: React.FC<PromptDisplayProps> = ({ 
@@ -16,12 +24,17 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
     onUpdatePrompt, 
     onCreateImage, 
     isGeneratingImage,
-    onOpenGemini3ProGenerator
+    onOpenGemini3ProGenerator,
+    onOpenImageEditor,
+    searchGroundingData,
+    onEnrichWithSearch,
+    isGeneratingSearchGrounding = false
 }) => {
     const [copied, setCopied] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [localPrompt, setLocalPrompt] = useState(prompt);
     const [show16kMenu, setShow16kMenu] = useState(false);
+    const [showGroundingDetails, setShowGroundingDetails] = useState(true);
 
     // Sync local state when prop changes
     React.useEffect(() => {
@@ -201,6 +214,67 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                 </div>
             )}
 
+            {/* Google Search Grounding Info Bar & Sources */}
+            {searchGroundingData && (
+                <div className="bg-slate-900/90 border-b border-blue-500/30 px-4 py-2.5 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-blue-300 font-semibold">
+                            <Globe size={14} className="text-cyan-400" />
+                            <span>Pesquisa Google Grounding Ativa (gemini-3.5-flash)</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowGroundingDetails(!showGroundingDetails)}
+                            className="text-[11px] text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
+                        >
+                            <span>{showGroundingDetails ? 'Ocultar Fontes' : `${searchGroundingData.sources.length} Fontes Verificadas`}</span>
+                            <ChevronDown size={12} className={`transition-transform ${showGroundingDetails ? 'rotate-180' : ''}`} />
+                        </button>
+                    </div>
+
+                    {showGroundingDetails && (
+                        <div className="mt-2 space-y-2 pt-2 border-t border-slate-800">
+                            {searchGroundingData.queries && searchGroundingData.queries.length > 0 && (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                                        <Search size={10} /> Consultas:
+                                    </span>
+                                    {searchGroundingData.queries.map((q, idx) => (
+                                        <span key={idx} className="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-blue-200 border border-slate-700">
+                                            "{q}"
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
+                            {searchGroundingData.sources && searchGroundingData.sources.length > 0 && (
+                                <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-bold text-slate-400">Fontes Web de Referência:</span>
+                                    <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto custom-scrollbar">
+                                        {searchGroundingData.sources.map((src, idx) => {
+                                            const href = src.url || (src as any).uri || '#';
+                                            return (
+                                                <a
+                                                    key={idx}
+                                                    href={href}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] bg-blue-950/40 hover:bg-blue-900/60 border border-blue-800/40 text-blue-300 hover:text-white transition-colors"
+                                                    title={src.title || href}
+                                                >
+                                                    <span className="truncate max-w-[180px]">{src.title || href}</span>
+                                                    <ExternalLink size={10} className="shrink-0" />
+                                                </a>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
             <div className="relative flex-1 p-0">
                 {!localPrompt ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 p-8 text-center">
@@ -239,7 +313,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                              <p className="font-mono text-sm text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
                                 {localPrompt}
                             </p>
-                             {/* Floating Buttons: Gemini 3 Pro 4K & Standard Create Image */}
+                             {/* Floating Buttons: Gemini 3 Pro 4K, Image Edit & Standard Create Image */}
                              <div className="sticky bottom-0 mt-4 flex flex-wrap items-center justify-center gap-2.5">
                                 <button 
                                     onClick={() => {
@@ -260,6 +334,34 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                                     )}
                                     <span>Gerar 4K com Gemini 3 Pro</span>
                                 </button>
+
+                                {onOpenImageEditor && (
+                                    <button 
+                                        onClick={onOpenImageEditor}
+                                        disabled={isGeneratingImage}
+                                        className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-full font-bold text-xs shadow-xl shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 ring-1 ring-blue-400/50"
+                                        title="Editar imagem atual com instruções em linguagem natural (gemini-3.1-flash-image-preview)"
+                                    >
+                                        <Wand2 size={15} className="text-cyan-300" />
+                                        <span>Editar Imagem (IA Preview)</span>
+                                    </button>
+                                )}
+
+                                {onEnrichWithSearch && !searchGroundingData && (
+                                    <button
+                                        onClick={onEnrichWithSearch}
+                                        disabled={isGeneratingSearchGrounding}
+                                        className="flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 px-3.5 py-2.5 rounded-full font-bold text-xs shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                                        title="Enriquecer prompt com referências em tempo real via Google Search Grounding"
+                                    >
+                                        {isGeneratingSearchGrounding ? (
+                                            <Loader2 size={14} className="animate-spin text-cyan-400" />
+                                        ) : (
+                                            <Globe size={14} className="text-cyan-400" />
+                                        )}
+                                        <span>Enriquecer c/ Busca</span>
+                                    </button>
+                                )}
 
                                 <button 
                                     onClick={onCreateImage}

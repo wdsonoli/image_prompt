@@ -16,6 +16,7 @@ interface Gemini3ProImageGeneratorModalProps {
     isOpen: boolean;
     onClose: () => void;
     initialPrompt: string;
+    initialMode?: 'create' | 'edit';
     activeImage?: {
         previewUrl?: string;
         base64Data?: string;
@@ -23,20 +24,28 @@ interface Gemini3ProImageGeneratorModalProps {
         name?: string;
     } | null;
     onImageGenerated?: (imageUrl: string, promptUsed: string) => void;
+    onSetAsActiveImage?: (imageUrl: string) => void;
 }
 
 export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorModalProps> = ({
     isOpen,
     onClose,
     initialPrompt,
+    initialMode = 'create',
     activeImage,
-    onImageGenerated
+    onImageGenerated,
+    onSetAsActiveImage
 }) => {
+    const [editorMode, setEditorMode] = useState<'create' | 'edit'>(initialMode);
     const [promptText, setPromptText] = useState(initialPrompt);
-    const [model, setModel] = useState<ImageGenModel>('gemini-3-pro-image');
+    const [model, setModel] = useState<ImageGenModel>(
+        initialMode === 'edit' ? 'gemini-3.1-flash-image-preview' : 'gemini-3-pro-image'
+    );
     const [resolution, setResolution] = useState<ImageResolution>('4K');
     const [aspectRatio, setAspectRatio] = useState<ImageAspectRatio>('1:1');
-    const [useReferenceImage, setUseReferenceImage] = useState<boolean>(Boolean(activeImage?.base64Data));
+    const [useReferenceImage, setUseReferenceImage] = useState<boolean>(
+        initialMode === 'edit' ? true : Boolean(activeImage?.base64Data)
+    );
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
     const [generationHistory, setGenerationHistory] = useState<Array<{ url: string; prompt: string; size: string; time: string }>>([]);
@@ -47,15 +56,19 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
     const [elapsedTime, setElapsedTime] = useState(0);
     const sliderContainerRef = useRef<HTMLDivElement>(null);
 
-    // Sync initial prompt when modal opens
+    // Sync initial prompt and mode when modal opens
     useEffect(() => {
         if (isOpen) {
             setPromptText(initialPrompt || '');
-            if (activeImage?.base64Data) {
+            if (initialMode === 'edit' && activeImage?.base64Data) {
+                setEditorMode('edit');
+                setModel('gemini-3.1-flash-image-preview');
+                setUseReferenceImage(true);
+            } else if (activeImage?.base64Data) {
                 setUseReferenceImage(true);
             }
         }
-    }, [isOpen, initialPrompt, activeImage]);
+    }, [isOpen, initialPrompt, initialMode, activeImage]);
 
     // Timer for generation feedback
     useEffect(() => {
@@ -223,27 +236,71 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
                 <div className="flex-1 overflow-y-auto p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 custom-scrollbar">
                     {/* Painel Esquerdo: Controles e Configurações (7 colunas) */}
                     <div className="lg:col-span-7 flex flex-col gap-4">
+                        {/* Seletor de Modo: Criar vs Editar */}
+                        <div className="flex items-center gap-2 p-1.5 bg-slate-950/70 border border-slate-800 rounded-xl">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditorMode('create');
+                                    if (model === 'gemini-3.1-flash-image-preview') {
+                                        // keep or allow user to switch
+                                    }
+                                }}
+                                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                                    editorMode === 'create'
+                                        ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                                }`}
+                            >
+                                <Sparkles size={14} />
+                                <span>Criar Nova Imagem</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditorMode('edit');
+                                    setModel('gemini-3.1-flash-image-preview');
+                                    setUseReferenceImage(true);
+                                }}
+                                className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                                    editorMode === 'edit'
+                                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black shadow-md shadow-blue-500/20 ring-1 ring-blue-400'
+                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                                }`}
+                            >
+                                <Wand2 size={14} className={editorMode === 'edit' ? 'text-cyan-300' : 'text-blue-400'} />
+                                <span>Editar Imagem com Texto (Preview)</span>
+                            </button>
+                        </div>
+
                         {/* Prompt Input e Ações Rápidas */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                                    <Zap size={14} className="text-amber-400" />
-                                    <span>Prompt de Geração / Remasterização</span>
+                                    <Zap size={14} className={editorMode === 'edit' ? 'text-blue-400' : 'text-amber-400'} />
+                                    <span>
+                                        {editorMode === 'edit' 
+                                            ? 'Instrução de Edição Textual (gemini-3.1-flash-image-preview)' 
+                                            : 'Prompt de Geração / Remasterização'}
+                                    </span>
                                 </label>
 
                                 <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleApply16kRemaster}
-                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1.5 ${
-                                            is16kFormulaActive
-                                                ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold'
-                                                : 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
-                                        }`}
-                                    >
-                                        <Award size={12} />
-                                        <span>{is16kFormulaActive ? '✓ 16K Remaster Ativo' : '+ Adicionar 16K Remaster'}</span>
-                                    </button>
+                                    {editorMode === 'create' && (
+                                        <button
+                                            type="button"
+                                            onClick={handleApply16kRemaster}
+                                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1.5 ${
+                                                is16kFormulaActive
+                                                    ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold'
+                                                    : 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
+                                            }`}
+                                        >
+                                            <Award size={12} />
+                                            <span>{is16kFormulaActive ? '✓ 16K Remaster Ativo' : '+ Adicionar 16K Remaster'}</span>
+                                        </button>
+                                    )}
 
                                     <button
                                         type="button"
@@ -260,14 +317,50 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
                                 <textarea
                                     value={promptText}
                                     onChange={(e) => setPromptText(e.target.value)}
-                                    placeholder="Descreva a imagem que deseja gerar ou aperfeiçoar em 4K com Gemini 3 Pro..."
-                                    rows={5}
-                                    className="w-full bg-slate-950 border border-slate-700/80 rounded-xl p-3.5 text-xs text-slate-200 font-mono focus:border-amber-500 outline-none resize-none leading-relaxed custom-scrollbar shadow-inner"
+                                    placeholder={
+                                        editorMode === 'edit'
+                                            ? "Ex: Substitua o fundo por uma praia com pôr do sol dourado, adicione óculos escuros estilo aviador e aumente a iluminação de estúdio..."
+                                            : "Descreva a imagem que deseja gerar ou aperfeiçoar em 4K com Gemini 3 Pro..."
+                                    }
+                                    rows={4}
+                                    className={`w-full bg-slate-950 border rounded-xl p-3.5 text-xs text-slate-200 font-mono outline-none resize-none leading-relaxed custom-scrollbar shadow-inner ${
+                                        editorMode === 'edit' ? 'border-blue-500/50 focus:border-blue-400' : 'border-slate-700/80 focus:border-amber-500'
+                                    }`}
                                 />
                                 <div className="absolute bottom-2.5 right-3 text-[10px] text-slate-500 font-mono">
                                     {promptText.length} caracteres
                                 </div>
                             </div>
+
+                            {/* Sugestões Rápidas de Edição quando no Modo Editar */}
+                            {editorMode === 'edit' && (
+                                <div className="space-y-1.5 pt-1">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                                        <Wand2 size={11} className="text-blue-400" /> Sugestões Rápidas de Edição:
+                                    </span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {[
+                                            { label: '🌅 Pôr do Sol na Praia', text: 'Substitua o fundo por uma praia tropical ao pôr do sol com iluminação dourada cinematográfica' },
+                                            { label: '🕶️ Óculos Aviador', text: 'Adicione óculos escuros estilo aviador com reflexo realista nas lentes' },
+                                            { label: '🏙️ Metrópole Cyberpunk', text: 'Altere o cenário de fundo para uma metrópole futurista com luzes de neon azul e roxo' },
+                                            { label: '💡 Luz de Estúdio High-End', text: 'Ajuste a iluminação para um esquema profissional de estúdio fotográfico com softbox suave' },
+                                            { label: '✨ Nitidez & Textura', text: 'Aumente a nitidez dos detalhes ópticos, remova ruídos e aprimore a textura realista' },
+                                            { label: '🎨 Pintura a Óleo', text: 'Transforme o estilo visual em uma obra de arte com pinceladas texturizadas de tinta a óleo' }
+                                        ].map((chip, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => {
+                                                    setPromptText(prev => prev ? `${prev}. ${chip.text}` : chip.text);
+                                                }}
+                                                className="px-2 py-1 rounded-md text-[10px] font-medium bg-blue-950/60 hover:bg-blue-900 border border-blue-800/60 text-blue-200 hover:text-white transition-all hover:scale-105"
+                                            >
+                                                {chip.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Configurações: Resolução 4K / 2K / 1K */}
@@ -353,6 +446,7 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
                                     onChange={(e) => setModel(e.target.value as ImageGenModel)}
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 outline-none focus:border-amber-500"
                                 >
+                                    <option value="gemini-3.1-flash-image-preview">Gemini 3.1 Flash Image Preview (Criar & Editar)</option>
                                     <option value="gemini-3-pro-image">Gemini 3 Pro Image (Ultra 4K Master)</option>
                                     <option value="gemini-3.1-flash-image">Gemini 3.1 Flash Image (Rápido 4K)</option>
                                     <option value="gemini-3.1-flash-lite-image">Gemini 3.1 Flash Lite (Econômico)</option>
@@ -380,7 +474,8 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
                                             className="rounded border-slate-700 text-amber-500 focus:ring-amber-500"
                                         />
                                         <span className="text-[11px] truncate">
-                                            Usar <strong className="text-white">{activeImage.name || 'imagem'}</strong> para remasterizar
+                                            {editorMode === 'edit' ? 'Editar a imagem ' : 'Usar '}
+                                            <strong className="text-white">{activeImage.name || 'imagem'}</strong>
                                         </span>
                                     </label>
                                 ) : (
@@ -398,23 +493,40 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
                             </div>
                         )}
 
-                        {/* Botão de Ação Principal: Gerar Imagem 4K */}
+                        {/* Botão de Ação Principal */}
                         <div className="pt-2">
                             <button
                                 type="button"
                                 onClick={handleGenerate}
                                 disabled={isGenerating || !promptText.trim()}
-                                className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm tracking-wide shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2.5 transition-all active:scale-98 disabled:opacity-50"
+                                className={`w-full py-4 rounded-xl font-black text-sm tracking-wide shadow-xl flex items-center justify-center gap-2.5 transition-all active:scale-98 disabled:opacity-50 ${
+                                    editorMode === 'edit'
+                                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/25 ring-1 ring-blue-400'
+                                        : 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-amber-500/20'
+                                }`}
                             >
                                 {isGenerating ? (
                                     <>
-                                        <Loader2 size={18} className="animate-spin text-slate-950" />
-                                        <span>Gerando Imagem 4K com Gemini 3 Pro... ({elapsedTime}s)</span>
+                                        <Loader2 size={18} className={`animate-spin ${editorMode === 'edit' ? 'text-white' : 'text-slate-950'}`} />
+                                        <span>
+                                            {editorMode === 'edit' 
+                                                ? `Editando com ${model}... (${elapsedTime}s)` 
+                                                : `Gerando Imagem ${resolution} com ${model}... (${elapsedTime}s)`}
+                                        </span>
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles size={18} className="text-slate-950" />
-                                        <span>Gerar Imagem {resolution} com Gemini 3 Pro</span>
+                                        {editorMode === 'edit' ? (
+                                            <>
+                                                <Wand2 size={18} className="text-cyan-300" />
+                                                <span>Executar Edição com {model}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles size={18} className="text-slate-950" />
+                                                <span>Gerar Imagem {resolution} ({model})</span>
+                                            </>
+                                        )}
                                     </>
                                 )}
                             </button>
@@ -425,16 +537,27 @@ export const Gemini3ProImageGeneratorModal: React.FC<Gemini3ProImageGeneratorMod
                     <div className="lg:col-span-5 flex flex-col h-full bg-slate-950/70 rounded-2xl border border-slate-800 p-4 relative min-h-[380px]">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-3">
                             <div className="text-xs font-bold text-slate-300 flex items-center gap-2">
-                                <Eye size={14} className="text-amber-400" />
-                                <span>Resultado da Renderização 4K</span>
+                                <Eye size={14} className={editorMode === 'edit' ? 'text-blue-400' : 'text-amber-400'} />
+                                <span>{editorMode === 'edit' ? 'Resultado da Edição' : 'Resultado da Renderização'}</span>
                             </div>
 
                             {generatedUrl && (
                                 <div className="flex items-center gap-2">
+                                    {onSetAsActiveImage && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onSetAsActiveImage(generatedUrl)}
+                                            className="px-2.5 py-1 rounded-lg bg-blue-600/30 text-blue-300 hover:bg-blue-600/50 hover:text-white border border-blue-500/40 text-[11px] font-bold flex items-center gap-1.5 transition-all"
+                                            title="Usar esta imagem como imagem ativa no app"
+                                        >
+                                            <Layers size={13} />
+                                            <span>Usar no App</span>
+                                        </button>
+                                    )}
                                     <button
                                         onClick={handleDownload}
                                         className="p-1.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
-                                        title="Baixar PNG 4K"
+                                        title="Baixar PNG"
                                     >
                                         <Download size={14} />
                                     </button>

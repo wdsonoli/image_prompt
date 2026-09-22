@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 
 export type ImageResolution = "4K" | "2K" | "1K" | "512px";
 export type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "21:9" | "4:1" | "1:4";
-export type ImageGenModel = "gemini-3-pro-image" | "gemini-3.1-flash-image" | "gemini-3.1-flash-lite-image";
+export type ImageGenModel = "gemini-3.1-flash-image-preview" | "gemini-3-pro-image" | "gemini-3.1-flash-image" | "gemini-3.1-flash-lite-image";
 
 export interface GenerateImageOptions {
     prompt: string;
@@ -12,6 +12,15 @@ export interface GenerateImageOptions {
     aspectRatio?: ImageAspectRatio;
     imageContext?: { base64: string; mimeType: string };
     isHighQuality?: boolean;
+}
+
+export interface CreateOrEditImageOptions {
+    prompt: string;
+    mode?: 'create' | 'edit';
+    imageContext?: { base64: string; mimeType: string };
+    model?: ImageGenModel;
+    aspectRatio?: ImageAspectRatio;
+    imageSize?: ImageResolution;
 }
 
 /**
@@ -54,10 +63,12 @@ export const generateGemini3ProImage = async (options: GenerateImageOptions): Pr
     }
     parts.push({ text: prompt });
 
-    // Try target model first, with automatic fallback to gemini-3.1-flash-image if pro image encounters temporary issues
+    // Try target model first, with automatic fallback
     const modelsToTry: ImageGenModel[] = [model];
-    if (model === "gemini-3-pro-image") {
-        modelsToTry.push("gemini-3.1-flash-image");
+    if (model === "gemini-3.1-flash-image-preview") {
+        modelsToTry.push("gemini-3.1-flash-image", "gemini-3-pro-image");
+    } else if (model === "gemini-3-pro-image") {
+        modelsToTry.push("gemini-3.1-flash-image-preview", "gemini-3.1-flash-image");
     }
 
     let lastError: any = null;
@@ -134,9 +145,33 @@ export const generateImage = async (
 ): Promise<string> => {
     return generateGemini3ProImage({
         prompt,
-        model: isHighQuality ? "gemini-3-pro-image" : "gemini-3.1-flash-image",
+        model: isHighQuality ? "gemini-3-pro-image" : "gemini-3.1-flash-image-preview",
         imageSize: preferredSize,
         imageContext,
         isHighQuality
+    });
+};
+
+/**
+ * Creates or edits an image using text prompts with gemini-3.1-flash-image-preview.
+ * - When imageContext is provided: performs prompt-directed image editing (e.g. adding objects, changing background, re-coloring, altering textures).
+ * - When no imageContext is provided: creates a new image from scratch using text instructions.
+ */
+export const createOrEditWithFlashImagePreview = async (options: CreateOrEditImageOptions): Promise<string> => {
+    const {
+        prompt,
+        mode = options.imageContext ? 'edit' : 'create',
+        imageContext,
+        model = 'gemini-3.1-flash-image-preview',
+        aspectRatio = '1:1',
+        imageSize = '1K'
+    } = options;
+
+    return generateGemini3ProImage({
+        prompt,
+        model,
+        aspectRatio,
+        imageSize,
+        imageContext: mode === 'edit' ? imageContext : undefined
     });
 };

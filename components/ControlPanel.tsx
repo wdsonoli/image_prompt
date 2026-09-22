@@ -20,6 +20,7 @@ interface ControlPanelProps {
     onSettingsChange: (settings: PromptSettings) => void;
     onGenerate: () => void;
     onAnalyzeGemini: () => void;
+    onAnalyzeSearchGrounding?: () => void;
     onAnalyzeTF: () => void;
     onAnalyzeOpenAI: () => void;
     onAnalyzeDeepseek: () => void;
@@ -34,6 +35,7 @@ interface ControlPanelProps {
     onAnalyzeConsensus: () => void;
     onOpenSettings: () => void;
     isGeneratingGemini: boolean;
+    isGeneratingSearchGrounding?: boolean;
     isGeneratingTF: boolean;
     isGeneratingOpenAI: boolean;
     isGeneratingDeepseek: boolean;
@@ -49,6 +51,7 @@ interface ControlPanelProps {
     hasImage: boolean;
     onSwitchToEffects?: () => void;
     onOpenGemini3ProGenerator?: () => void;
+    onOpenImageEditor?: () => void;
 }
 
 const LIGHTING_OPTIONS = [
@@ -104,6 +107,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     onSettingsChange, 
     onGenerate,
     onAnalyzeGemini,
+    onAnalyzeSearchGrounding,
     onAnalyzeTF,
     onAnalyzeOpenAI,
     onAnalyzeDeepseek,
@@ -118,6 +122,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     onAnalyzeConsensus,
     onOpenSettings,
     isGeneratingGemini,
+    isGeneratingSearchGrounding = false,
     isGeneratingTF,
     isGeneratingOpenAI,
     isGeneratingDeepseek,
@@ -132,7 +137,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     isGeneratingConsensus,
     hasImage,
     onSwitchToEffects,
-    onOpenGemini3ProGenerator
+    onOpenGemini3ProGenerator,
+    onOpenImageEditor
 }) => {
     
     const handleChange = (key: keyof PromptSettings, value: any) => {
@@ -346,12 +352,34 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                     {/* Categoria 1: Modelos Foundation */}
                     <div className="space-y-1.5">
-                        <div className="text-[8px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-wider">
                             <span>Multimodais Foundation</span>
+                            <button
+                                type="button"
+                                onClick={() => handleChange('enableSearchGrounding', !settings.enableSearchGrounding)}
+                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded border transition-all ${
+                                    settings.enableSearchGrounding
+                                        ? 'bg-blue-600/30 text-cyan-300 border-cyan-400 font-bold'
+                                        : 'bg-slate-900 border-slate-700 text-slate-500 hover:text-slate-300'
+                                }`}
+                                title="Ativar Google Search Grounding em tempo real com gemini-3.5-flash"
+                            >
+                                <Globe size={9} className={settings.enableSearchGrounding ? 'text-cyan-400' : 'text-slate-500'} />
+                                <span>Search Grounding: {settings.enableSearchGrounding ? 'ON' : 'OFF'}</span>
+                            </button>
                         </div>
                         <div className="grid grid-cols-4 gap-1.5">
                             {[
-                                { id: 'gemini', label: 'GEMINI 3.0', sub: 'Google', icon: Bot, action: onAnalyzeGemini, loading: isGeneratingGemini, color: 'text-violet-300', border: 'hover:border-violet-500/50' },
+                                { 
+                                    id: 'gemini', 
+                                    label: settings.enableSearchGrounding ? 'GEMINI SEARCH' : 'GEMINI 3.0', 
+                                    sub: settings.enableSearchGrounding ? 'gemini-3.5-flash' : 'Google', 
+                                    icon: settings.enableSearchGrounding ? Globe : Bot, 
+                                    action: settings.enableSearchGrounding && onAnalyzeSearchGrounding ? onAnalyzeSearchGrounding : onAnalyzeGemini, 
+                                    loading: isGeneratingGemini || Boolean(isGeneratingSearchGrounding), 
+                                    color: settings.enableSearchGrounding ? 'text-cyan-300' : 'text-violet-300', 
+                                    border: settings.enableSearchGrounding ? 'border-cyan-500/50 bg-cyan-950/20 hover:border-cyan-400' : 'hover:border-violet-500/50' 
+                                },
                                 { id: 'openai', label: 'GPT-4O', sub: 'OpenAI', icon: Globe, action: onAnalyzeOpenAI, loading: isGeneratingOpenAI, color: 'text-emerald-300', border: 'hover:border-emerald-500/50' },
                                 { id: 'claude', label: 'CLAUDE 3.7', sub: 'Anthropic', icon: Compass, action: onAnalyzeClaude, loading: isGeneratingClaude, color: 'text-amber-300', border: 'hover:border-amber-500/50' },
                                 { id: 'deepseek', label: 'DEEPSEEK', sub: 'R1/VL', icon: Brain, action: onAnalyzeDeepseek, loading: isGeneratingDeepseek, color: 'text-blue-300', border: 'hover:border-blue-500/50' }
@@ -691,6 +719,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     >
                         <Sparkles size={15} className="text-slate-950" />
                         <span>Gerador Gemini 3 Pro 4K</span>
+                    </button>
+                )}
+
+                {onOpenImageEditor && hasImage && (
+                    <button
+                        type="button"
+                        onClick={onOpenImageEditor}
+                        className="w-full py-2.5 px-3 rounded-lg font-bold text-xs bg-gradient-to-r from-blue-700 via-indigo-600 to-violet-700 hover:from-blue-600 hover:to-violet-600 text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer border border-blue-400/30"
+                        title="Editar imagem atual com IA (gemini-3.1-flash-image-preview)"
+                    >
+                        <Wand2 size={15} className="text-cyan-300" />
+                        <span>Editar Imagem c/ IA (Preview)</span>
                     </button>
                 )}
             </div>

@@ -1,5 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
-import { PromptSettings, BackgroundDecomposition } from "../types";
+import { PromptSettings, BackgroundDecomposition, SearchGroundingData, SearchGroundingSource } from "../types";
+
+export interface GroundedPromptResult {
+    prompt: string;
+    grounding: SearchGroundingData;
+}
 
 export const generateGeminiPrompt = async (
     file: File, 
@@ -99,8 +104,17 @@ RETURN ONLY THE RAW PROMPT TEXT WITHOUT ANY CONVERSATIONAL PREAMBLE.`;
 TASK: Analyze the image, identify all background elements (scenery, architecture, background props, ambient lighting, textures), and generate a prompt that renders ONLY the empty, pristine background scene with high fidelity.`;
         }
 
+        const config: any = {
+            systemInstruction,
+            temperature: 0.6,
+        };
+
+        if (settings.enableSearchGrounding) {
+            config.tools = [{ googleSearch: {} }];
+        }
+
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
+            model: settings.enableSearchGrounding ? 'gemini-3.5-flash' : 'gemini-3.8-flash',
             contents: {
                 parts: [
                     {
@@ -114,10 +128,7 @@ TASK: Analyze the image, identify all background elements (scenery, architecture
                     }
                 ]
             },
-            config: {
-                systemInstruction,
-                temperature: 0.6,
-            }
+            config
         });
 
         if (!response.text) throw new Error("Gemini returned an empty response.");
@@ -126,6 +137,144 @@ TASK: Analyze the image, identify all background elements (scenery, architecture
         console.error("Gemini API Error:", error);
         throw error;
     }
+};
+
+/**
+ * Generates an up-to-date visual prompt using Search Grounding on gemini-3.5-flash with googleSearch tool.
+ * Extracts live real-world queries and web sources to ground prompt accuracy.
+ */
+export const generateGroundedGeminiPrompt = async (
+    file: File,
+    settings: PromptSettings,
+    preProcessedData?: { base64: string, mimeType: string }
+): Promise<GroundedPromptResult> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    let base64Data: string;
+    let mimeType: string;
+
+    if (preProcessedData) {
+        base64Data = preProcessedData.base64;
+        mimeType = preProcessedData.mimeType;
+    } else {
+        base64Data = await fileToGenerativePart(file);
+        mimeType = file.type;
+    }
+
+    const systemInstruction = `You are an Elite Visual Prompt Architect equipped with live Google Search Grounding.
+Your objective is to examine the provided image and perform Google searches to retrieve accurate, up-to-date 2026 real-world information:
+- Specific camera body models (e.g. Sony A7R V, Hasselblad H6D-100c, Leica M11)
+- Verified optics & focal lengths (e.g. 85mm f/1.2 GM, 35mm anamorphic)
+- Authentic materials, garments, fashion designer styles, or automotive trims
+- Contemporary artistic styles, studio lighting rigs (e.g. Broncolor Para 88, Profoto softbox), and color grading science
+- Architectural landmarks or geographical accuracy
+
+Compile all verified details into an ultra-realistic, state-of-the-art master prompt optimized for ${settings.targetPlatform}.
+DO NOT output conversational preamble. RETURN ONLY THE FINAL COMPILED PROMPT.`;
+
+    const promptTask = `GROUNDED SEARCH PROMPT COMPILATION:
+- Target Platform: ${settings.targetPlatform}
+- Visual Style: ${settings.style}
+- Detail Level: ${settings.detailLevel}/10
+- Base Request: ${settings.basePrompt || 'Analyze subject, aesthetic, lighting, and real-world optical references'}
+
+Use Google Search to verify exact facts, visual trends, and real-world gear for this image. Produce the highest-fidelity prompt possible.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: {
+            parts: [
+                {
+                    inlineData: {
+                        data: base64Data,
+                        mimeType: mimeType
+                    }
+                },
+                {
+                    text: promptTask
+                }
+            ]
+        },
+        config: {
+            systemInstruction,
+            temperature: 0.4,
+            tools: [{ googleSearch: {} }]
+        }
+    });
+
+    const text = response.text?.trim() || "";
+    const candidate = response.candidates?.[0];
+    const groundingMeta = (candidate as any)?.groundingMetadata;
+
+    const queries: string[] = groundingMeta?.webSearchQueries || [];
+    const chunks = groundingMeta?.groundingChunks || [];
+    const sources: SearchGroundingSource[] = [];
+
+    for (const chunk of chunks) {
+        if (chunk?.web?.uri) {
+            sources.push({
+                title: chunk.web.title || chunk.web.uri,
+                url: chunk.web.uri
+            });
+        }
+    }
+
+    return {
+        prompt: text,
+        grounding: {
+            queries,
+            sources,
+            text
+        }
+    };
+};
+
+/**
+ * Enriches any existing prompt with live Google Search data using gemini-3.5-flash and googleSearch tool.
+ */
+export const enrichPromptWithSearchGrounding = async (
+    prompt: string,
+    targetPlatform: string = 'midjourney'
+): Promise<GroundedPromptResult> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    const response = await ai.models.generateContent({
+        model: 'gemini-3.5-flash',
+        contents: `Enrich this visual prompt for ${targetPlatform} using Google Search to verify real-world facts, current photography techniques, authentic optical gear, and trending styles:
+Prompt: "${prompt}"
+
+Return ONLY the refined, highly detailed enriched prompt with verified real-world terminology.`
+        ,
+        config: {
+            tools: [{ googleSearch: {} }],
+            temperature: 0.4
+        }
+    });
+
+    const text = response.text?.trim() || prompt;
+    const candidate = response.candidates?.[0];
+    const groundingMeta = (candidate as any)?.groundingMetadata;
+
+    const queries: string[] = groundingMeta?.webSearchQueries || [];
+    const chunks = groundingMeta?.groundingChunks || [];
+    const sources: SearchGroundingSource[] = [];
+
+    for (const chunk of chunks) {
+        if (chunk?.web?.uri) {
+            sources.push({
+                title: chunk.web.title || chunk.web.uri,
+                url: chunk.web.uri
+            });
+        }
+    }
+
+    return {
+        prompt: text,
+        grounding: {
+            queries,
+            sources,
+            text
+        }
+    };
 };
 
 /**
@@ -151,7 +300,7 @@ export const extractBackgroundDecomposition = async (
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash',
             contents: {
                 parts: [
                     {

@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, X, Scissors, Crop as CropIcon, Check, Ban, Circle, Square } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, X, Scissors, Crop as CropIcon, Check, Ban, Circle, Square, Wand2 } from 'lucide-react';
 
 interface ImagePreviewProps {
     src: string;
@@ -9,6 +9,7 @@ interface ImagePreviewProps {
     onRemoveBackground: () => void;
     isRemovingBackground: boolean;
     onCropSave?: (croppedFile: File) => void;
+    onOpenImageEditor?: () => void;
 }
 
 type CropShape = 'rect' | 'circle';
@@ -19,7 +20,8 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     onRemove, 
     onRemoveBackground, 
     isRemovingBackground,
-    onCropSave
+    onCropSave,
+    onOpenImageEditor
 }) => {
     const [scale, setScale] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -239,6 +241,17 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
 
             {/* Sidebar Controls */}
             <div className="absolute top-4 left-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-40">
+                {onOpenImageEditor && (
+                    <button 
+                        onClick={onOpenImageEditor}
+                        className="p-2.5 rounded-xl flex items-center gap-2 text-xs font-bold backdrop-blur-md border border-cyan-400/40 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white shadow-xl hover:from-blue-500 hover:to-violet-500 transition-all active:scale-95"
+                        title="Editar imagem com IA (gemini-3.1-flash-image-preview)"
+                    >
+                        <Wand2 size={16} className="text-cyan-300" />
+                        <span className="hidden sm:inline">Editar c/ IA</span>
+                    </button>
+                )}
+
                 <button 
                     onClick={onRemoveBackground}
                     className={`p-2.5 rounded-xl flex items-center gap-2 text-xs font-semibold backdrop-blur-md border transition-all ${isRemovingBackground ? 'bg-blue-600 border-blue-500 text-white shadow-lg' : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:bg-slate-800'}`}

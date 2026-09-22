@@ -67,6 +67,18 @@ export interface PromptSettings {
     is3dLogo: boolean;
     removeBranding?: boolean;
     selectedEffects?: string[];
+    enableSearchGrounding?: boolean;
+}
+
+export interface SearchGroundingSource {
+    title: string;
+    url: string;
+}
+
+export interface SearchGroundingData {
+    queries: string[];
+    sources: SearchGroundingSource[];
+    text?: string;
 }
 
 export interface HistoryItem {
