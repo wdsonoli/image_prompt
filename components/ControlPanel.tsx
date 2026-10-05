@@ -10,7 +10,8 @@ import {
     MoveDiagonal, ArrowDownCircle, Search, RotateCcw, ChevronUp,
     Palette, Slash, Moon, Wand2, Flashlight, Lightbulb, Brain, Layers as LayersIcon,
     Activity, AlignCenter, AlignLeft, AlignRight, Move, Layers as Layers3d, LayoutGrid,
-    Wind, Layers, Boxes, Target, Image as ImageIcon, Flame, Compass, Scan
+    Wind, Layers, Boxes, Target, Image as ImageIcon, Flame, Compass, Scan, PenTool, Award, Package,
+    Film, Crown, Laptop, Building2, Feather, Orbit, Shapes, Gem, Wand, UserCheck, User
 } from 'lucide-react';
 import { Tooltip } from './Tooltip';
 import { ULTRA_PREMIUM_16K_PROMPT } from '../utils/visualEffectsData';
@@ -33,6 +34,23 @@ interface ControlPanelProps {
     onAnalyzeIdeogram: () => void;
     onAnalyzeHuggingFace: () => void;
     onAnalyzeConsensus: () => void;
+    onAnalyzeBehance?: () => void;
+    onAnalyzeArtStation?: () => void;
+    onAnalyzeProductDesign?: () => void;
+    onAnalyzeAwwwards?: () => void;
+    onAnalyzeCinema?: () => void;
+    onAnalyzeVogue?: () => void;
+    onAnalyzeNatGeo?: () => void;
+    onAnalyzeOctane?: () => void;
+    onAnalyzeUnreal?: () => void;
+    onAnalyzeLeonardo?: () => void;
+    onAnalyzeSD?: () => void;
+    onAnalyzeRedshift?: () => void;
+    onAnalyzeVRay?: () => void;
+    onAnalyzeCorona?: () => void;
+    onAnalyzeCycles?: () => void;
+    onAnalyzeRecraft?: () => void;
+    onAnalyzeMagnific?: () => void;
     onOpenSettings: () => void;
     isGeneratingGemini: boolean;
     isGeneratingSearchGrounding?: boolean;
@@ -48,8 +66,26 @@ interface ControlPanelProps {
     isGeneratingIdeogram: boolean;
     isGeneratingHuggingFace: boolean;
     isGeneratingConsensus: boolean;
+    isGeneratingBehance?: boolean;
+    isGeneratingArtStation?: boolean;
+    isGeneratingProductDesign?: boolean;
+    isGeneratingAwwwards?: boolean;
+    isGeneratingCinema?: boolean;
+    isGeneratingVogue?: boolean;
+    isGeneratingNatGeo?: boolean;
+    isGeneratingOctane?: boolean;
+    isGeneratingUnreal?: boolean;
+    isGeneratingLeonardo?: boolean;
+    isGeneratingSD?: boolean;
+    isGeneratingRedshift?: boolean;
+    isGeneratingVRay?: boolean;
+    isGeneratingCorona?: boolean;
+    isGeneratingCycles?: boolean;
+    isGeneratingRecraft?: boolean;
+    isGeneratingMagnific?: boolean;
     hasImage: boolean;
     onSwitchToEffects?: () => void;
+    onSwitchToModelSheet?: () => void;
     onOpenGemini3ProGenerator?: () => void;
     onOpenImageEditor?: () => void;
 }
@@ -120,6 +156,23 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     onAnalyzeIdeogram,
     onAnalyzeHuggingFace,
     onAnalyzeConsensus,
+    onAnalyzeBehance,
+    onAnalyzeArtStation,
+    onAnalyzeProductDesign,
+    onAnalyzeAwwwards,
+    onAnalyzeCinema,
+    onAnalyzeVogue,
+    onAnalyzeNatGeo,
+    onAnalyzeOctane,
+    onAnalyzeUnreal,
+    onAnalyzeLeonardo,
+    onAnalyzeSD,
+    onAnalyzeRedshift,
+    onAnalyzeVRay,
+    onAnalyzeCorona,
+    onAnalyzeCycles,
+    onAnalyzeRecraft,
+    onAnalyzeMagnific,
     onOpenSettings,
     isGeneratingGemini,
     isGeneratingSearchGrounding = false,
@@ -135,8 +188,26 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     isGeneratingIdeogram,
     isGeneratingHuggingFace,
     isGeneratingConsensus,
+    isGeneratingBehance = false,
+    isGeneratingArtStation = false,
+    isGeneratingProductDesign = false,
+    isGeneratingAwwwards = false,
+    isGeneratingCinema = false,
+    isGeneratingVogue = false,
+    isGeneratingNatGeo = false,
+    isGeneratingOctane = false,
+    isGeneratingUnreal = false,
+    isGeneratingLeonardo = false,
+    isGeneratingSD = false,
+    isGeneratingRedshift = false,
+    isGeneratingVRay = false,
+    isGeneratingCorona = false,
+    isGeneratingCycles = false,
+    isGeneratingRecraft = false,
+    isGeneratingMagnific = false,
     hasImage,
     onSwitchToEffects,
+    onSwitchToModelSheet,
     onOpenGemini3ProGenerator,
     onOpenImageEditor
 }) => {
@@ -145,7 +216,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         onSettingsChange({ ...settings, [key]: value });
     };
 
-    const handleQuickMode = (modeType: 'general' | 'mockup' | 'selo3d' | 'keepcolor' | 'extract_bg' | 'remove_branding') => {
+    const handleQuickMode = (modeType: 'general' | 'mockup' | 'selo3d' | 'keepcolor' | 'extract_bg' | 'extract_element' | 'extract_person' | 'remove_branding') => {
         switch(modeType) {
             case 'general':
                 onSettingsChange({ ...settings, mode: 'general', is3dLogo: false, keepColors: true, removeBranding: false, style: 'photorealistic' });
@@ -161,6 +232,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 break;
             case 'extract_bg':
                 onSettingsChange({ ...settings, mode: 'extract_background', is3dLogo: false, keepColors: true, removeBranding: false, style: 'photorealistic' });
+                break;
+            case 'extract_element':
+                onSettingsChange({ ...settings, mode: 'extract_element', is3dLogo: false, keepColors: true, removeBranding: false, style: 'photorealistic' });
+                break;
+            case 'extract_person':
+                onSettingsChange({ ...settings, mode: 'extract_person', is3dLogo: false, keepColors: true, removeBranding: false, style: 'photorealistic' });
                 break;
             case 'remove_branding':
                 onSettingsChange({ ...settings, mode: 'remove_branding', is3dLogo: false, keepColors: true, removeBranding: true, style: 'photorealistic' });
@@ -182,12 +259,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     const detailInfo = DETAIL_LEVEL_MAP[currentDetailValue];
 
     // Determine current active visual mode
+    const isExtractPersonActive = settings.mode === 'extract_person';
+    const isExtractElementActive = settings.mode === 'extract_element';
     const isExtractBgActive = settings.mode === 'extract_background';
     const isRemoveBrandingActive = settings.mode === 'remove_branding' || !!settings.removeBranding;
-    const isMockupColor = settings.mode === 'mockup' && settings.keepColors && !isRemoveBrandingActive;
-    const isMockupPlain = settings.mode === 'mockup' && !settings.keepColors && !isRemoveBrandingActive;
-    const isSeloActive = settings.is3dLogo && settings.mode !== 'extract_background' && !isRemoveBrandingActive;
-    const isGeneralActive = settings.mode === 'general' && !settings.is3dLogo && !isRemoveBrandingActive;
+    const isMockupColor = settings.mode === 'mockup' && settings.keepColors && !isRemoveBrandingActive && !isExtractElementActive && !isExtractPersonActive;
+    const isMockupPlain = settings.mode === 'mockup' && !settings.keepColors && !isRemoveBrandingActive && !isExtractElementActive && !isExtractPersonActive;
+    const isSeloActive = settings.is3dLogo && settings.mode !== 'extract_background' && settings.mode !== 'extract_element' && settings.mode !== 'extract_person' && !isRemoveBrandingActive;
+    const isGeneralActive = settings.mode === 'general' && !settings.is3dLogo && !isRemoveBrandingActive && !isExtractElementActive && !isExtractPersonActive;
 
     return (
         <div className="bg-slate-800/90 rounded-xl p-3.5 sm:p-5 border border-slate-700 backdrop-blur-md h-full flex flex-col relative shadow-2xl">
@@ -204,21 +283,66 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     <Settings size={18} />
                     <span>Arquiteto de Prompt</span>
                 </h2>
-                {onSwitchToEffects && (
-                    <button
-                        onClick={onSwitchToEffects}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-violet-500/40 text-violet-300 hover:text-white hover:border-violet-400 transition-all text-xs font-bold"
-                        title="Abrir Galeria de Efeitos (/tags)"
-                    >
-                        <Sparkles size={13} className="text-amber-300" />
-                        <span className="hidden sm:inline">Ver Efeitos (/tags)</span>
-                        <span className="sm:hidden">Efeitos</span>
-                    </button>
-                )}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    {onSwitchToModelSheet && (
+                        <button
+                            type="button"
+                            onClick={onSwitchToModelSheet}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-red-600/20 to-amber-600/20 border border-red-500/40 text-red-300 hover:text-white hover:border-red-400 transition-all text-xs font-bold"
+                            title="Abrir Estúdio de Ficha de Personagem & Consistência (Model Sheet)"
+                        >
+                            <Layers size={13} className="text-red-400" />
+                            <span className="hidden sm:inline">Ficha de Modelo</span>
+                            <span className="sm:hidden">Ficha</span>
+                            <span className="text-[9px] px-1 py-0.2 rounded bg-red-500/20 text-red-200 font-mono">NOVO</span>
+                        </button>
+                    )}
+                    {onSwitchToEffects && (
+                        <button
+                            type="button"
+                            onClick={onSwitchToEffects}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-violet-600/20 to-indigo-600/20 border border-violet-500/40 text-violet-300 hover:text-white hover:border-violet-400 transition-all text-xs font-bold"
+                            title="Abrir Galeria de Efeitos (/tags)"
+                        >
+                            <Sparkles size={13} className="text-amber-300" />
+                            <span className="hidden sm:inline">Ver Efeitos (/tags)</span>
+                            <span className="sm:hidden">Efeitos</span>
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="space-y-5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 
+                {/* Banner do Novo Modo: Ficha de Modelo (Model Sheet) */}
+                {onSwitchToModelSheet && (
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-red-950/60 via-slate-900 to-amber-950/40 border border-red-500/40 flex items-center justify-between gap-3 shadow-lg">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-red-600/20 text-red-400 border border-red-500/30 shrink-0">
+                                <Layers size={17} />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-black text-white">Novo Modo: Ficha de Modelo</span>
+                                    <span className="px-1.5 py-0.2 rounded-full bg-red-500/20 text-red-300 text-[8px] font-black uppercase border border-red-500/30">
+                                        Customização Total
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                                    Altere tudo antes de gerar: homem/mulher, 4 vistas, 8 expressões, 6 poses, figurino e cores Hex
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onSwitchToModelSheet}
+                            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs shrink-0 shadow-md transition-all active:scale-95"
+                        >
+                            Abrir Modo
+                        </button>
+                    </div>
+                )}
+
                 {/* Hub de Modos Unificado */}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between text-slate-400 font-bold text-[9px] uppercase tracking-widest">
@@ -226,6 +350,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <Target size={12} className="text-blue-400"/>
                             <span>Configuração de Saída</span>
                         </div>
+                        {isExtractPersonActive && (
+                            <span className="text-fuchsia-400 text-[10px] font-mono lowercase tracking-normal flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-fuchsia-400 animate-pulse" />
+                                extrair pessoa (clone)
+                            </span>
+                        )}
+                        {isExtractElementActive && (
+                            <span className="text-violet-400 text-[10px] font-mono lowercase tracking-normal flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                                extrair elemento
+                            </span>
+                        )}
                         {isExtractBgActive && (
                             <span className="text-emerald-400 text-[10px] font-mono lowercase tracking-normal flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -257,24 +393,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         </button>
 
                         <button 
-                            onClick={() => handleQuickMode('extract_bg')}
-                            className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isExtractBgActive ? 'bg-emerald-600/25 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.35)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
-                            title="Isolar o background e extrair elementos da cena sem o sujeito"
-                        >
-                            <LayersIcon size={18} className={isExtractBgActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-emerald-300'} />
-                            <span className={`text-[9px] font-black uppercase tracking-tight ${isExtractBgActive ? 'text-emerald-200' : 'text-slate-500'}`}>Extrair Fundo</span>
-                        </button>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                        <button 
                             onClick={() => handleQuickMode('selo3d')}
                             className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isSeloActive ? 'bg-amber-600/20 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
                         >
                             <Boxes size={18} className={isSeloActive ? 'text-amber-400' : 'text-slate-500 group-hover:text-slate-300'} />
                             <span className={`text-[9px] font-black uppercase tracking-tight ${isSeloActive ? 'text-white' : 'text-slate-500'}`}>Selo 3D</span>
                         </button>
+                    </div>
 
+                    <div className="grid grid-cols-2 gap-2 mt-2">
                         <button 
                             onClick={() => handleQuickMode('keepcolor')}
                             className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isMockupColor ? 'bg-pink-600/20 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.3)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
@@ -292,6 +419,56 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <span className={`text-[9px] font-black uppercase tracking-tight text-center ${isRemoveBrandingActive ? 'text-teal-200' : 'text-slate-500'}`}>Sem Rótulo</span>
                         </button>
                     </div>
+
+                    {/* Suite de Extração Avançada: Pessoa vs Elemento vs Fundo */}
+                    <div className="grid grid-cols-3 gap-2 mt-2 pt-1 border-t border-slate-800">
+                        <button 
+                            onClick={() => handleQuickMode('extract_person')}
+                            className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isExtractPersonActive ? 'bg-fuchsia-600/25 border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.35)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
+                            title="Extrair pessoa com as exatas características da referência: biometria facial, cabelo, roupa, pose e iluminação"
+                        >
+                            <UserCheck size={18} className={isExtractPersonActive ? 'text-fuchsia-400' : 'text-slate-500 group-hover:text-fuchsia-300'} />
+                            <span className={`text-[9px] font-black uppercase tracking-tight text-center ${isExtractPersonActive ? 'text-fuchsia-200' : 'text-slate-500'}`}>Extrai Pessoa</span>
+                        </button>
+
+                        <button 
+                            onClick={() => handleQuickMode('extract_element')}
+                            className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isExtractElementActive ? 'bg-violet-600/25 border-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.35)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
+                            title="Isolar elementos e sujeitos individuais da imagem ignorando o fundo"
+                        >
+                            <Scan size={18} className={isExtractElementActive ? 'text-violet-400' : 'text-slate-500 group-hover:text-violet-300'} />
+                            <span className={`text-[9px] font-black uppercase tracking-tight text-center ${isExtractElementActive ? 'text-violet-200' : 'text-slate-500'}`}>Extrair Elemento</span>
+                        </button>
+
+                        <button 
+                            onClick={() => handleQuickMode('extract_bg')}
+                            className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl border-2 transition-all group ${isExtractBgActive ? 'bg-emerald-600/25 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.35)]' : 'bg-slate-900/50 border-slate-700 hover:border-slate-500'}`}
+                            title="Isolar o background e extrair elementos da cena sem o sujeito"
+                        >
+                            <LayersIcon size={18} className={isExtractBgActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-emerald-300'} />
+                            <span className={`text-[9px] font-black uppercase tracking-tight text-center ${isExtractBgActive ? 'text-emerald-200' : 'text-slate-500'}`}>Extrair Fundo</span>
+                        </button>
+                    </div>
+
+                    {isExtractPersonActive && (
+                        <div className="p-3 rounded-xl bg-fuchsia-950/40 border border-fuchsia-500/40 text-[11px] text-fuchsia-200 flex items-start gap-2.5 animate-in fade-in duration-200">
+                            <Sparkles size={16} className="text-fuchsia-400 shrink-0 mt-0.5" />
+                            <div className="leading-relaxed">
+                                <strong className="text-fuchsia-300 font-bold block mb-0.5">Modo Extrai Pessoa Ativo (Clone Fiel de Características):</strong>
+                                Extrai e replica com máxima fidelidade os traços da pessoa na imagem de referência: biometria facial completa (olhos, formato do nariz, lábios, queixo, formato do rosto), corte e textura do cabelo, vestuário, caimento, pose corporal, olhar e iluminação fotográfica idênticos.
+                            </div>
+                        </div>
+                    )}
+
+                    {isExtractElementActive && (
+                        <div className="p-3 rounded-xl bg-violet-950/40 border border-violet-500/40 text-[11px] text-violet-200 flex items-start gap-2.5 animate-in fade-in duration-200">
+                            <Sparkles size={16} className="text-violet-400 shrink-0 mt-0.5" />
+                            <div className="leading-relaxed">
+                                <strong className="text-violet-300 font-bold block mb-0.5">Modo Extrair Elemento Ativo:</strong>
+                                A IA isolará o elemento/sujeito em primeiro plano (produtos, objetos, modelos), catalogando materiais, cores, silhuetas e componentes individuais, excluindo o fundo e gerando prompts de alta fidelidade para estúdio e composição.
+                            </div>
+                        </div>
+                    )}
 
                     {isRemoveBrandingActive && (
                         <div className="p-3 rounded-xl bg-teal-950/40 border border-teal-500/40 text-[11px] text-teal-200 flex items-start gap-2.5 animate-in fade-in duration-200">
@@ -314,6 +491,56 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     )}
                 </div>
 
+                {/* Seletor Rápido de Gênero do Personagem (Homem / Mulher) */}
+                <div className="space-y-1.5 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                            <User size={12} className="text-red-400" />
+                            <span>Gênero do Personagem (Homem / Mulher)</span>
+                        </label>
+                        <span className="text-[9px] font-mono text-amber-300 font-bold">
+                            {settings.characterGender === 'man' ? '👨 Homem Ativo' : settings.characterGender === 'woman' ? '👩 Mulher Ativa' : '✦ Automático'}
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                        <button
+                            type="button"
+                            onClick={() => onSettingsChange({ ...settings, characterGender: 'auto' })}
+                            className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all border ${
+                                !settings.characterGender || settings.characterGender === 'auto'
+                                    ? 'bg-blue-600/30 border-blue-500 text-white shadow-sm'
+                                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                        >
+                            ✦ Auto / Imagem
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onSettingsChange({ ...settings, characterGender: 'woman' })}
+                            className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all border flex items-center justify-center gap-1 ${
+                                settings.characterGender === 'woman'
+                                    ? 'bg-pink-600/30 border-pink-500 text-pink-200 shadow-sm'
+                                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-pink-300'
+                            }`}
+                        >
+                            <span>👩</span>
+                            <span>Mulher</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onSettingsChange({ ...settings, characterGender: 'man' })}
+                            className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all border flex items-center justify-center gap-1 ${
+                                settings.characterGender === 'man'
+                                    ? 'bg-blue-600/30 border-blue-500 text-blue-200 shadow-sm'
+                                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-blue-300'
+                            }`}
+                        >
+                            <span>👨</span>
+                            <span>Homem</span>
+                        </button>
+                    </div>
+                </div>
+
                 {/* Reconhecimento IA - Suíte Expandida de Visão */}
                 <div className="space-y-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800/80">
                     <div className="flex items-center justify-between">
@@ -322,7 +549,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <span>Visão de Inteligências</span>
                         </div>
                         <span className="text-[9px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700">
-                            10 Motores IA
+                            28 Motores IA de Elite
                         </span>
                     </div>
 
@@ -351,6 +578,107 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         </div>
                     </button>
 
+                    {/* Suíte 1: Top Designers & Direção de Arte */}
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-wider">
+                            <span className="flex items-center gap-1 text-pink-400">
+                                <Award size={11} className="text-pink-400" />
+                                Top Designers & Direção de Arte
+                            </span>
+                            <span className="text-[7.5px] bg-pink-500/20 text-pink-300 px-1.5 py-0.2 rounded font-bold border border-pink-500/30">ELITE DESIGN</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            <button
+                                disabled={!hasImage || isGeneratingBehance}
+                                onClick={onAnalyzeBehance}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-pink-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-pink-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Designer Gráfico & Branding de Elite (Behance / Dribbble Top Shot)"
+                            >
+                                {isGeneratingBehance ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <PenTool size={13} className="mb-0.5 text-pink-400" />}
+                                <span className="leading-tight">BEHANCE / DRIBBBLE</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Brand & Layout</span>
+                            </button>
+
+                            <button
+                                disabled={!hasImage || isGeneratingArtStation}
+                                onClick={onAnalyzeArtStation}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-indigo-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-indigo-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Art Director 3D & Concept Artist (ArtStation Trending #1)"
+                            >
+                                {isGeneratingArtStation ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Layers3d size={13} className="mb-0.5 text-indigo-400" />}
+                                <span className="leading-tight">ARTSTATION 3D</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Concept & CGI</span>
+                            </button>
+
+                            <button
+                                disabled={!hasImage || isGeneratingProductDesign}
+                                onClick={onAnalyzeProductDesign}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-emerald-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-emerald-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Design Industrial & Embalagens CMF (Dieter Rams / Apple Studio)"
+                            >
+                                {isGeneratingProductDesign ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Package size={13} className="mb-0.5 text-emerald-400" />}
+                                <span className="leading-tight">DESIGN PRODUTO</span>
+                                <span className="text-[7px] text-slate-400 font-normal">CMF & Packaging</span>
+                            </button>
+
+                            <button
+                                disabled={!hasImage || isGeneratingAwwwards}
+                                onClick={onAnalyzeAwwwards}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-cyan-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Digital Product & UI/UX Designer (Awwwards Site of the Year / Bento Grids)"
+                            >
+                                {isGeneratingAwwwards ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Laptop size={13} className="mb-0.5 text-cyan-400" />}
+                                <span className="leading-tight">AWWWARDS UI/UX</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Bento & Digital</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Suíte 2: Mestres do Cinema & Fotografia de Elite */}
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-wider">
+                            <span className="flex items-center gap-1 text-amber-400">
+                                <Film size={11} className="text-amber-400" />
+                                Mestres do Cinema & Fotografia de Elite
+                            </span>
+                            <span className="text-[7.5px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded font-bold border border-amber-500/30">CINEMA & LUXO</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                            <button
+                                disabled={!hasImage || isGeneratingCinema}
+                                onClick={onAnalyzeCinema}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-amber-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Diretor de Fotografia de Hollywood (ARRI / IMAX 70mm / Roger Deakins)"
+                            >
+                                {isGeneratingCinema ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Film size={13} className="mb-0.5 text-amber-400" />}
+                                <span className="leading-tight">HOLLYWOOD CINEMA</span>
+                                <span className="text-[7px] text-slate-400 font-normal">ARRI / 70mm IMAX</span>
+                            </button>
+
+                            <button
+                                disabled={!hasImage || isGeneratingVogue}
+                                onClick={onAnalyzeVogue}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-fuchsia-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-fuchsia-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Direção de Moda & Estilo Vogue (Alta Costura & Iluminação de Luxo)"
+                            >
+                                {isGeneratingVogue ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Crown size={13} className="mb-0.5 text-fuchsia-400" />}
+                                <span className="leading-tight">VOGUE EDITORIAL</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Moda & Alta Costura</span>
+                            </button>
+
+                            <button
+                                disabled={!hasImage || isGeneratingNatGeo}
+                                onClick={onAnalyzeNatGeo}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-emerald-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-emerald-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Fotógrafo Fellow National Geographic (Hasselblad H6D 100MP RAW)"
+                            >
+                                {isGeneratingNatGeo ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Camera size={13} className="mb-0.5 text-emerald-400" />}
+                                <span className="leading-tight">NATGEO RAW</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Hasselblad 100MP</span>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Categoria 1: Modelos Foundation */}
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-wider">
@@ -363,7 +691,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                                         ? 'bg-blue-600/30 text-cyan-300 border-cyan-400 font-bold'
                                         : 'bg-slate-900 border-slate-700 text-slate-500 hover:text-slate-300'
                                 }`}
-                                title="Ativar Google Search Grounding em tempo real com gemini-3.5-flash"
+                                title="Ativar Google Search Grounding em tempo real com gemini-3.8-flash"
                             >
                                 <Globe size={9} className={settings.enableSearchGrounding ? 'text-cyan-400' : 'text-slate-500'} />
                                 <span>Search Grounding: {settings.enableSearchGrounding ? 'ON' : 'OFF'}</span>
@@ -374,22 +702,22 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                                 { 
                                     id: 'gemini', 
                                     label: settings.enableSearchGrounding ? 'GEMINI SEARCH' : 'GEMINI 3.0', 
-                                    sub: settings.enableSearchGrounding ? 'gemini-3.5-flash' : 'Google', 
+                                    sub: settings.enableSearchGrounding ? 'gemini-3.8-flash' : 'Google', 
                                     icon: settings.enableSearchGrounding ? Globe : Bot, 
                                     action: settings.enableSearchGrounding && onAnalyzeSearchGrounding ? onAnalyzeSearchGrounding : onAnalyzeGemini, 
                                     loading: isGeneratingGemini || Boolean(isGeneratingSearchGrounding), 
                                     color: settings.enableSearchGrounding ? 'text-cyan-300' : 'text-violet-300', 
                                     border: settings.enableSearchGrounding ? 'border-cyan-500/50 bg-cyan-950/20 hover:border-cyan-400' : 'hover:border-violet-500/50' 
                                 },
-                                { id: 'openai', label: 'GPT-4O', sub: 'OpenAI', icon: Globe, action: onAnalyzeOpenAI, loading: isGeneratingOpenAI, color: 'text-emerald-300', border: 'hover:border-emerald-500/50' },
+                                { id: 'openai', label: 'CHATGPT (GRÁTIS)', sub: 'GPT-4o Mini', icon: Bot, action: onAnalyzeOpenAI, loading: isGeneratingOpenAI, color: 'text-emerald-300', border: 'hover:border-emerald-500/50' },
                                 { id: 'claude', label: 'CLAUDE 3.7', sub: 'Anthropic', icon: Compass, action: onAnalyzeClaude, loading: isGeneratingClaude, color: 'text-amber-300', border: 'hover:border-amber-500/50' },
-                                { id: 'deepseek', label: 'DEEPSEEK', sub: 'R1/VL', icon: Brain, action: onAnalyzeDeepseek, loading: isGeneratingDeepseek, color: 'text-blue-300', border: 'hover:border-blue-500/50' }
+                                { id: 'deepseek', label: 'DEEPSEEK (GRÁTIS)', sub: 'R1 Visual', icon: Brain, action: onAnalyzeDeepseek, loading: isGeneratingDeepseek, color: 'text-blue-300', border: 'hover:border-blue-500/50' }
                             ].map(ai => (
                                 <button 
                                     key={ai.id}
                                     disabled={!hasImage || ai.loading}
                                     onClick={ai.action}
-                                    className={`flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-[9px] sm:text-[8px] font-black ${ai.color} ${ai.border} hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95`}
+                                    className={`flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-[9px] sm:text-[8px] font-black ${ai.color} ${ai.border} hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center`}
                                 >
                                     {ai.loading ? <Loader2 size={14} className="animate-spin mb-1" /> : <ai.icon size={14} className="mb-1" />}
                                     <span className="leading-tight">{ai.label}</span>
@@ -399,40 +727,170 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         </div>
                     </div>
 
-                    {/* Categoria 2: Motores de Imagem Especialistas */}
+                    {/* Categoria 2: Motores de Imagem & Render Especialistas */}
                     <div className="space-y-1.5">
-                        <div className="text-[8px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                            <span>Especialistas em Imagem & Render</span>
+                        <div className="flex items-center justify-between text-[8px] font-black text-slate-400 uppercase tracking-wider">
+                            <span className="flex items-center gap-1 text-rose-400">
+                                <Flame size={11} className="text-rose-400" />
+                                Especialistas em Imagem & Render (13 Motores)
+                            </span>
+                            <span className="text-[7.5px] bg-rose-500/20 text-rose-300 px-1.5 py-0.2 rounded font-bold border border-rose-500/30">TOP IMAGE & RENDER</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-1.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            {/* 1. Midjourney */}
                             <button 
                                 disabled={!hasImage || isGeneratingMidjourney}
                                 onClick={onAnalyzeMidjourney}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-cyan-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-cyan-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Estética e Fotografia Midjourney v6.1 (/describe)"
                             >
                                 {isGeneratingMidjourney ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Camera size={13} className="mb-0.5 text-cyan-400" />}
                                 <span className="leading-tight">MIDJOURNEY</span>
                                 <span className="text-[7px] text-slate-400 font-normal">v6.1 /describe</span>
                             </button>
 
+                            {/* 2. Flux.1 */}
                             <button 
                                 disabled={!hasImage || isGeneratingFlux}
                                 onClick={onAnalyzeFlux}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-rose-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-rose-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-rose-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-rose-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Realismo RAW e Texturas Físicas (Flux.1 Black Forest Labs)"
                             >
                                 {isGeneratingFlux ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Flame size={13} className="mb-0.5 text-rose-400" />}
                                 <span className="leading-tight">FLUX.1</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Realismo RAW</span>
                             </button>
 
+                            {/* 3. Redshift 3D */}
+                            <button 
+                                disabled={!hasImage || isGeneratingRedshift}
+                                onClick={onAnalyzeRedshift}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-red-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-red-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de GPU Motion Design e Shaders SSS (Maxon Redshift 3D / Cinema 4D)"
+                            >
+                                {isGeneratingRedshift ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Flame size={13} className="mb-0.5 text-red-400" />}
+                                <span className="leading-tight">REDSHIFT 3D</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Maxon Mograph</span>
+                            </button>
+
+                            {/* 4. Octane Render */}
+                            <button 
+                                disabled={!hasImage || isGeneratingOctane}
+                                onClick={onAnalyzeOctane}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-amber-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de GPU Path Tracing e Cáusticas Físicas (Octane Render / Cinema 4D)"
+                            >
+                                {isGeneratingOctane ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Sun size={13} className="mb-0.5 text-amber-400" />}
+                                <span className="leading-tight">OCTANE RENDER</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Path Tracing C4D</span>
+                            </button>
+
+                            {/* 5. Unreal Engine */}
+                            <button 
+                                disabled={!hasImage || isGeneratingUnreal}
+                                onClick={onAnalyzeUnreal}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-blue-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-blue-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Iluminação Global Lumen e Geometria Nanite (Unreal Engine 5.5)"
+                            >
+                                {isGeneratingUnreal ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Boxes size={13} className="mb-0.5 text-blue-400" />}
+                                <span className="leading-tight">UNREAL ENGINE</span>
+                                <span className="text-[7px] text-slate-400 font-normal">UE 5.5 / Lumen</span>
+                            </button>
+
+                            {/* 6. V-Ray 6 */}
+                            <button 
+                                disabled={!hasImage || isGeneratingVRay}
+                                onClick={onAnalyzeVRay}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-emerald-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-emerald-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Render Arquitetônico e Automotivo de Luxo (Chaos V-Ray 6)"
+                            >
+                                {isGeneratingVRay ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Building2 size={13} className="mb-0.5 text-emerald-400" />}
+                                <span className="leading-tight">V-RAY 6</span>
+                                <span className="text-[7px] text-slate-400 font-normal">ArchViz & Luxury</span>
+                            </button>
+
+                            {/* 7. Corona Render */}
+                            <button 
+                                disabled={!hasImage || isGeneratingCorona}
+                                onClick={onAnalyzeCorona}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-teal-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-teal-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Iluminação Escandinava e Materiais Orgânicos (Chaos Corona)"
+                            >
+                                {isGeneratingCorona ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Feather size={13} className="mb-0.5 text-teal-400" />}
+                                <span className="leading-tight">CORONA RENDER</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Nordic Serenity</span>
+                            </button>
+
+                            {/* 8. Blender Cycles */}
+                            <button 
+                                disabled={!hasImage || isGeneratingCycles}
+                                onClick={onAnalyzeCycles}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-orange-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-orange-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Ray Tracing Aberto e Shaders BSDF (Blender 4 Cycles X / AgX)"
+                            >
+                                {isGeneratingCycles ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Orbit size={13} className="mb-0.5 text-orange-400" />}
+                                <span className="leading-tight">BLENDER CYCLES</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Cycles X / AgX</span>
+                            </button>
+
+                            {/* 9. Leonardo Phoenix */}
+                            <button 
+                                disabled={!hasImage || isGeneratingLeonardo}
+                                onClick={onAnalyzeLeonardo}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-yellow-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-yellow-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Fotorealismo Cinematográfico (Leonardo.ai Phoenix / Kino)"
+                            >
+                                {isGeneratingLeonardo ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Sparkles size={13} className="mb-0.5 text-yellow-400" />}
+                                <span className="leading-tight">LEONARDO PHOENIX</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Photoreal V2</span>
+                            </button>
+
+                            {/* 10. SD 3.5 Large */}
+                            <button 
+                                disabled={!hasImage || isGeneratingSD}
+                                onClick={onAnalyzeSD}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-violet-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-violet-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Difusão Latente ComfyUI (Stable Diffusion 3.5 Large)"
+                            >
+                                {isGeneratingSD ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Cpu size={13} className="mb-0.5 text-violet-400" />}
+                                <span className="leading-tight">SD 3.5 LARGE</span>
+                                <span className="text-[7px] text-slate-400 font-normal">ComfyUI Latent</span>
+                            </button>
+
+                            {/* 11. Recraft v3 */}
+                            <button 
+                                disabled={!hasImage || isGeneratingRecraft}
+                                onClick={onAnalyzeRecraft}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-pink-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-pink-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Design Gráfico #1 e Ícones 3D (Recraft v3 / Red Dot Best of the Best)"
+                            >
+                                {isGeneratingRecraft ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Gem size={13} className="mb-0.5 text-pink-400" />}
+                                <span className="leading-tight">RECRAFT v3</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Design & 3D Icons</span>
+                            </button>
+
+                            {/* 12. Magnific AI */}
+                            <button 
+                                disabled={!hasImage || isGeneratingMagnific}
+                                onClick={onAnalyzeMagnific}
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-sky-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-sky-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
+                                title="Visão de Micro-Texturas e Alucinação Neural 16K (Magnific AI / Krea)"
+                            >
+                                {isGeneratingMagnific ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Wand size={13} className="mb-0.5 text-sky-400" />}
+                                <span className="leading-tight">MAGNIFIC 16K</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Micro-Texturas AI</span>
+                            </button>
+
+                            {/* 13. Ideogram 2.0 (Span across bottom) */}
                             <button 
                                 disabled={!hasImage || isGeneratingIdeogram}
                                 onClick={onAnalyzeIdeogram}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-fuchsia-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-fuchsia-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
+                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-fuchsia-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-fuchsia-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center col-span-2 sm:col-span-4"
+                                title="Visão de Tipografia e Design Gráfico (Ideogram 2.0)"
                             >
                                 {isGeneratingIdeogram ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Type size={13} className="mb-0.5 text-fuchsia-400" />}
                                 <span className="leading-tight">IDEOGRAM 2.0</span>
-                                <span className="text-[7px] text-slate-400 font-normal">Design & Fontes</span>
+                                <span className="text-[7px] text-slate-400 font-normal">Design Gráfico, Logos & Tipografia Renderizada</span>
                             </button>
                         </div>
                     </div>
@@ -476,25 +934,63 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     </div>
                 </div>
 
-                {/* Slider Nível de Detalhe */}
-                <div className="bg-slate-900/40 p-3 rounded-lg border border-slate-700/50 space-y-3">
+                {/* Slider Nível de Detalhe e Fidelidade à Referência */}
+                <div className="bg-slate-900/40 p-3 rounded-lg border border-slate-700/50 space-y-2.5">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-[9px] font-bold text-blue-400 uppercase tracking-widest">
                             <LayersIcon size={12} />
                             <span>Nível de Detalhe</span>
                         </div>
-                        <span className="text-[10px] font-black text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 uppercase">
-                            {detailInfo.label} ({currentDetailValue})
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded border uppercase transition-all ${
+                            currentDetailValue >= 7 
+                                ? 'text-amber-300 bg-amber-500/20 border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                                : 'text-blue-300 bg-blue-500/10 border-blue-500/20'
+                        }`}>
+                            {detailInfo.label} ({currentDetailValue}/10)
                         </span>
                     </div>
+
                     <input 
                         type="range" min="1" max="10" step="1" 
                         value={currentDetailValue}
                         onChange={(e) => {
                             handleChange('detailLevel', parseInt(e.target.value));
                         }}
-                        className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                        className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                     />
+
+                    {/* Presets Rápidos de Fidelidade */}
+                    <div className="grid grid-cols-4 gap-1 pt-0.5">
+                        {[
+                            { val: 1, label: 'Mínimo' },
+                            { val: 5, label: 'Padrão' },
+                            { val: 7, label: 'Detalhado' },
+                            { val: 10, label: 'Cópia Fiel' }
+                        ].map(preset => (
+                            <button
+                                key={preset.val}
+                                type="button"
+                                onClick={() => handleChange('detailLevel', preset.val)}
+                                className={`py-1 px-1 rounded text-[8px] font-black transition-all ${
+                                    currentDetailValue === preset.val
+                                        ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-400'
+                                        : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                                }`}
+                            >
+                                {preset.label} ({preset.val})
+                            </button>
+                        ))}
+                    </div>
+
+                    {currentDetailValue >= 7 && (
+                        <div className="p-2 rounded-lg bg-amber-950/30 border border-amber-500/40 text-[10px] text-amber-200 flex items-start gap-2 animate-in fade-in duration-200">
+                            <Target size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                            <div className="leading-snug">
+                                <strong className="text-amber-300 font-bold block mb-0.5">🎯 Fidelidade Máxima à Imagem de Referência Ativa:</strong>
+                                A IA analisará micro-detalhes, iluminação física, texturas e paleta de cores para gerar um prompt o mais próximo possível da imagem de referência.
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Iluminação e Ângulos */}
@@ -588,9 +1084,20 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                 {/* Estilos Artísticos */}
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
-                        <Palette size={12} className="text-pink-400"/>
-                        <span>Estilos</span>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
+                            <Palette size={12} className="text-pink-400"/>
+                            <span>Estilos</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onOpenSettings}
+                            className="flex items-center gap-1 text-[8px] sm:text-[8.5px] font-bold text-slate-400 hover:text-pink-300 transition-colors bg-slate-900/80 hover:bg-slate-800 px-2 py-0.5 rounded border border-slate-700/80 cursor-pointer"
+                            title="Abrir configurações para alterar o estilo padrão automático"
+                        >
+                            <Settings size={10} className="text-pink-400" />
+                            <span>Definir Padrão Global</span>
+                        </button>
                     </div>
                     <div className="flex flex-wrap gap-1">
                         {Object.entries(STYLE_TEMPLATES).slice(0, 28).map(([id, _]) => (
@@ -711,29 +1218,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     <Zap size={16} /> Compilar Prompt Profissional
                 </button>
 
-                {onOpenGemini3ProGenerator && (
-                    <button
-                        type="button"
-                        onClick={onOpenGemini3ProGenerator}
-                        className="w-full py-2.5 px-3 rounded-lg font-black text-xs bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
-                        title="Abrir Gerador de Imagem Gemini 3 Pro 4K"
-                    >
-                        <Sparkles size={15} className="text-slate-950" />
-                        <span>Gerador Gemini 3 Pro 4K</span>
-                    </button>
-                )}
-
-                {onOpenImageEditor && hasImage && (
-                    <button
-                        type="button"
-                        onClick={onOpenImageEditor}
-                        className="w-full py-2.5 px-3 rounded-lg font-bold text-xs bg-gradient-to-r from-blue-700 via-indigo-600 to-violet-700 hover:from-blue-600 hover:to-violet-600 text-white transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer border border-blue-400/30"
-                        title="Editar imagem atual com IA (gemini-3.1-flash-image-preview)"
-                    >
-                        <Wand2 size={15} className="text-cyan-300" />
-                        <span>Editar Imagem c/ IA (Preview)</span>
-                    </button>
-                )}
             </div>
         </div>
     );

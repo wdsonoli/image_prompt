@@ -32,6 +32,37 @@ export interface BackgroundDecomposition {
     isolatedPrompt: string;
 }
 
+export interface ExtractedVisualElement {
+    name: string;
+    category: string;
+    description: string;
+    materialsAndTextures: string;
+    dominantColors: string[];
+    isolatedPrompt: string;
+}
+
+export interface ElementDecomposition {
+    mainSubject: string;
+    category: string;
+    elements: ExtractedVisualElement[];
+    lightingAndReflections: string;
+    silhouetteAndEdges: string;
+    isolatedMasterPrompt: string;
+}
+
+export interface PersonDecomposition {
+    mainSubject: string; // e.g. "Mulher em traje executivo"
+    genderAndAge: string;
+    ethnicityAndSkinTone: string;
+    facialFeatures: string; // eyes, eyebrows, nose, lips, jawline, expression, gaze
+    hairStyleAndColor: string; // length, texture, color, styling, parting
+    clothingAndFabric: string; // garment pieces, materials, fit, colors
+    accessoriesAndDetails: string[]; // jewelry, glasses, watches, distinctive marks
+    poseAndBodyLanguage: string; // posture, shoulder angle, head tilt, hands
+    lightingOnSubject: string; // key, fill, rim lighting on the subject
+    isolatedPersonPrompt: string; // Master replication prompt for target platform
+}
+
 export interface UploadedImage {
     id: string;
     file: File;
@@ -39,6 +70,8 @@ export interface UploadedImage {
     name: string;
     analysis: AnalysisResult | null;
     backgroundExtraction?: BackgroundDecomposition | null;
+    elementExtraction?: ElementDecomposition | null;
+    personExtraction?: PersonDecomposition | null;
     base64Data?: string;
     mimeType?: string;
 }
@@ -58,7 +91,7 @@ export interface PromptSettings {
     aspectRatio: string;
     removeBackground: boolean;
     targetPlatform: TargetPlatform;
-    mode: 'general' | 'mockup' | 'extract_background' | 'remove_branding';
+    mode: 'general' | 'mockup' | 'extract_background' | 'remove_branding' | 'extract_element' | 'extract_person';
     activeTemplateId?: string;
     shadowOpacity: number;
     material: string;
@@ -68,6 +101,7 @@ export interface PromptSettings {
     removeBranding?: boolean;
     selectedEffects?: string[];
     enableSearchGrounding?: boolean;
+    characterGender?: 'woman' | 'man' | 'auto';
 }
 
 export interface SearchGroundingSource {
@@ -127,24 +161,24 @@ export const DETAIL_LEVEL_MAP: Record<number, { label: string; keywords: string[
         platformBoosts: { midjourney: "--stylize 500", dalle: "intricate details and textures", deepseek: "high fidelity rendering", leonardo: "high fidelity, intricate, polished" }
     },
     7: { 
-        label: "Hyper Detail", 
-        keywords: ["ultra detailed", "hyperrealistic", "8k resolution", "micro-textures", "pbr materials", "ray traced reflections", "photographic precision"],
-        platformBoosts: { dalle: "extreme detail, 8k photographic", stable_diffusion: "(masterpiece:1.2), ultra-high definition, sharp focus", flux: "hyper-realistic textures, 8k, photorealistic", google_imagefx: "photorealistic, 8k resolution" }
+        label: "Hyper Detail (Fiel)", 
+        keywords: ["ultra detailed", "hyperrealistic", "8k resolution", "micro-textures", "pbr materials", "ray traced reflections", "photographic precision", "faithful reference recreation", "authentic color fidelity"],
+        platformBoosts: { dalle: "extreme detail, exact photographic fidelity to reference, 8k", stable_diffusion: "(masterpiece:1.2), (exact reference fidelity:1.2), ultra-high definition, sharp focus", flux: "hyper-realistic textures, 8k, photorealistic reference replica", google_imagefx: "photorealistic, 8k resolution, authentic detail" }
     },
     8: { 
-        label: "Epic", 
-        keywords: ["masterpiece", "breathtaking", "complex patterns", "cinematic quality", "global illumination", "physically based rendering", "volumetric caustics"],
-        platformBoosts: { midjourney: "--stylize 750 --quality 2", stable_diffusion: "(best quality:1.3), absurdres, masterpiece", freepik: "premium stock quality, commercial photography", adobe_firefly: "cinematic masterpiece lighting, epic scale" }
+        label: "Epic (Ultra Fiel)", 
+        keywords: ["masterpiece", "breathtaking", "complex patterns", "cinematic quality", "global illumination", "physically based rendering", "volumetric caustics", "strict reference color preservation", "exact geometric replica"],
+        platformBoosts: { midjourney: "--stylize 750 --quality 2", stable_diffusion: "(best quality:1.3), (perfect reference match:1.3), absurdres, masterpiece", freepik: "premium stock quality, commercial photography, faithful reference", adobe_firefly: "cinematic masterpiece lighting, epic scale, exact reference fidelity" }
     },
     9: { 
-        label: "Legendary", 
-        keywords: ["hyper-intricate", "unreal engine 5 render", "ray tracing", "subsurface scattering", "anisotropic highlights", "nanite geometry", "octane render style"],
-        platformBoosts: { midjourney: "--stylize 850", google_imagefx: "photorealistic masterpiece, cinematic lighting", stable_diffusion: "unreal engine 5, octane render, 8k, masterpiece", flux: "unreal engine 5 style, hyper-detailed, raytracing" }
+        label: "Fidelidade Extrema", 
+        keywords: ["hyper-intricate", "unreal engine 5 render", "ray tracing", "subsurface scattering", "anisotropic highlights", "nanite geometry", "octane render style", "identical 1:1 reference replica", "exact pantone match"],
+        platformBoosts: { midjourney: "--stylize 850", google_imagefx: "photorealistic masterpiece, cinematic lighting, identical reference replica", stable_diffusion: "unreal engine 5, octane render, 8k, masterpiece, identical reference fidelity", flux: "unreal engine 5 style, hyper-detailed, raytracing, exact reference replica" }
     },
     10: { 
-        label: "Omniscient", 
-        keywords: ["sub-surface scattering", "macro photography quality", "infinitely detailed", "architectural photography precision", "visible molecular texture", "diffraction spikes", "volumetric caustics", "hyper-fidelity render", "quantum-level detail"],
-        platformBoosts: { midjourney: "--stylize 1000 --v 6.1", stable_diffusion: "(masterpiece:1.5), (ultra-high-definition:1.2), extremely detailed CG, photorealistic", deepseek: "maximum visual density, total fidelity", flux: "extreme realistic textures, nanoscopic detail, flawless render", dalle: "astounding detail, every surface texture rendered with absolute precision" }
+        label: "Cópia Fiel 1:1 (Máxima)", 
+        keywords: ["sub-surface scattering", "macro photography quality", "infinitely detailed", "architectural photography precision", "visible molecular texture", "diffraction spikes", "volumetric caustics", "hyper-fidelity render", "quantum-level detail", "absolute 1:1 visual match to reference image", "indistinguishable from source reference", "exact specular highlight alignment"],
+        platformBoosts: { midjourney: "--stylize 1000 --v 6.1", stable_diffusion: "(masterpiece:1.5), (ultra-high-definition:1.2), (exact 1:1 reference clone:1.4), extremely detailed CG, photorealistic", deepseek: "maximum visual density, total 1:1 reference fidelity", flux: "extreme realistic textures, nanoscopic detail, flawless 1:1 reference replica", dalle: "astounding detail, every surface texture and color rendered with absolute 1:1 reference precision" }
     }
 };
 
@@ -200,3 +234,67 @@ export const STYLE_TEMPLATES: Record<string, string> = {
     graffiti: "graffiti art, street art style, spray paint textures, vibrant urban mural, tags and stencils",
     fresco: "fresco painting, ancient mural style, plaster texture, muted classical colors, renaissance aesthetic"
 };
+
+export interface CharacterColorSwatch {
+    id: string;
+    label: string;
+    hex: string;
+}
+
+export interface ModelSheetData {
+    // 1. Character Profile
+    gender: 'woman' | 'man';
+    characterName: string;
+    role: string;
+    age: string;
+    height: string;
+    bodyType: string;
+    personality: string;
+    distinctiveTraits: string;
+
+    // 2. Full-Body Turnaround
+    turnaroundViews: ('front' | 'three_quarter' | 'profile' | 'back')[];
+    activeView: 'all_turnaround' | 'front' | 'three_quarter' | 'profile' | 'back';
+
+    // 3. Face & Identity Details
+    facialStructure: string;
+    eyes: string;
+    eyebrows: string;
+    nose: string;
+    lips: string;
+    skinTone: string;
+    skinToneHex: string;
+    hair: string;
+    hairColorHex: string;
+    makeup: string;
+    facialHair?: string;
+    scarsOrMarks: string;
+
+    // 4. Expression Sheet (8 Emotions)
+    activeExpression: 'all_8_emotions' | 'neutral' | 'happy' | 'angry' | 'sad' | 'surprised' | 'worried' | 'confident' | 'determined';
+    expressionDetails: string;
+
+    // 5. Pose & Body Language (6 Poses)
+    activePose: 'all_6_poses' | 'neutral_stand' | 'walking' | 'sitting' | 'relaxed' | 'tense' | 'action_ready';
+    poseDetails: string;
+
+    // 6. Costume Details
+    outfitType: string;
+    topNeckline: string;
+    sleevesOrStraps: string;
+    bottomPiece: string;
+    footwear: string;
+    accessories: string;
+    fabricTextures: string[];
+
+    // 7. Color & Material Palette
+    colorSwatches: CharacterColorSwatch[];
+    materialReferences: string[];
+
+    // 8. Environment, Lighting & Directives
+    lighting: string;
+    backgroundSetting: string;
+    renderStyle: string;
+    outputType: 'full_model_sheet' | 'turnaround_4_views' | 'expression_grid' | 'pose_grid' | 'single_shot';
+    additionalNotes: string;
+}

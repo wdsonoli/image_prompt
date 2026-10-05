@@ -1,6 +1,6 @@
 {
   "name": "Image prompt 2.5",
-  "description": "Advanced image-to-prompt generator with multi-vision suite, 120+ photographic effects, Ultra-Premium 16K Remaster, and native 4K image generation powered by Gemini 3 Pro.",
+  "description": "Advanced image-to-prompt generator with multi-vision suite, 120+ photographic effects, Ultra-Premium 16K Remaster, and instant export to Google ImageFX, Midjourney, and Flux.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

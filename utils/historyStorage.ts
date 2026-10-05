@@ -1,13 +1,14 @@
-import { HistoryItem } from '../types';
+import { HistoryItem, UploadedImage } from '../types';
 
 const DB_NAME = 'VPA_PROMPT_HISTORY_DB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'historyItems';
+const STORE_ACTIVE_IMAGES = 'activeUploadedImages';
 const LEGACY_STORAGE_KEY = 'promptHistory';
 const FALLBACK_STORAGE_KEY = 'promptHistory_lite';
 
 /**
- * Open or create the IndexedDB database for history persistence.
+ * Open or create the IndexedDB database for history persistence and active images.
  */
 function openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
@@ -23,6 +24,9 @@ function openDB(): Promise<IDBDatabase> {
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
                     const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
                     store.createIndex('timestamp', 'timestamp', { unique: false });
+                }
+                if (!db.objectStoreNames.contains(STORE_ACTIVE_IMAGES)) {
+                    db.createObjectStore(STORE_ACTIVE_IMAGES, { keyPath: 'id' });
                 }
             };
 
@@ -301,4 +305,173 @@ export async function clearHistory(): Promise<void> {
     } catch {
         // ignore
     }
+}
+
+export interface StoredReferenceImage {
+    id: string;
+    name: string;
+    base64Data: string;
+    mimeType: string;
+    analysis: any;
+    order: number;
+    isSelected: boolean;
+}
+
+/**
+ * Saves current uploaded reference images and the selected image ID to IndexedDB.
+ */
+export async function saveActiveImages(images: UploadedImage[], selectedId: string | null): Promise<void> {
+    try {
+        const db = await openDB();
+        return new Promise<void>((resolve) => {
+            try {
+                const tx = db.transaction(STORE_ACTIVE_IMAGES, 'readwrite');
+                const store = tx.objectStore(STORE_ACTIVE_IMAGES);
+                store.clear();
+                images.forEach((img, idx) => {
+                    if (img.base64Data) {
+                        const item: StoredReferenceImage = {
+                            id: img.id,
+                            name: img.name,
+                            base64Data: img.base64Data,
+                            mimeType: img.mimeType || 'image/png',
+                            analysis: img.analysis || null,
+                            order: idx,
+                            isSelected: img.id === selectedId
+                        };
+                        store.put(item);
+                    }
+                });
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => resolve();
+            } catch {
+                resolve();
+            }
+        });
+    } catch {
+        // Safe fallback: save minimal reference in sessionStorage
+        try {
+            if (images.length > 0) {
+                const minified = images.slice(0, 5).map((img, idx) => ({
+                    id: img.id,
+                    name: img.name,
+                    base64Data: img.base64Data ? img.base64Data.slice(0, 100000) : '',
+                    mimeType: img.mimeType || 'image/png',
+                    order: idx,
+                    isSelected: img.id === selectedId
+                }));
+                sessionStorage.setItem('vpa_active_ref_imgs', JSON.stringify(minified));
+            } else {
+                sessionStorage.removeItem('vpa_active_ref_imgs');
+            }
+        } catch {}
+    }
+}
+
+/**
+ * Loads saved reference images from IndexedDB, reconstructing the File and previewUrl objects.
+ */
+export async function loadActiveImages(): Promise<{ images: UploadedImage[]; selectedId: string | null }> {
+    try {
+        const db = await openDB();
+        return new Promise((resolve) => {
+            try {
+                const tx = db.transaction(STORE_ACTIVE_IMAGES, 'readonly');
+                const store = tx.objectStore(STORE_ACTIVE_IMAGES);
+                const req = store.getAll();
+                req.onsuccess = () => {
+                    const rawItems: StoredReferenceImage[] = req.result || [];
+                    if (!rawItems || rawItems.length === 0) {
+                        resolve(loadFallbackSessionImages());
+                        return;
+                    }
+                    rawItems.sort((a, b) => a.order - b.order);
+                    let selectedId: string | null = null;
+                    const restored: UploadedImage[] = [];
+
+                    for (const item of rawItems) {
+                        try {
+                            if (item.isSelected && !selectedId) {
+                                selectedId = item.id;
+                            }
+                            const byteCharacters = atob(item.base64Data);
+                            const byteArrays: Uint8Array[] = [];
+                            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                                const slice = byteCharacters.slice(offset, offset + 512);
+                                const byteNumbers = new Array(slice.length);
+                                for (let i = 0; i < slice.length; i++) {
+                                    byteNumbers[i] = slice.charCodeAt(i);
+                                }
+                                byteArrays.push(new Uint8Array(byteNumbers));
+                            }
+                            const blob = new Blob(byteArrays, { type: item.mimeType || 'image/png' });
+                            const file = new File([blob], item.name, { type: item.mimeType || 'image/png' });
+                            const previewUrl = URL.createObjectURL(file);
+
+                            restored.push({
+                                id: item.id,
+                                file,
+                                previewUrl,
+                                name: item.name,
+                                analysis: item.analysis || null,
+                                base64Data: item.base64Data,
+                                mimeType: item.mimeType
+                            });
+                        } catch (itemErr) {
+                            console.warn("Failed to restore one image record:", itemErr);
+                        }
+                    }
+
+                    if (restored.length > 0 && !selectedId) {
+                        selectedId = restored[0].id;
+                    }
+                    resolve({ images: restored, selectedId });
+                };
+                req.onerror = () => resolve(loadFallbackSessionImages());
+            } catch {
+                resolve(loadFallbackSessionImages());
+            }
+        });
+    } catch {
+        return loadFallbackSessionImages();
+    }
+}
+
+function loadFallbackSessionImages(): { images: UploadedImage[]; selectedId: string | null } {
+    try {
+        const raw = sessionStorage.getItem('vpa_active_ref_imgs');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                let selectedId: string | null = null;
+                const restored: UploadedImage[] = [];
+                for (const item of parsed) {
+                    if (item.isSelected && !selectedId) selectedId = item.id;
+                    const byteCharacters = atob(item.base64Data);
+                    const byteArrays: Uint8Array[] = [];
+                    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                        const slice = byteCharacters.slice(offset, offset + 512);
+                        const byteNumbers = new Array(slice.length);
+                        for (let i = 0; i < slice.length; i++) {
+                            byteNumbers[i] = slice.charCodeAt(i);
+                        }
+                        byteArrays.push(new Uint8Array(byteNumbers));
+                    }
+                    const blob = new Blob(byteArrays, { type: item.mimeType || 'image/png' });
+                    const file = new File([blob], item.name, { type: item.mimeType || 'image/png' });
+                    restored.push({
+                        id: item.id,
+                        file,
+                        previewUrl: URL.createObjectURL(file),
+                        name: item.name,
+                        analysis: null,
+                        base64Data: item.base64Data,
+                        mimeType: item.mimeType
+                    });
+                }
+                return { images: restored, selectedId: selectedId || (restored[0]?.id ?? null) };
+            }
+        }
+    } catch {}
+    return { images: [], selectedId: null };
 }

@@ -1,5 +1,5 @@
 import { PromptSettings } from '../types';
-import { GoogleGenAI } from '@google/genai';
+import { callVisionPersona } from './visionPersonaHelper';
 
 /**
  * Claude 3.7 Vision Engine
@@ -28,7 +28,9 @@ export const generateClaudePrompt = async (
         mimeType = file.type || 'image/jpeg';
     }
 
+    const isExtractPerson = settings.mode === 'extract_person';
     const isExtractBg = settings.mode === 'extract_background';
+    const isExtractElement = settings.mode === 'extract_element';
     const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
     const lightingInstruction = (settings.lighting !== 'none' && settings.lighting !== 'auto') 
         ? `Artistic lighting direction: ${settings.lighting.replace(/_/g, ' ')}.` 
@@ -40,17 +42,38 @@ export const generateClaudePrompt = async (
         ? `Compositional weight & placement: ${settings.productPosition.replace(/_/g, ' ')}.` 
         : '';
 
+    const detailVal = settings.detailLevel === 'auto' ? 5 : settings.detailLevel;
+    const fidelityDirective = detailVal >= 7 ? `
+[MANDATORY REFERENCE IMAGE FIDELITY PROTOCOL - Level ${detailVal}/10]:
+- Capture the EXACT color palette, chromatic warmth, and specular glints directly from the reference image.
+- Transcribe micro-textures, surface finish, and authentic physical materials with absolute precision.
+- Preserve identical proportions, silhouette geometry, and perspective coordinates.
+- Ensure the prompt recreates an image as close, faithful, and indistinguishable from this reference image as possible.`
+        : `Detail level: ${detailVal}/10. Balance fidelity with artistic depth.`;
+
     let claudeSystemInstruction = `You are Claude 3.7 Sonnet Vision, acting as an elite Creative Director and Master Cinematographer.
 Analyze the visual essence, emotional resonance, optical depth, color harmony, and tactile textures of the image.
 Transform this visual into an evocative, ultra-nuanced image-generation prompt tailored for ${settings.targetPlatform}.
 Visual style: ${settings.style}.
-Detail level: ${settings.detailLevel}/10.
+${fidelityDirective}
 ${lightingInstruction}
 ${angleInstruction}
 ${positionInstruction}
 Return ONLY the raw prompt text without preamble, quotation marks, or conversational notes.`;
 
-    if (isRemoveBranding) {
+    if (isExtractElement) {
+        claudeSystemInstruction = `You are Claude 3.7 Sonnet Vision, acting as a Master Product & Subject Isolation Artist.
+Your task is to detect and extract the primary foreground subject/element from this image, completely disregarding background scenery.
+MANDATORY RULES:
+1. Isolate the subject/element with razor-sharp contour definition, authentic tactile textures, and specular reflections.
+2. Preserve 100% authentic color fidelity, material qualities, and silhouette geometry.
+3. Frame the isolated element in balanced studio lighting on a pristine minimalist neutral backdrop.
+Target platform: ${settings.targetPlatform}.
+Visual style: ${settings.style}.
+Detail level: ${settings.detailLevel}/10.
+${lightingInstruction} ${angleInstruction} ${positionInstruction}
+Return ONLY the raw isolated element prompt text without meta-commentary or conversational filler.`;
+    } else if (isRemoveBranding) {
         claudeSystemInstruction = `You are Claude 3.7 Sonnet Vision, acting as an elite Commercial Product Photographer and Master Colorist.
 Your goal is to de-brand the beverage/product container in this image.
 MANDATORY RULES:
@@ -71,7 +94,20 @@ Target platform: ${settings.targetPlatform}.
 Visual style: ${settings.style}.
 Detail level: ${settings.detailLevel}/10.
 ${lightingInstruction} ${angleInstruction} ${positionInstruction}
-Return ONLY the final prompt text without meta-commentary or markdown conversational filler.`;
+        Return ONLY the final prompt text without meta-commentary or markdown conversational filler.`;
+    } else if (isExtractPerson) {
+        claudeSystemInstruction = `You are Claude 3.7 Sonnet Vision, acting as a Master Portraitist, Biometric Analyst and Character Cloning Architect.
+Your task is to analyze the person in this reference image and generate a master prompt that recreates this EXACT individual with identical biometric and physical characteristics.
+MANDATORY RULES:
+1. Exact facial biometrics: eye shape, gaze, iris tone, eyebrows, nose bridge/tip, mouth/lips, jawline, skin undertone, natural pores/freckles, and facial expression.
+2. Exact hairstyle: length, cut, texture, hair color, highlights, and styling.
+3. Exact wardrobe & fabrics: garment pieces, draping, textures, buttons, collars, colors, and accessories.
+4. Exact posture, shoulder angle, head tilt, and physical lighting bounce on the face and body.
+Target platform: ${settings.targetPlatform}.
+Visual style: ${settings.style}.
+Detail level: ${settings.detailLevel}/10.
+${lightingInstruction} ${angleInstruction} ${positionInstruction}
+Return ONLY the raw prompt text without conversational preamble.`;
     }
 
     // 1. Direct Anthropic API call if key is provided
@@ -123,40 +159,10 @@ Return ONLY the final prompt text without meta-commentary or markdown conversati
     }
 
     // 2. High-fidelity Claude Vision prompt architecture powered by Gemini backend
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    let response;
-    const requestPayload = {
-        contents: {
-            parts: [
-                {
-                    inlineData: {
-                        data: base64Image,
-                        mimeType: mimeType
-                    }
-                },
-                {
-                    text: `${claudeSystemInstruction}\n\nTask: Deliver the Claude 3.7 Sonnet-style rich visual prompt now.`
-                }
-            ]
-        },
-        config: {
-            temperature: 0.5,
-        }
-    };
-
-    try {
-        response = await ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            ...requestPayload
-        });
-    } catch (flashErr) {
-        console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
-        response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
-            ...requestPayload
-        });
-    }
-
-    if (!response.text) throw new Error("Claude Vision returned an empty response.");
-    return response.text.trim();
+    return await callVisionPersona(
+        claudeSystemInstruction,
+        'Task: Deliver the Claude 3.7 Sonnet-style rich visual prompt now.',
+        base64Image,
+        mimeType
+    );
 };

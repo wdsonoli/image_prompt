@@ -4,6 +4,7 @@ import { ZoomIn, ZoomOut, RotateCcw, X, Scissors, Crop as CropIcon, Check, Ban, 
 
 interface ImagePreviewProps {
     src: string;
+    fallbackSrc?: string;
     alt: string;
     onRemove: () => void;
     onRemoveBackground: () => void;
@@ -16,6 +17,7 @@ type CropShape = 'rect' | 'circle';
 
 export const ImagePreview: React.FC<ImagePreviewProps> = ({ 
     src, 
+    fallbackSrc,
     alt, 
     onRemove, 
     onRemoveBackground, 
@@ -27,6 +29,11 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [displaySrc, setDisplaySrc] = useState(src);
+
+    useEffect(() => {
+        setDisplaySrc(src);
+    }, [src]);
     
     // Crop states
     const [isCropping, setIsCropping] = useState(false);
@@ -198,9 +205,14 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
             >
                 <img 
                     ref={imgRef}
-                    src={src} 
+                    src={displaySrc} 
                     alt={alt} 
                     draggable={false}
+                    onError={() => {
+                        if (fallbackSrc && displaySrc !== fallbackSrc) {
+                            setDisplaySrc(fallbackSrc);
+                        }
+                    }}
                     className={`max-w-full max-h-full object-contain transition-transform duration-200 ease-out origin-center ${isRemovingBackground ? 'brightness-110 grayscale-[0.5]' : ''}`}
                     style={{ 
                         transform: isCropping ? 'none' : `translate(${position.x}px, ${position.y}px) scale(${scale})` 
@@ -241,16 +253,6 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
 
             {/* Sidebar Controls - Visible by default on mobile touch screens */}
             <div className="absolute top-3 left-3 flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-40">
-                {onOpenImageEditor && (
-                    <button 
-                        onClick={onOpenImageEditor}
-                        className="p-2 sm:p-2.5 rounded-xl flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold backdrop-blur-md border border-cyan-400/40 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white shadow-xl hover:from-blue-500 hover:to-violet-500 transition-all active:scale-95"
-                        title="Editar imagem com IA (gemini-3.1-flash-image-preview)"
-                    >
-                        <Wand2 size={15} className="text-cyan-300" />
-                        <span className="hidden sm:inline">Editar c/ IA</span>
-                    </button>
-                )}
 
                 <button 
                     onClick={onRemoveBackground}

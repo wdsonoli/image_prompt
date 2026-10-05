@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { 
-    Copy, Check, Terminal, Edit3, ImagePlus, Sparkles, ShieldCheck, 
-    ChevronDown, RefreshCw, X, Globe, Search, ExternalLink, Wand2, Loader2 
+    Copy, Check, Terminal, Edit3, Sparkles, ShieldCheck, 
+    ChevronDown, X, Globe, Search, ExternalLink, Loader2 
 } from 'lucide-react';
 import { ULTRA_PREMIUM_16K_PROMPT } from '../utils/visualEffectsData';
 import { SearchGroundingData } from '../types';
@@ -10,8 +9,8 @@ import { SearchGroundingData } from '../types';
 interface PromptDisplayProps {
     prompt: string;
     onUpdatePrompt: (newPrompt: string) => void;
-    onCreateImage: () => void;
-    isGeneratingImage: boolean;
+    onCreateImage?: () => void;
+    isGeneratingImage?: boolean;
     onOpenGemini3ProGenerator?: () => void;
     onOpenImageEditor?: () => void;
     searchGroundingData?: SearchGroundingData | null;
@@ -22,15 +21,12 @@ interface PromptDisplayProps {
 export const PromptDisplay: React.FC<PromptDisplayProps> = ({ 
     prompt, 
     onUpdatePrompt, 
-    onCreateImage, 
-    isGeneratingImage,
-    onOpenGemini3ProGenerator,
-    onOpenImageEditor,
     searchGroundingData,
     onEnrichWithSearch,
     isGeneratingSearchGrounding = false
 }) => {
     const [copied, setCopied] = useState(false);
+    const [testedImageFX, setTestedImageFX] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [localPrompt, setLocalPrompt] = useState(prompt);
     const [show16kMenu, setShow16kMenu] = useState(false);
@@ -51,6 +47,18 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
             setTimeout(() => setCopied(false), 2000);
         } catch (err) {
             console.error('Failed to copy', err);
+        }
+    };
+
+    const handleTestImageFX = async () => {
+        if (!localPrompt) return;
+        try {
+            await navigator.clipboard.writeText(localPrompt);
+            setTestedImageFX(true);
+            setTimeout(() => setTestedImageFX(false), 2500);
+            window.open('https://aitestkitchen.withgoogle.com/tools/image-fx', '_blank');
+        } catch (err) {
+            console.error('Failed to copy and open ImageFX', err);
         }
     };
 
@@ -91,7 +99,6 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
         } else if (is16kActive) {
             handleRemove16k();
         } else {
-            // Se já tem prompt, mescla automaticamente ou abre o menu
             handleMerge16k();
         }
     };
@@ -111,7 +118,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                         <div className="flex items-center rounded-lg overflow-hidden border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)] bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-stone-900">
                             <button
                                 onClick={handleToggle16k}
-                                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold transition-all ${
+                                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                                     is16kActive
                                         ? 'bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-md font-extrabold'
                                         : 'text-amber-300 hover:text-white hover:bg-amber-500/20'
@@ -124,7 +131,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
 
                             <button
                                 onClick={() => setShow16kMenu(!show16kMenu)}
-                                className={`px-1.5 py-1.5 border-l border-amber-500/30 text-amber-300 hover:text-white transition-colors ${
+                                className={`px-1.5 py-1.5 border-l border-amber-500/30 text-amber-300 hover:text-white transition-colors cursor-pointer ${
                                     is16kActive ? 'bg-amber-600/50 hover:bg-amber-600/70 text-slate-950' : 'hover:bg-amber-500/20'
                                 }`}
                                 title="Opções do Remaster 16K"
@@ -140,7 +147,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                                     <span className="flex items-center gap-1">
                                         <Sparkles size={12} /> Ultra-Premium 16K Remaster
                                     </span>
-                                    <button onClick={() => setShow16kMenu(false)} className="text-slate-500 hover:text-white p-1">
+                                    <button onClick={() => setShow16kMenu(false)} className="text-slate-500 hover:text-white p-1 cursor-pointer">
                                         <X size={12} />
                                     </button>
                                 </div>
@@ -151,7 +158,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
 
                                 <button
                                     onClick={handleApply16kSolo}
-                                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-amber-500/20 hover:text-amber-300 text-slate-200 font-medium transition-all flex items-center justify-between"
+                                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-amber-500/20 hover:text-amber-300 text-slate-200 font-medium transition-all flex items-center justify-between cursor-pointer"
                                 >
                                     <span>Substituir pelo Prompt 16K</span>
                                     <span className="text-[9px] font-mono text-slate-500">Solo</span>
@@ -159,7 +166,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
 
                                 <button
                                     onClick={handleMerge16k}
-                                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition-all flex items-center justify-between border border-amber-500/30"
+                                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition-all flex items-center justify-between border border-amber-500/30 cursor-pointer"
                                 >
                                     <span>Mesclar ao Prompt Atual</span>
                                     <span className="text-[9px] font-mono text-amber-400">Recomendado</span>
@@ -168,7 +175,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                                 {is16kActive && (
                                     <button
                                         onClick={handleRemove16k}
-                                        className="w-full text-left px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-medium transition-all flex items-center gap-1.5"
+                                        className="w-full text-left px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-medium transition-all flex items-center gap-1.5 cursor-pointer"
                                     >
                                         <X size={12} />
                                         <span>Remover Remaster 16K</span>
@@ -180,7 +187,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
 
                     <button 
                         onClick={() => setIsEditing(!isEditing)}
-                        className={`p-1.5 rounded-lg transition-colors ${isEditing ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-blue-400 hover:bg-slate-700'}`}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isEditing ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-blue-400 hover:bg-slate-700'}`}
                         title="Edit Prompt"
                     >
                         <Edit3 size={16} />
@@ -188,7 +195,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                     <button 
                         onClick={handleCopy}
                         disabled={!localPrompt}
-                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
                     >
                         {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
                         {copied ? 'Copied!' : 'Copy'}
@@ -207,7 +214,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                     </div>
                     <button
                         onClick={handleRemove16k}
-                        className="text-[10px] text-amber-300/80 hover:text-rose-300 hover:underline shrink-0"
+                        className="text-[10px] text-amber-300/80 hover:text-rose-300 hover:underline shrink-0 cursor-pointer"
                     >
                         Desativar
                     </button>
@@ -220,12 +227,12 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 text-blue-300 font-semibold">
                             <Globe size={14} className="text-cyan-400" />
-                            <span>Pesquisa Google Grounding Ativa (gemini-3.5-flash)</span>
+                            <span>Pesquisa Google Grounding Ativa (gemini-3.8-flash)</span>
                         </div>
                         <button
                             type="button"
                             onClick={() => setShowGroundingDetails(!showGroundingDetails)}
-                            className="text-[11px] text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1"
+                            className="text-[11px] text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1 cursor-pointer"
                         >
                             <span>{showGroundingDetails ? 'Ocultar Fontes' : `${searchGroundingData.sources.length} Fontes Verificadas`}</span>
                             <ChevronDown size={12} className={`transition-transform ${showGroundingDetails ? 'rotate-180' : ''}`} />
@@ -288,7 +295,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                         <div className="mt-5">
                             <button
                                 onClick={handleApply16kSolo}
-                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-stone-900 border border-amber-500/40 text-amber-300 hover:text-white hover:bg-amber-500/30 text-xs font-bold transition-all shadow-lg hover:scale-105"
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-stone-900 border border-amber-500/40 text-amber-300 hover:text-white hover:bg-amber-500/30 text-xs font-bold transition-all shadow-lg hover:scale-105 cursor-pointer"
                             >
                                 <Sparkles size={14} className="text-amber-400" />
                                 <span>Aplicar Ultra-Premium 16K Remaster & Enhancement</span>
@@ -305,7 +312,7 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                                 spellCheck={false}
                             />
                             <div className="p-3 bg-slate-900 border-t border-slate-800 flex justify-end">
-                                <button onClick={handleSave} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-500">Save Changes</button>
+                                <button onClick={handleSave} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-500 cursor-pointer">Save Changes</button>
                             </div>
                          </div>
                     ) : (
@@ -313,65 +320,41 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                              <p className="font-mono text-sm text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
                                 {localPrompt}
                             </p>
-                             {/* Floating Buttons: Gemini 3 Pro 4K, Image Edit & Standard Create Image */}
+                             {/* Floating Buttons: Copiar Prompt Master & Testar no Google ImageFX (100% Gratuito) */}
                              <div className="sticky bottom-0 mt-4 flex flex-wrap items-center justify-center gap-2.5">
-                                <button 
-                                    onClick={() => {
-                                        if (onOpenGemini3ProGenerator) {
-                                            onOpenGemini3ProGenerator();
-                                        } else {
-                                            onCreateImage();
-                                        }
-                                    }}
-                                    disabled={isGeneratingImage}
-                                    className="flex items-center gap-2 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 px-5 py-2.5 rounded-full font-black text-xs shadow-xl shadow-amber-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-                                    title="Abrir estúdio de renderização 4K com Gemini 3 Pro"
-                                >
-                                    {isGeneratingImage ? (
-                                        <div className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
-                                    ) : (
-                                        <Sparkles size={16} className="text-slate-950" />
-                                    )}
-                                    <span>Gerar 4K com Gemini 3 Pro</span>
-                                </button>
+                                 <button 
+                                     onClick={handleCopy}
+                                     className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-full font-black text-xs shadow-xl shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                                     title="Copiar prompt master para a área de transferência"
+                                 >
+                                     {copied ? <Check size={16} className="text-emerald-300" /> : <Copy size={16} />}
+                                     <span>{copied ? 'Prompt Copiado!' : 'Copiar Prompt Master'}</span>
+                                 </button>
 
-                                {onOpenImageEditor && (
-                                    <button 
-                                        onClick={onOpenImageEditor}
-                                        disabled={isGeneratingImage}
-                                        className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-full font-bold text-xs shadow-xl shadow-blue-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 ring-1 ring-blue-400/50"
-                                        title="Editar imagem atual com instruções em linguagem natural (gemini-3.1-flash-image-preview)"
-                                    >
-                                        <Wand2 size={15} className="text-cyan-300" />
-                                        <span>Editar Imagem (IA Preview)</span>
-                                    </button>
-                                )}
+                                 <button 
+                                     onClick={handleTestImageFX}
+                                     className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-2.5 rounded-full font-bold text-xs shadow-xl shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                                     title="Copiar prompt e abrir o Google ImageFX (gerador gratuito da Google)"
+                                 >
+                                     <ExternalLink size={15} />
+                                     <span>{testedImageFX ? 'Copiado! Abrindo ImageFX...' : 'Testar no Google ImageFX (Grátis)'}</span>
+                                 </button>
 
-                                {onEnrichWithSearch && !searchGroundingData && (
-                                    <button
-                                        onClick={onEnrichWithSearch}
-                                        disabled={isGeneratingSearchGrounding}
-                                        className="flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 px-3.5 py-2.5 rounded-full font-bold text-xs shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-                                        title="Enriquecer prompt com referências em tempo real via Google Search Grounding"
-                                    >
-                                        {isGeneratingSearchGrounding ? (
-                                            <Loader2 size={14} className="animate-spin text-cyan-400" />
-                                        ) : (
-                                            <Globe size={14} className="text-cyan-400" />
-                                        )}
-                                        <span>Enriquecer c/ Busca</span>
-                                    </button>
-                                )}
-
-                                <button 
-                                    onClick={onCreateImage}
-                                    disabled={isGeneratingImage}
-                                    className="flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-full font-bold text-xs shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-                                    title="Geração Rápida Direta"
-                                >
-                                    <ImagePlus size={15} />
-                                    <span>Geração Rápida</span>
-                                </button>
+                                 {onEnrichWithSearch && !searchGroundingData && (
+                                     <button
+                                         onClick={onEnrichWithSearch}
+                                         disabled={isGeneratingSearchGrounding}
+                                         className="flex items-center gap-1.5 bg-slate-800/90 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 px-3.5 py-2.5 rounded-full font-bold text-xs shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 cursor-pointer"
+                                         title="Enriquecer prompt com referências em tempo real via Google Search Grounding (Gratuito)"
+                                     >
+                                         {isGeneratingSearchGrounding ? (
+                                             <Loader2 size={14} className="animate-spin text-cyan-400" />
+                                         ) : (
+                                             <Globe size={14} className="text-cyan-400" />
+                                         )}
+                                         <span>Enriquecer c/ Busca</span>
+                                     </button>
+                                 )}
                              </div>
                         </div>
                     )

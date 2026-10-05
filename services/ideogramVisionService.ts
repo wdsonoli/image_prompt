@@ -1,5 +1,5 @@
 import { PromptSettings } from '../types';
-import { GoogleGenAI } from '@google/genai';
+import { callVisionPersona } from './visionPersonaHelper';
 
 /**
  * Ideogram 2.0 Graphic & Typography Vision Engine
@@ -27,10 +27,19 @@ export const generateIdeogramPrompt = async (
         mimeType = file.type || 'image/jpeg';
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
+    const isExtractPerson = settings.mode === 'extract_person';
+    const isRemoveBranding = settings.mode === 'remove_branding' || Boolean(settings.removeBranding);
 
-    const ideogramInstructions = isRemoveBranding
+    const ideogramInstructions = isExtractPerson
+        ? `You are the Ideogram 2.0 Graphic Design & Character Illustration Engine in PERSON REPLICATION & CLONING MODE.
+Analyze the person in the reference image to produce an exact character reproduction prompt:
+1. BIOMETRIC & FACIAL DETAILS: Describe their exact facial features (eye shape, color, nose shape, lip contours, jawline, skin tone, facial expression).
+2. HAIR & STYLING: Exact hair cut, length, volume, texture, and color.
+3. WARDROBE & OUTFIT: Exact clothing garments, cuts, fabrics, colors, and accessories.
+4. COMPOSITION: Balanced character portrait/full-body shot, centered, clean graphic studio background, razor-sharp edge contours.
+5. Target style: ${settings.style}.
+6. Return ONLY the raw prompt ready for Ideogram 2.0.`
+        : (isRemoveBranding
         ? `You are the Ideogram 2.0 Graphic Design & Packaging Engine in DE-BRANDING & CLEAN PRODUCT MODE.
 Analyze the image to produce an UNBRANDED, LABEL-FREE product render:
 1. STRICT NEGATIVE INSTRUCTION: ZERO text, ZERO logos, ZERO brand typography, ZERO stickers, ZERO slogans.
@@ -47,41 +56,8 @@ Analyze the image specifically looking for:
 4. Outline the graphic composition: visual hierarchy, vector silhouettes, flat-lay balance, color palette, and clean background contrast.
 5. If in 3D SEAL / LOGO mode: specify clean vector geometry, bevel edges, embossed depth, studio isometric lighting.
 6. Target style: ${settings.style}.
-7. Return ONLY the raw prompt optimized for Ideogram 2.0.`;
+7. Return ONLY the raw prompt optimized for Ideogram 2.0.`);
 
-    let response;
-    const requestPayload = {
-        contents: {
-            parts: [
-                {
-                    inlineData: {
-                        data: base64Image,
-                        mimeType: mimeType
-                    }
-                },
-                {
-                    text: `${ideogramInstructions}\n\nAdditional directives: Lighting ${settings.lighting}, Angle ${settings.cameraAngle}`
-                }
-            ]
-        },
-        config: {
-            temperature: 0.5,
-        }
-    };
-
-    try {
-        response = await ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            ...requestPayload
-        });
-    } catch (flashErr) {
-        console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
-        response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
-            ...requestPayload
-        });
-    }
-
-    if (!response.text) throw new Error("Ideogram Vision returned an empty response.");
-    return response.text.trim();
+    const userPrompt = `${ideogramInstructions}\n\nAdditional directives: Lighting ${settings.lighting}, Angle ${settings.cameraAngle}`;
+    return await callVisionPersona(ideogramInstructions, userPrompt, base64Image, mimeType);
 };

@@ -401,7 +401,7 @@ export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
                         className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 transition-all active:scale-95 hover:scale-105"
                     >
                         <Sparkles size={14} className="text-slate-950" />
-                        <span>Gerar 4K (Gemini 3 Pro)</span>
+                        <span>Gerar Visual 4K (Grátis)</span>
                     </button>
                 </div>
             </div>

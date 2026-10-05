@@ -1,5 +1,5 @@
 import { PromptSettings } from '../types';
-import { GoogleGenAI } from '@google/genai';
+import { callVisionPersona } from './visionPersonaHelper';
 
 /**
  * Flux.1 Realism Vision Engine
@@ -28,9 +28,10 @@ export const generateFluxPrompt = async (
         mimeType = file.type || 'image/jpeg';
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const isExtractPerson = settings.mode === 'extract_person';
     const isExtractBg = settings.mode === 'extract_background';
-    const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
+    const isExtractElement = settings.mode === 'extract_element';
+    const isRemoveBranding = settings.mode === 'remove_branding' || Boolean(settings.removeBranding);
 
     const fluxInstructions = `You are the Flux.1 Realism Prompt Architect specializing in Black Forest Labs Flux diffusion models.
 Flux thrives on continuous, descriptive photographic prose rather than spammy keywords.
@@ -39,44 +40,12 @@ PROMPT CRITERIA:
 1. Describe the scene like a professional award-winning photographer shooting RAW 35mm film.
 2. Emphasize physical realism: micro-textures, authentic lighting bounce, realistic materials, and surface physics.
 3. Completely avoid AI clichés such as "hyperrealistic, 8k, masterpiece, octane render". Instead describe the ACTUAL optical properties: lens focal length, natural depth of field, color temperature, and soft shadow gradients.
-4. ${isRemoveBranding ? 'UNBRANDED DE-BRANDED PRODUCT: Completely remove any brand logos, commercial stickers, typography, paper labels, or emblems from the bottle, can, or packaging container. The surface must be a clean, blank, unprinted finish while STRICTLY PRESERVING the exact authentic container colors (e.g. glass tint, aluminum paint) and liquid color.' : (isExtractBg ? 'If EXTRACT_BACKGROUND: isolate the background scenery plate, describing the environmental space, wall textures, ambient daylight, and empty interior/exterior architecture with no people or foreground objects.' : 'Maintain authentic subject fidelity.')}
+4. ${isExtractPerson ? 'FAITHFUL HUMAN PERSON EXTRACTION & BIOMETRIC REPLICATION: Focus with extreme accuracy on the person in the reference image. Describe their exact facial features (eyes, nose, mouth, jawline, natural skin undertone, pores, fine lines), exact hair color and hairstyle, wardrobe cut and fabric textures, emotional expression, posture and natural portrait lighting.' : (isExtractElement ? 'ISOLATED ELEMENT EXTRACTION: Focus strictly on the primary foreground subject, physical product, or focal asset. Omit all background scenery, placing the subject isolated in a pristine commercial studio setup with neutral cyclorama, pin-sharp optical edge resolution, and authentic tactile material reflections.' : (isRemoveBranding ? 'UNBRANDED DE-BRANDED PRODUCT: Completely remove any brand logos, commercial stickers, typography, paper labels, or emblems from the bottle, can, or packaging container. The surface must be a clean, blank, unprinted finish while STRICTLY PRESERVING the exact authentic container colors (e.g. glass tint, aluminum paint) and liquid color.' : (isExtractBg ? 'If EXTRACT_BACKGROUND: isolate the background scenery plate, describing the environmental space, wall textures, ambient daylight, and empty interior/exterior architecture with no people or foreground objects.' : 'Maintain authentic subject fidelity.')))}
 5. Lighting directive: ${settings.lighting !== 'none' ? settings.lighting.replace(/_/g, ' ') : 'natural ambient lighting'}
 6. Camera angle: ${settings.cameraAngle !== 'none' ? settings.cameraAngle.replace(/_/g, ' ') : 'eye-level candid perspective'}
 7. Return ONLY the final prompt text in English, ready to paste into Flux.1.`;
 
-    let response;
-    const requestPayload = {
-        contents: {
-            parts: [
-                {
-                    inlineData: {
-                        data: base64Image,
-                        mimeType: mimeType
-                    }
-                },
-                {
-                    text: `${fluxInstructions}\n\nStyle: ${settings.style}\nDetail Level: ${settings.detailLevel}/10`
-                }
-            ]
-        },
-        config: {
-            temperature: 0.5,
-        }
-    };
+    const userPrompt = `${fluxInstructions}\n\nStyle: ${settings.style}\nDetail Level: ${settings.detailLevel}/10`;
 
-    try {
-        response = await ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            ...requestPayload
-        });
-    } catch (flashErr) {
-        console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
-        response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
-            ...requestPayload
-        });
-    }
-
-    if (!response.text) throw new Error("Flux.1 Vision returned an empty response.");
-    return response.text.trim();
+    return await callVisionPersona(fluxInstructions, userPrompt, base64Image, mimeType);
 };

@@ -1,5 +1,4 @@
 import { PromptSettings } from '../types';
-import { GoogleGenAI } from '@google/genai';
 
 /**
  * Consenso Multi-Visão (Super Vision Ensemble)
@@ -8,7 +7,7 @@ import { GoogleGenAI } from '@google/genai';
  * 2. Optical Physics & Ambient Lighting
  * 3. Textures, Materials & Fine Micro-details
  * 4. Target Platform Prompt Optimization
- * And combines them into a master consensus prompt.
+ * And combines them into a master consensus prompt via server-side Gemini.
  */
 export const generateConsensusPrompt = async (
     file: File,
@@ -31,15 +30,16 @@ export const generateConsensusPrompt = async (
         mimeType = file.type || 'image/jpeg';
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const isExtractBg = settings.mode === 'extract_background';
-    const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
+    const isExtractElement = settings.mode === 'extract_element';
+    const isRemoveBranding = settings.mode === 'remove_branding' || Boolean(settings.removeBranding);
 
     const consensusInstructions = `You are the Multi-Vision Consensus Orchestrator (Super Vision Ensemble).
 Perform a multi-layered simultaneous optical and aesthetic analysis of the provided image across 4 specialized dimensions:
 
 [LAYER 1: GEOMETRY & COMPOSITION]
 Analyze the spatial balance, aspect ratio, camera focal length, vanishing lines, container proportions, and subject/background isolation.
+${isExtractElement ? 'CRITICAL MANDATE: Completely isolate the primary foreground element/subject. Omit all background scenery, placing the subject isolated in pristine studio composition.' : ''}
 ${isRemoveBranding ? 'CRITICAL MANDATE: Completely remove all branding, labels, logos, trademarks, and typography. The container/bottle/can becomes an unbranded, seamless, unprinted commercial package.' : ''}
 ${isExtractBg ? 'RULE: The main foreground subject is omitted to preserve an empty scenic plate.' : ''}
 
@@ -49,6 +49,7 @@ Analyze the light sources (key light, fill, ambient bounce, color temperature in
 [LAYER 3: MATERIALS & TACTILE TEXTURES - COLOR PRESERVATION]
 Analyze surface shaders (roughness, specular reflections, subsurface scattering, micro-textures, liquid clarity, and metallic gloss).
 ${isRemoveBranding ? 'STRICT COLOR PRESERVATION: Preserve 100% of the authentic product color palette (exact bottle glass hue, aluminum can paint, liquid color, cap color). The blank surface must match the original color flawlessly.' : ''}
+${isExtractElement ? 'ELEMENT TEXTURE & CONTOURS: Preserve 100% of the authentic colors, razor-sharp cutout contours, and tactile surface characteristics of the isolated element.' : ''}
 
 [LAYER 4: SYNTHESIS & TARGET PLATFORM OPTIMIZATION]
 Synthesize the above layers into a single, cohesive, breathtaking master prompt specifically formatted for:
@@ -56,43 +57,33 @@ Platform: ${settings.targetPlatform}
 Style: ${settings.style}
 Detail Level: ${settings.detailLevel}/10
 Directives: Lighting (${settings.lighting}), Camera Angle (${settings.cameraAngle}), Position (${settings.productPosition})
+${isExtractElement ? 'Directive: ISOLATED FOREGROUND ELEMENT - CLEAN STUDIO LIGHTING, NO BACKGROUND SCENERY' : ''}
 ${isRemoveBranding ? 'Directive: UNBRANDED CLEAN PRODUCT - NO LOGOS, NO LABELS, PRESERVE AUTHENTIC PRODUCT COLORS' : ''}
 
 FORMAT RULE: Output ONLY the synthesized master prompt ready for production generation, with no introductory text or markdown labels.`;
 
-    let response;
-    const requestPayload = {
-        contents: {
-            parts: [
-                {
-                    inlineData: {
-                        data: base64Image,
-                        mimeType: mimeType
-                    }
-                },
-                {
-                    text: consensusInstructions
-                }
-            ]
-        },
-        config: {
-            temperature: 0.6,
-        }
-    };
-
     try {
-        response = await ai.models.generateContent({
-            model: 'gemini-3.8-flash',
-            ...requestPayload
+        const res = await fetch('/api/gemini/vision-persona', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                systemInstruction: consensusInstructions,
+                userPrompt: 'Synthesize the multi-vision consensus prompt now.',
+                imageBase64: base64Image,
+                mimeType
+            })
         });
-    } catch (flashErr) {
-        console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
-        response = await ai.models.generateContent({
-            model: 'gemini-3.5-flash',
-            ...requestPayload
-        });
-    }
 
-    if (!response.text) throw new Error("Consenso Multi-Visão returned an empty response.");
-    return response.text.trim();
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+            throw new Error(errData.error || `Erro HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        if (!data.prompt) throw new Error("Consenso Multi-Visão retornou resposta vazia.");
+        return data.prompt.trim();
+    } catch (err: any) {
+        console.error("Falha no Consenso Multi-Visão:", err);
+        throw err;
+    }
 };

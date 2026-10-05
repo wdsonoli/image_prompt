@@ -1,14 +1,11 @@
-
-import { GoogleGenAI } from "@google/genai";
 import { PromptSettings } from "../types";
+import { callVisionPersona } from "./visionPersonaHelper";
 
 export const analyzeWithWhisk = async (
     file: File, 
     settings: PromptSettings,
     preProcessedData?: { base64: string, mimeType: string }
 ): Promise<string> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
     try {
         let base64Data: string;
         let mimeType: string;
@@ -23,16 +20,19 @@ export const analyzeWithWhisk = async (
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
-            mimeType = file.type;
+            mimeType = file.type || 'image/png';
         }
 
         const isMockup = settings.mode === 'mockup';
         const is3dLogo = settings.is3dLogo;
         const isExtractBg = settings.mode === 'extract_background';
-        const isRemoveBranding = settings.mode === 'remove_branding' || !!settings.removeBranding;
+        const isExtractElement = settings.mode === 'extract_element';
+        const isRemoveBranding = settings.mode === 'remove_branding' || Boolean(settings.removeBranding);
 
         let modeText = "FULL FIDELITY: Recreate the colors, textures, and subject exactly.";
-        if (isRemoveBranding) {
+        if (isExtractElement) {
+            modeText = "ELEMENT EXTRACTION: Isolate and extract the primary subject and key foreground components cleanly. Disregard background scenery entirely. Focus on authentic textures, materials, reflections, and sharp silhouette contours isolated in studio lighting.";
+        } else if (isRemoveBranding) {
             modeText = "UNBRANDED BEVERAGE / PRODUCT: Strip all brand logos, labels, commercial typography, and trademarks. Recreate the container with a blank, seamless unprinted surface while strictly keeping 100% of the authentic product colors (can/bottle color, cap color, liquid color, and reflections).";
         } else if (isExtractBg) {
             modeText = "BACKGROUND EXTRACTION: Exclude and remove the foreground subject completely. Isolate and describe all constituent elements of the background (scenery, architecture, materials, props, atmosphere, and lighting) to render an empty background scenic plate.";
@@ -53,52 +53,12 @@ export const analyzeWithWhisk = async (
             : '';
         const creativeDirectives = [lightingInstruction, angleInstruction, positionInstruction].filter(Boolean).join('\n');
 
+        const systemInstruction = `You are the Whisk AI Artistic Analyst. Translate this image into an artistic prompt, applying the following directives. Return ONLY the final prompt.`;
+        const userPrompt = `${modeText}\n\nCREATIVE CHOICES:\n${creativeDirectives}\n\n${isExtractBg 
+            ? 'Render strictly the empty background plate with all scene elements intact, without any foreground subject.' 
+            : 'Analyze the subject for 100% structural fidelity, but re-imagine the scene with the new choices.'}\n\nTarget Platform: ${settings.targetPlatform}\nDesired Style: ${settings.style}`;
 
-        let response;
-        const requestPayload = {
-            contents: {
-                parts: [
-                    {
-                        inlineData: {
-                            data: base64Data,
-                            mimeType: mimeType
-                        }
-                    },
-                    {
-                        text: `You are the Whisk AI Artistic Analyst. Translate this image into an artistic prompt, applying the following directives.
-
-                        ${modeText}
-                        
-                        CREATIVE CHOICES:
-                        ${creativeDirectives}
-                        
-                        ${isExtractBg 
-                            ? 'Render strictly the empty background plate with all scene elements intact, without any foreground subject.' 
-                            : 'Analyze the subject for 100% structural fidelity, but re-imagine the scene with the new choices.'}
-                        
-                        Target Platform: ${settings.targetPlatform}
-                        Desired Style: ${settings.style}
-                        
-                        Return ONLY the final prompt.`
-                    }
-                ]
-            }
-        };
-
-        try {
-            response = await ai.models.generateContent({
-                model: 'gemini-3.8-flash',
-                ...requestPayload
-            });
-        } catch (flashErr) {
-            console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
-            response = await ai.models.generateContent({
-                model: 'gemini-3.5-flash',
-                ...requestPayload
-            });
-        }
-
-        return response.text?.trim() || "Whisk analysis failed.";
+        return await callVisionPersona(systemInstruction, userPrompt, base64Data, mimeType);
     } catch (error) {
         console.error("Whisk Analysis Error:", error);
         throw error;

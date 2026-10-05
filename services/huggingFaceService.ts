@@ -1,6 +1,6 @@
 
 import { PromptSettings, STYLE_TEMPLATES } from '../types';
-import { GoogleGenAI } from '@google/genai';
+import { callVisionPersona } from './visionPersonaHelper';
 
 const HF_MODEL = "Salesforce/blip-image-captioning-large";
 
@@ -45,41 +45,13 @@ export const generateHuggingFacePrompt = async (
             mimeType = file.type || 'image/jpeg';
         }
 
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        let response;
-        const requestPayload = {
-            contents: {
-                parts: [
-                    {
-                        inlineData: {
-                            data: base64Image,
-                            mimeType: mimeType
-                        }
-                    },
-                    {
-                        text: `You are the Salesforce BLIP-2 and Microsoft Florence-2 Open Vision Engine.
-Generate an accurate, objective, highly descriptive computer-vision caption for this image, describing the subject, environment, spatial relation, and lighting.
-Format as a single comprehensive paragraph suitable for text-to-image synthesis. Return ONLY the caption text without quotes or preamble.`
-                    }
-                ]
-            }
-        };
-
-        try {
-            response = await ai.models.generateContent({
-                model: 'gemini-3.8-flash',
-                ...requestPayload
-            });
-        } catch (flashErr) {
-            console.warn("Attempt with gemini-3.8-flash failed, falling back to gemini-3.5-flash:", flashErr);
-            response = await ai.models.generateContent({
-                model: 'gemini-3.5-flash',
-                ...requestPayload
-            });
-        }
-
-        const caption = response.text ? response.text.trim() : "Detailed scene photograph";
-        return constructPromptFromCaption(caption, settings);
+        const caption = await callVisionPersona(
+            "You are the Salesforce BLIP-2 and Microsoft Florence-2 Open Vision Engine.",
+            "Generate an accurate, objective, highly descriptive computer-vision caption for this image, describing the subject, environment, spatial relation, and lighting. Format as a single comprehensive paragraph suitable for text-to-image synthesis. Return ONLY the caption text without quotes or preamble.",
+            base64Image,
+            mimeType
+        );
+        return constructPromptFromCaption(caption || "Detailed scene photograph", settings);
     } catch (fallbackError: any) {
         throw new Error(fallbackError.message || "Failed to analyze with Hugging Face Vision.");
     }

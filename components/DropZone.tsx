@@ -65,15 +65,20 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
 
             // 1. Se colou arquivo/blob de imagem diretamente (ex: print da tela, botão direito -> Copiar Imagem)
             const items = Array.from(e.clipboardData.items);
-            const imageItem = items.find(item => item.type.startsWith('image/'));
-            if (imageItem) {
-                const file = imageItem.getAsFile();
-                if (file) {
-                    const ext = file.type.split('/')[1] || 'png';
-                    const namedFile = new File([file], `pasted-image-${Date.now()}.${ext}`, { type: file.type || 'image/png' });
+            const imageItems = items.filter(item => item.type.startsWith('image/'));
+            if (imageItems.length > 0) {
+                const pastedFiles: File[] = [];
+                imageItems.forEach((item, idx) => {
+                    const file = item.getAsFile();
+                    if (file) {
+                        const ext = file.type.split('/')[1] || 'png';
+                        pastedFiles.push(new File([file], `pasted-image-${Date.now()}-${idx}.${ext}`, { type: file.type || 'image/png' }));
+                    }
+                });
+                if (pastedFiles.length > 0) {
                     setFilePasteFeedback(true);
                     setTimeout(() => setFilePasteFeedback(false), 2000);
-                    onFilesSelected([namedFile]);
+                    onFilesSelected(pastedFiles);
                     return;
                 }
             }
