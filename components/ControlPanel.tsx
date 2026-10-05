@@ -86,6 +86,7 @@ interface ControlPanelProps {
     hasImage: boolean;
     onSwitchToEffects?: () => void;
     onSwitchToModelSheet?: () => void;
+    onSwitchToProductSheet?: () => void;
     onOpenGemini3ProGenerator?: () => void;
     onOpenImageEditor?: () => void;
 }
@@ -208,6 +209,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     hasImage,
     onSwitchToEffects,
     onSwitchToModelSheet,
+    onSwitchToProductSheet,
     onOpenGemini3ProGenerator,
     onOpenImageEditor
 }) => {
@@ -294,7 +296,19 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <Layers size={13} className="text-red-400" />
                             <span className="hidden sm:inline">Ficha de Modelo</span>
                             <span className="sm:hidden">Ficha</span>
-                            <span className="text-[9px] px-1 py-0.2 rounded bg-red-500/20 text-red-200 font-mono">NOVO</span>
+                        </button>
+                    )}
+                    {onSwitchToProductSheet && (
+                        <button
+                            type="button"
+                            onClick={onSwitchToProductSheet}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-600/20 to-orange-600/20 border border-amber-500/40 text-amber-300 hover:text-white hover:border-amber-400 transition-all text-xs font-bold"
+                            title="Troca de Marca & Ficha de Produto (Envie garrafa, logo e rótulo)"
+                        >
+                            <Package size={13} className="text-amber-400" />
+                            <span className="hidden sm:inline">Troca de Marca</span>
+                            <span className="sm:hidden">Produto</span>
+                            <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-200 font-mono">NOVO</span>
                         </button>
                     )}
                     {onSwitchToEffects && (
@@ -314,6 +328,35 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
             <div className="space-y-5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 
+                {/* Banner do Novo Modo: Troca de Marca & Ficha de Produto */}
+                {onSwitchToProductSheet && (
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-orange-950/40 border border-amber-500/50 flex items-center justify-between gap-3 shadow-lg">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-amber-600/20 text-amber-400 border border-amber-500/30 shrink-0">
+                                <Package size={17} />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-black text-white">Novo Modo: Troca de Marca & Produto</span>
+                                    <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[8px] font-black uppercase border border-amber-500/30">
+                                        Multi-Upload
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                                    Envie garrafa/embalagem + seu logo + rótulo e gere a ficha completa estilo Fanice ou cervejas com a nova marca
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onSwitchToProductSheet}
+                            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs shrink-0 shadow-md transition-all active:scale-95"
+                        >
+                            Abrir Modo
+                        </button>
+                    </div>
+                )}
+
                 {/* Banner do Novo Modo: Ficha de Modelo (Model Sheet) */}
                 {onSwitchToModelSheet && (
                     <div className="p-3 rounded-xl bg-gradient-to-r from-red-950/60 via-slate-900 to-amber-950/40 border border-red-500/40 flex items-center justify-between gap-3 shadow-lg">
@@ -323,9 +366,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             </div>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span className="text-xs font-black text-white">Novo Modo: Ficha de Modelo</span>
+                                    <span className="text-xs font-black text-white">Ficha de Personagem & Modelo</span>
                                     <span className="px-1.5 py-0.2 rounded-full bg-red-500/20 text-red-300 text-[8px] font-black uppercase border border-red-500/30">
-                                        Customização Total
+                                        Homem / Mulher
                                     </span>
                                 </div>
                                 <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
@@ -336,9 +379,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         <button
                             type="button"
                             onClick={onSwitchToModelSheet}
-                            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs shrink-0 shadow-md transition-all active:scale-95"
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-red-300 hover:text-white font-bold text-xs shrink-0 border border-red-500/30 transition-all active:scale-95"
                         >
-                            Abrir Modo
+                            Abrir Ficha
                         </button>
                     </div>
                 )}

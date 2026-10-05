@@ -42,8 +42,9 @@ import { ElementExtractionView } from './components/ElementExtractionView';
 import { PersonExtractionView } from './components/PersonExtractionView';
 import { VisualEffectsTab } from './components/VisualEffectsTab';
 import { ModelSheetStudio } from './components/ModelSheetStudio';
+import { ProductSheetStudio } from './components/ProductSheetStudio';
 import { loadHistory, saveHistory, deleteHistoryItem, clearHistory, compressBase64Image, loadActiveImages, saveActiveImages } from './utils/historyStorage';
-import { Zap, History, Sparkles, Sliders, Settings, Plus, Trash2, Image as ImageIcon, AlertCircle, X, ExternalLink, Layers } from 'lucide-react';
+import { Zap, History, Sparkles, Sliders, Settings, Plus, Trash2, Image as ImageIcon, AlertCircle, X, ExternalLink, Layers, Package } from 'lucide-react';
 
 const COMPOSITION_KEYWORDS: Record<string, string> = {
     macro: "macro photography, extreme close-up, high detail texture",
@@ -165,7 +166,7 @@ const App: React.FC = () => {
     const [isGeneratingCycles, setIsGeneratingCycles] = useState(false);
     const [isGeneratingRecraft, setIsGeneratingRecraft] = useState(false);
     const [isGeneratingMagnific, setIsGeneratingMagnific] = useState(false);
-    const [activeControlTab, setActiveControlTab] = useState<'architect' | 'effects' | 'modelsheet'>('architect');
+    const [activeControlTab, setActiveControlTab] = useState<'architect' | 'effects' | 'modelsheet' | 'productsheet'>('architect');
     const [searchGroundingData, setSearchGroundingData] = useState<SearchGroundingData | null>(null);
     const [isGeneratingSearchGrounding, setIsGeneratingSearchGrounding] = useState(false);
     
@@ -1456,7 +1457,19 @@ const App: React.FC = () => {
                             >
                                 <Layers size={15} className={activeControlTab === 'modelsheet' ? 'text-white' : 'text-red-400'} />
                                 <span>Ficha de Modelo</span>
-                                <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-red-400/20 text-red-200 border border-red-400/30">
+                            </button>
+                            <button 
+                                onClick={() => setActiveControlTab('productsheet')}
+                                className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[40px] ${
+                                    activeControlTab === 'productsheet' 
+                                        ? 'bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 text-white shadow-lg shadow-orange-500/25 ring-1 ring-amber-400' 
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                                }`}
+                                title="Troca de Marca & Ficha de Produto (Envie garrafa, logo e rótulo)"
+                            >
+                                <Package size={15} className={activeControlTab === 'productsheet' ? 'text-white' : 'text-amber-400'} />
+                                <span>Troca de Marca</span>
+                                <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30">
                                     NOVO
                                 </span>
                             </button>
@@ -1532,6 +1545,7 @@ const App: React.FC = () => {
                                     hasImage={!!activeImage}
                                     onSwitchToEffects={() => setActiveControlTab('effects')}
                                     onSwitchToModelSheet={() => setActiveControlTab('modelsheet')}
+                                    onSwitchToProductSheet={() => setActiveControlTab('productsheet')}
                                     onAnalyzeSearchGrounding={handleAnalyzeSearchGrounding}
                                     isGeneratingSearchGrounding={isGeneratingSearchGrounding}
                                 />
@@ -1549,8 +1563,22 @@ const App: React.FC = () => {
                                     targetPlatform={settings.targetPlatform}
                                     onSwitchToArchitect={() => setActiveControlTab('architect')}
                                 />
-                            ) : (
+                            ) : activeControlTab === 'modelsheet' ? (
                                 <ModelSheetStudio 
+                                    activeImageBase64={activeImage?.base64Data}
+                                    activeImageMimeType={activeImage?.mimeType}
+                                    activeImageName={activeImage?.name}
+                                    targetPlatform={settings.targetPlatform}
+                                    onApplyPrompt={(newPrompt) => {
+                                        setPrompt(newPrompt);
+                                        setSettings(s => ({ ...s, basePrompt: newPrompt }));
+                                    }}
+                                    onCreateVisual={handleCreateVisual}
+                                    isGeneratingVisual={isGeneratingVisual}
+                                    onSwitchToArchitect={() => setActiveControlTab('architect')}
+                                />
+                            ) : (
+                                <ProductSheetStudio 
                                     activeImageBase64={activeImage?.base64Data}
                                     activeImageMimeType={activeImage?.mimeType}
                                     activeImageName={activeImage?.name}

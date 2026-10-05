@@ -298,3 +298,64 @@ export interface ModelSheetData {
     outputType: 'full_model_sheet' | 'turnaround_4_views' | 'expression_grid' | 'pose_grid' | 'single_shot';
     additionalNotes: string;
 }
+
+export interface ProductRebrandUploadedImages {
+    baseProductImage?: { base64: string; mimeType: string; name: string };
+    brandLogoImage?: { base64: string; mimeType: string; name: string };
+    packageLabelImage?: { base64: string; mimeType: string; name: string };
+    propsOrTextureImage?: { base64: string; mimeType: string; name: string };
+}
+
+export interface ProductPropItem {
+    id: string;
+    name: string;
+    purpose: string;
+}
+
+export interface ProductSheetData {
+    // 1. Visão Geral do Produto (Product Overview)
+    originalBrandName: string; // Ex: Skol / Marca Original
+    newBrandName: string; // Ex: Minha Cerveja Artesanal / Minha Marca
+    productCategory: string; // Ex: Cerveja / Sorvete / Bebida / Cosmético
+    productMaterials: string; // Ex: Garrafa de vidro âmbar com condensação / Pote plástico
+    productDimensions: string; // Ex: 355ml Long Neck / 18 x 12 x 6 cm (tub)
+    keyFeatures: string[]; // Ex: ["Gelada trincando", "Gotas de condensação hiper-realistas", "Espuma cremosa"]
+
+    // 2. Vistas Hero do Produto (Product Hero Views)
+    heroViews: ('front' | 'back' | 'side' | 'three_quarter' | 'functional')[];
+    activeHeroView: 'all_hero_views' | 'front' | 'back' | 'side' | 'three_quarter' | 'functional';
+
+    // 3. Detalhes de Substituição & Close-ups (Product Close-Ups)
+    rebrandMode: 'full_replacement' | 'keep_bottle_change_label' | 'logo_only' | 'custom_concept';
+    labelPlacement: string; // Ex: "Rótulo frontal principal centralizado na garrafa com impressão texturizada"
+    neckLabelOrCap: string; // Ex: "Gargalo com selo de papel alumínio e tampa coroa personalizada"
+    surfaceTexture: string; // Ex: "Vidro com gotículas de condensação gelada e reflexos de estúdio"
+    packagingNutritional: string; // Ex: "Informações nutricionais e graduação alcoólica 5.2% no verso"
+    specialFeatures: string; // Ex: "Acabamento fosco no rótulo com verniz localizado no logo"
+
+    // 4. Props & Ambientação (Props Reference)
+    props: ProductPropItem[];
+    backgroundEnvironment: string; // Ex: "Balcão rústico de madeira com iluminação quente de bar / Estúdio minimalista"
+
+    // 5. Paleta de Cores da Marca (Brand Colors Hex)
+    brandColors: CharacterColorSwatch[];
+
+    // 6. Construção da Embalagem (Packaging / Construction)
+    packagingViews: ('front_pack' | 'side_pack' | 'back_pack' | 'top_lid' | 'unfolded_label')[];
+
+    // 7. Diretrizes Estritas "DO NOT CHANGE" (Consistency Lock)
+    doNotChange: {
+        productShape: boolean;
+        materials: boolean;
+        colorsAndBranding: boolean;
+        typography: boolean;
+        proportions: boolean;
+        photorealism: boolean;
+    };
+    customConsistencyRules: string;
+
+    // 8. Layout de Saída
+    outputLayout: 'full_product_sheet' | 'hero_commercial_shot' | 'packaging_construction' | 'lifestyle_in_use';
+    lighting: string;
+    renderQuality: string;
+}

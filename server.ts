@@ -719,6 +719,165 @@ Return a single valid JSON object strictly matching this schema:
     }
 });
 
+// 6.6 Product & Rebranding Sheet Extraction (Multi-Image: Base Product + Logo + Label)
+app.post('/api/gemini/extract-product-sheet', async (req: Request, res: Response) => {
+    try {
+        const { baseProductImage, brandLogoImage, packageLabelImage, propsOrTextureImage, userInstructions } = req.body;
+
+        const parts: any[] = [];
+
+        if (baseProductImage && baseProductImage.data) {
+            parts.push({
+                inlineData: {
+                    data: baseProductImage.data,
+                    mimeType: baseProductImage.mimeType || 'image/jpeg'
+                }
+            });
+            parts.push({
+                text: `[IMAGE 1: BASE PRODUCT / PACKAGING REFERENCE (Original Container to be rebranded, e.g. beer bottle, ice cream tub, beverage can, perfume)]`
+            });
+        }
+
+        if (brandLogoImage && brandLogoImage.data) {
+            parts.push({
+                inlineData: {
+                    data: brandLogoImage.data,
+                    mimeType: brandLogoImage.mimeType || 'image/png'
+                }
+            });
+            parts.push({
+                text: `[IMAGE 2: NEW BRAND LOGO (To be applied prominently onto the product packaging)]`
+            });
+        }
+
+        if (packageLabelImage && packageLabelImage.data) {
+            parts.push({
+                inlineData: {
+                    data: packageLabelImage.data,
+                    mimeType: packageLabelImage.mimeType || 'image/png'
+                }
+            });
+            parts.push({
+                text: `[IMAGE 3: NEW PACKAGE LABEL ARTWORK (Complete label design to wrap or replace on the product)]`
+            });
+        }
+
+        if (propsOrTextureImage && propsOrTextureImage.data) {
+            parts.push({
+                inlineData: {
+                    data: propsOrTextureImage.data,
+                    mimeType: propsOrTextureImage.mimeType || 'image/jpeg'
+                }
+            });
+            parts.push({
+                text: `[IMAGE 4: CONTEXTUAL PROPS & TEXTURE REFERENCE]`
+            });
+        }
+
+        const instructionText = userInstructions ? `\nUSER SPECIFIC REBRANDING INSTRUCTION: "${userInstructions}"` : '';
+
+        parts.push({
+            text: `You are an elite Commercial Industrial Designer and Packaging Rebranding Director.
+Analyze the provided images to create a comprehensive Product Sheet & Rebranding Specification Board (like commercial production reference sheets, e.g. Fanice Ice Cream or Premium Beer Rebranding).
+${instructionText}
+
+REBRANDING GOAL:
+1. Identify the base product (e.g. beer bottle like Skol, ice cream tub, beverage can, perfume, cosmetic).
+2. Transpose and replace the original branding with the NEW BRAND LOGO and NEW LABEL provided in the uploaded images.
+3. Preserve authentic physical materials (condensation, amber glass, matte plastic, aluminum, reflection, liquid).
+4. Extract exact hex color codes for the new brand.
+5. Identify or suggest contextual props (e.g. glassware, ice, fresh fruits, scoops).
+
+Return a SINGLE valid JSON object matching this schema strictly:
+{
+  "originalBrandName": "Name of original brand to replace (e.g. Skol / Generic Tub)",
+  "newBrandName": "Name of new brand detected from logo or label (e.g. Minha Cerveja Artesanal / Fanice)",
+  "productCategory": "e.g. Cerveja Premium / Frozen Dessert / Bebida",
+  "productMaterials": "Specific physical materials (e.g. amber glass with ice condensation, plastic tub)",
+  "productDimensions": "e.g. 355ml Long Neck (23 x 6 cm) or 18 x 12 x 6 cm tub",
+  "keyFeatures": ["4-5 visual and functional selling points"],
+  "rebrandMode": "full_replacement",
+  "labelPlacement": "Detailed placement description of how the new label wraps around the container",
+  "neckLabelOrCap": "Details about the neck label, cap, foil seal, or lid",
+  "surfaceTexture": "Tactile surface texture (e.g. condensation droplets, frosted glass, matte paper)",
+  "packagingNutritional": "Nutritional panel, barcode, and ABV/ingredient specifications",
+  "specialFeatures": "Embossing, gold foil, spot varnish, or unique finishes",
+  "props": [
+    { "id": "p1", "name": "Prop Name", "purpose": "Why this prop complements the product" }
+  ],
+  "backgroundEnvironment": "Ideal studio or lifestyle background setting",
+  "brandColors": [
+    { "id": "c1", "label": "Color Name", "hex": "#HEX" }
+  ],
+  "customConsistencyRules": "Directives for maintaining 100% packaging fidelity",
+  "outputLayout": "full_product_sheet",
+  "lighting": "Studio lighting scheme description",
+  "renderQuality": "8K Hasselblad commercial product photography"
+}
+Output ONLY valid JSON without markdown wrapping.`
+        });
+
+        const response = await generateContentWithFallback({
+            contents: { parts },
+            config: {
+                temperature: 0.3,
+            }
+        });
+
+        const rawText = response.text ? response.text.trim() : '{}';
+        const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        try {
+            const parsed = JSON.parse(cleaned);
+            return res.json(parsed);
+        } catch {
+            const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const extracted = JSON.parse(jsonMatch[0]);
+                return res.json(extracted);
+            }
+            throw new Error('Não foi possível parsear o JSON da ficha de produto.');
+        }
+    } catch (err: any) {
+        console.warn('Erro ao extrair ficha de produto com Gemini, usando preset de fallback:', err?.message || err);
+        const fallback = {
+            originalBrandName: "Marca Original (ex: Skol / Ambev)",
+            newBrandName: "Minha Marca Artesanal",
+            productCategory: "Cerveja Premium / Bebidas",
+            productMaterials: "Garrafa de vidro âmbar com condensação de gotas geladas",
+            productDimensions: "Long Neck 355ml",
+            keyFeatures: [
+                "Vidro âmbar com reflexos dourados do líquido",
+                "Gotas de condensação escorrendo pela garrafa",
+                "Novo rótulo centralizado com arte da marca enviada",
+                "Tampa metálica personalizada"
+            ],
+            rebrandMode: "full_replacement",
+            labelPlacement: "Novo rótulo aplicado com perfeição no corpo cilíndrico da garrafa",
+            neckLabelOrCap: "Gargalo com selo e tampa personalizada",
+            surfaceTexture: "Vidro molhado com gotas de gelo realistas",
+            packagingNutritional: "Tabela com teor alcoólico 5.2% ABV e código de barras",
+            specialFeatures: "Acabamento fosco com verniz localizado no logotipo",
+            props: [
+                { id: "p1", name: "Copo de Cristal com Espuma", purpose: "Apresentar o produto servido" },
+                { id: "p2", name: "Gelo Triturado", purpose: "Reforçar a temperatura gelada" }
+            ],
+            backgroundEnvironment: "Balcão rústico de madeira com iluminação quente de bar",
+            brandColors: [
+                { id: "c1", label: "Azul Imperial", hex: "#0B2545" },
+                { id: "c2", label: "Dourado", hex: "#D4AF37" },
+                { id: "c3", label: "Âmbar", hex: "#582F0E" },
+                { id: "c4", label: "Branco", hex: "#FFFFFF" }
+            ],
+            customConsistencyRules: "Substituir 100% a marca original pela nova marca e manter a embalagem física idêntica.",
+            outputLayout: "full_product_sheet",
+            lighting: "Iluminação de estúdio comercial com luzes de recorte",
+            renderQuality: "Fotorealista 8K, Fotografia Comercial de Bebidas"
+        };
+        res.json(fallback);
+    }
+});
+
 // 7. Image Generation endpoint (Gemini 3 Image Models)
 app.post('/api/gemini/generate-image', async (req: Request, res: Response) => {
     try {
