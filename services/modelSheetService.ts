@@ -359,6 +359,211 @@ export async function extractModelSheetFromImage(imageBase64: string, mimeType: 
     return await res.json();
 }
 
+export interface ExtractedWardrobeData {
+    outfitType: string;
+    topNeckline: string;
+    sleevesOrStraps: string;
+    bottomPiece: string;
+    footwear: string;
+    accessories: string;
+    fabricTextures: string[];
+    colorSwatches: CharacterColorSwatch[];
+    materialReferences: string[];
+    clothingStyle?: string;
+    wardrobeSummary?: string;
+}
+
+/**
+ * Extrai dados detalhados de vestuário e styling com IA a partir de imagem de referência de roupa.
+ */
+export async function extractWardrobeFromImage(
+    imageBase64: string,
+    mimeType: string = 'image/jpeg',
+    role: string = 'full_outfit',
+    characterGender?: 'woman' | 'man',
+    userInstructions?: string
+): Promise<ExtractedWardrobeData> {
+    const res = await fetch('/api/gemini/extract-wardrobe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            imageBase64,
+            mimeType,
+            role,
+            characterGender,
+            userInstructions
+        })
+    });
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Falha na análise do vestuário' }));
+        throw new Error(err.error || `Erro HTTP ${res.status}`);
+    }
+
+    return await res.json();
+}
+
+export interface WardrobePresetItem {
+    id: string;
+    name: string;
+    genderTarget: 'woman' | 'man' | 'unisex';
+    category: string;
+    outfitType: string;
+    topNeckline: string;
+    sleevesOrStraps: string;
+    bottomPiece: string;
+    footwear: string;
+    accessories: string;
+    fabricTextures: string[];
+    colorSwatches: CharacterColorSwatch[];
+    materialReferences: string[];
+    description: string;
+}
+
+export const WARDROBE_PRESETS: WardrobePresetItem[] = [
+    {
+        id: 'couture_red_dress',
+        name: 'Vestido Vermelho Alta Costura',
+        genderTarget: 'woman',
+        category: 'Alta Costura / Red Carpet',
+        outfitType: 'Vestido midi vermelho assimétrico com drapeado escultural e fenda lateral elegante',
+        topNeckline: 'Decote de ombro único com babado escultural fluido',
+        sleevesOrStraps: 'Alça fina à esquerda e asa de babado em cascata à direita',
+        bottomPiece: 'Saia midi ajustada com fenda lateral sutil e caimento refinado',
+        footwear: 'Sandália de salto agulha fina vermelha com tiras no tornozelo',
+        accessories: 'Brincos delicados de ouro amarelo e anel solitário',
+        fabricTextures: ['Seda Pura / Cetim Duchesse', 'Chiffon Fluido', 'Crepe de Seda'],
+        colorSwatches: [
+            { id: 'wp1', label: 'Vermelho Carmesim', hex: '#B31217' },
+            { id: 'wp2', label: 'Escarlate Vibrante', hex: '#E63946' },
+            { id: 'wp3', label: 'Vinho Profundo', hex: '#660708' }
+        ],
+        materialReferences: ['Seda Acetinada', 'Chiffon Translúcido', 'Ouro Polido'],
+        description: 'Look de alta costura com caimento escultural e vermelho vibrante (referência clássica).'
+    },
+    {
+        id: 'red_shirt_tailored',
+        name: 'Conjunto Camisa & Calça Alfaiataria',
+        genderTarget: 'woman',
+        category: 'Editorial / Smart Casual',
+        outfitType: 'Camisa de alfaiataria vermelha vibrante e calça reta com tênis branco minimalista',
+        topNeckline: 'Colarinho francês estruturado com primeiro botão aberto',
+        sleevesOrStraps: 'Mangas compridas com punhos estruturados suavemente puxados',
+        bottomPiece: 'Calça de alfaiataria vermelha de cintura alta com vinco frontal',
+        footwear: 'Tênis de couro branco minimalista com sola limpa',
+        accessories: 'Gargantilha com pingente delicado de flor e brincos ponto de luz',
+        fabricTextures: ['Twill de Algodão Nobre', 'Crepe Alfaiataria', 'Couro Fosco Branco'],
+        colorSwatches: [
+            { id: 'wp4', label: 'Vermelho Camisa', hex: '#D32F2F' },
+            { id: 'wp5', label: 'Vermelho Calça', hex: '#B71C1C' },
+            { id: 'wp6', label: 'Branco Puro Tênis', hex: '#FFFFFF' }
+        ],
+        materialReferences: ['Algodão Pima', 'Alfaiataria Crepe', 'Couro Bovino Liso'],
+        description: 'Conjunto monocromático contemporâneo com contraste marcante de tênis branco (estilo Sofia).'
+    },
+    {
+        id: 'male_bomber_tailored',
+        name: 'Jaqueta Bomber Carmesim & Alfaiataria',
+        genderTarget: 'man',
+        category: 'Editorial Masculino',
+        outfitType: 'Jaqueta bomber carmesim acetinada com camiseta gola redonda preta e calça de alfaiataria grafite',
+        topNeckline: 'Gola bomber canelada clássica com fecho de zíper frontal metálico',
+        sleevesOrStraps: 'Mangas longas com punhos elásticos canelados',
+        bottomPiece: 'Calça slim-fit de alfaiataria cinza-grafite com caimento sob medida',
+        footwear: 'Botas Chelsea de couro preto polido',
+        accessories: 'Relógio esportivo minimalista com pulseira de aço escovado',
+        fabricTextures: ['Cetim Técnico Pesado', 'Algodão Mercerizado', 'Lã Fria Alfaiataria', 'Couro Preto'],
+        colorSwatches: [
+            { id: 'wp7', label: 'Carmesim Jaqueta', hex: '#8B0000' },
+            { id: 'wp8', label: 'Preto Profundo', hex: '#111111' },
+            { id: 'wp9', label: 'Cinza Grafite', hex: '#2B2D42' },
+            { id: 'wp10', label: 'Aço Escovado', hex: '#D1D5DB' }
+        ],
+        materialReferences: ['Cetim Fosco', 'Lã Tropical', 'Couro Nappa'],
+        description: 'Equilíbrio arrojado entre streetwear refinado e alfaiataria de luxo para homens.'
+    },
+    {
+        id: 'cyberpunk_techwear',
+        name: 'Cyberpunk Techwear Tático',
+        genderTarget: 'unisex',
+        category: 'Sci-Fi / Techwear',
+        outfitType: 'Capa / Jaqueta impermeável tática preta com fitas magnéticas, detalhes em néon e calça cargo modular',
+        topNeckline: 'Gola alta assimétrica com capuz ergonômico embutido e zíper selado',
+        sleevesOrStraps: 'Mangas articuladas com bolsos táticos e costuras reflexivas 3M',
+        bottomPiece: 'Calça cargo techwear preta com bolsos utilitários e fitas de ajuste',
+        footwear: 'Coturnos táticos futuristas com sola tratorada e amortecimento visível',
+        accessories: 'Cinto tático cobra buckle, mosquetões de titânio e luvas sem dedos',
+        fabricTextures: ['Cordura Impermeável', 'Gore-Tex', 'Fita de Nylon Balístico', 'Neoprene'],
+        colorSwatches: [
+            { id: 'wp11', label: 'Preto Carbono', hex: '#0D0D0D' },
+            { id: 'wp12', label: 'Cinza Militar', hex: '#374151' },
+            { id: 'wp13', label: 'Cyan Cibernético', hex: '#00F5D4' }
+        ],
+        materialReferences: ['Nylon Balístico', 'Membrana Gore-Tex', 'Fivelas Alumínio Aeronáutico'],
+        description: 'Visual techwear de alta densidade técnica com silhueta urbana futurista.'
+    },
+    {
+        id: 'italian_suit_slim',
+        name: 'Terno Slim Alfaiataria Italiana',
+        genderTarget: 'man',
+        category: 'Business Executivo',
+        outfitType: 'Terno slim-fit de corte italiano azul marinho acetinado com camisa branca de gola italiana e gravata de seda',
+        topNeckline: 'Lapela notch de 7cm com corte sob medida e pesponto impecável',
+        sleevesOrStraps: 'Mangas estruturadas com 4 botões de madrepérola funcionais',
+        bottomPiece: 'Calça de alfaiataria slim sem pregas com bainha precisa sobre o sapato',
+        footwear: 'Sapatos Oxford de couro legítimo marrom conhaque com bico amendoado',
+        accessories: 'Lenço de bolso de linho branco dobrado em linha reta e relógio analógico clássico',
+        fabricTextures: ['Lã Fria Super 150s Italiana', 'Popeline de Algodão Egípcio', 'Seda Jacquard'],
+        colorSwatches: [
+            { id: 'wp14', label: 'Azul Marinho Nobre', hex: '#0A192F' },
+            { id: 'wp15', label: 'Branco Impecável', hex: '#FFFFFF' },
+            { id: 'wp16', label: 'Marrom Conhaque', hex: '#78350F' }
+        ],
+        materialReferences: ['Lã Fria Super 150s', 'Couro Conhaque Patinado', 'Madrepérola Natural'],
+        description: 'Alfaiataria napolitana de extrema precisão e caimento fluido impecável.'
+    },
+    {
+        id: 'linen_summer_chic',
+        name: 'Casual Chic Linho & Verão Resort',
+        genderTarget: 'unisex',
+        category: 'Resort / Verão Minimalista',
+        outfitType: 'Camisa fluida de linho cru com mangas dobradas e bermuda de alfaiataria em tom areia',
+        topNeckline: 'Gola padre descontraída ou gola aberta resort',
+        sleevesOrStraps: 'Mangas 3/4 dobradas com acabamento natural',
+        bottomPiece: 'Calça ou bermuda fluida de linho e algodão com cordão embutido',
+        footwear: 'Mocassins de camurça bege ou sandálias de couro trançado artesanal',
+        accessories: 'Óculos de sol tartaruga estilo retrô e pulseira discreta de couro cru',
+        fabricTextures: ['Linho Puro Rústico', 'Algodão Cru Respirável', 'Camurça Macia'],
+        colorSwatches: [
+            { id: 'wp17', label: 'Linho Cru / Areia', hex: '#E2D4B7' },
+            { id: 'wp18', label: 'Off-White', hex: '#FAF9F6' },
+            { id: 'wp19', label: 'Bege Amendoado', hex: '#C2B280' }
+        ],
+        materialReferences: ['Linho Belga', 'Camurça Natural', 'Acetato Tartaruga'],
+        description: 'Elegância veranil despretensiosa com texturas táteis de linho e tons terra orgânicos.'
+    },
+    {
+        id: 'streetwear_oversized',
+        name: 'Streetwear Tóquio Oversized',
+        genderTarget: 'unisex',
+        category: 'Streetwear Contemporâneo',
+        outfitType: 'Moletom com capuz oversized preto pesado, colete utilitário, bermuda sweatpants ampla e meias altas com sneakers chunky',
+        topNeckline: 'Capuz duplo estruturado com cordões grossos de algodão',
+        sleevesOrStraps: 'Mangas raglan volumosas caídas nos ombros',
+        bottomPiece: 'Bermuda sweatpants ampla de algodão pesado com bolsos profundos',
+        footwear: 'Sneakers chunky de design desconstruído preto e off-white',
+        accessories: 'Shoulder bag de nylon preta e fones de ouvido circum-aurais',
+        fabricTextures: ['Algodão Heavyweight Francês 480 GSM', 'Nylon Ripstop', 'Malha Canelada'],
+        colorSwatches: [
+            { id: 'wp20', label: 'Preto Asfalto', hex: '#1C1917' },
+            { id: 'wp21', label: 'Off-White Creme', hex: '#F5F5F0' },
+            { id: 'wp22', label: 'Cinza Mescla', hex: '#9CA3AF' }
+        ],
+        materialReferences: ['Heavy French Terry', 'Borracha Vulcanizada', 'Nylon Ripstop'],
+        description: 'Estética contemporânea das ruas de Shibuya com proporções oversized marcantes.'
+    }
+];
+
 /**
  * Compiles a master production prompt from the model sheet data.
  */
@@ -379,6 +584,15 @@ export function compileModelSheetPrompt(data: ModelSheetData, targetPlatform: st
     const genderRole = isMale ? 'Male Model / Character' : 'Female Model / Character';
     const facialHairClause = isMale && data.facialHair ? `, Facial Hair: ${data.facialHair}` : '';
 
+    // Diretivas explícitas de referências de vestuário enviadas pelo usuário
+    const hasWardrobeRefs = data.wardrobeReferences && data.wardrobeReferences.length > 0;
+    const wardrobeRefSummary = hasWardrobeRefs
+        ? data.wardrobeReferences!.map((ref, idx) => `Ref ${idx + 1} (${ref.label || ref.role}): ${ref.description || ref.notes || ref.fileName || 'authentic clothing piece'}`).join(' | ')
+        : '';
+    const wardrobeRefClause = hasWardrobeRefs
+        ? `\n\n[WARDROBE REFERENCE IMAGE INTEGRATION & STRICT CLOTHING REPLICATION]\nCharacter MUST wear the exact apparel from the uploaded wardrobe reference images (${wardrobeRefSummary}). Faithful reproduction of cut, silhouette, neckline (${data.topNeckline}), sleeves (${data.sleevesOrStraps}), bottom piece (${data.bottomPiece}), footwear (${data.footwear}), accessories (${data.accessories}). Fabric weave and authentic drape: ${fabricsString}. Color palette consistency: ${colorString}.`
+        : '';
+
     // 1. Full Production Model Sheet Grid (Matching user references)
     if (data.outputType === 'full_model_sheet') {
         let prompt = `Complete ${isMale ? 'male' : 'female'} character turnaround model sheet and identity reference board, photographic ultra-high-definition presentation grid.
@@ -398,7 +612,7 @@ Neat 2x4 photographic expression grid of the identical face: 1. Neutral, 2. Happ
 Character shown in 6 dynamic full-body postures: 1. Neutral Stand, 2. Walking, 3. Sitting, 4. Relaxed, 5. Tense, 6. Action-Ready. Consistent costume, footwear (${data.footwear}), and physique.
 
 [SECTION 5: COSTUME & CLOSE-UP SWATCHES]
-Detailed costume swatches: Neckline (${data.topNeckline}), Sleeves/Straps (${data.sleevesOrStraps}), Silhouette (${data.bottomPiece}), Footwear (${data.footwear}), Accessories (${data.accessories}), Fabrics (${fabricsString}).
+Detailed costume swatches: Neckline (${data.topNeckline}), Sleeves/Straps (${data.sleevesOrStraps}), Silhouette (${data.bottomPiece}), Footwear (${data.footwear}), Accessories (${data.accessories}), Fabrics (${fabricsString}).${wardrobeRefClause}
 
 [SECTION 6: COLOR PALETTE & MATERIAL SAMPLES]
 Key color swatches with exact hex codes: ${colorString}. Material finishes: ${materialsString}.
@@ -416,7 +630,7 @@ Lighting: ${data.lighting}. Setting: ${data.backgroundSetting}. Directives: ${da
         let prompt = `Full-body ${isMale ? 'male' : 'female'} character turnaround sheet, 4 distinct sequential angles side-by-side on a clean line: Front View, 3/4 View, Side Profile View, Back View.
 Subject: ${data.characterName}, ${genderRole}, ${data.age}, ${data.height}, ${data.bodyType} body type.
 Facial Identity: ${data.facialStructure}, ${data.eyes}, ${data.hair} (Hex ${data.hairColorHex})${facialHairClause}.
-Costume: Wearing identical ${data.outfitType}, neckline ${data.topNeckline}, ${data.bottomPiece}, footwear ${data.footwear}.
+Costume: Wearing identical ${data.outfitType}, neckline ${data.topNeckline}, ${data.bottomPiece}, footwear ${data.footwear}.${wardrobeRefClause}
 Colors: ${colorString}. Materials: ${materialsString}.
 Identical anatomical proportions, precise alignment, studio lighting on neutral ${data.backgroundSetting}, 8k photorealistic character turnaround render.`;
 
@@ -442,7 +656,7 @@ Soft studio portrait lighting, sharp focus on eyes, clean background, consistent
     // 4. 6-Pose Turnaround Sheet
     if (data.outputType === 'pose_grid') {
         let prompt = `${isMale ? 'Male' : 'Female'} character pose study and action turnaround grid, 6 sequential full-body poses side-by-side: 1. Neutral Stand, 2. Walking, 3. Sitting, 4. Relaxed, 5. Tense, 6. Action-Ready.
-Subject: ${data.characterName}, ${data.age}, ${data.bodyType}, wearing identical ${data.outfitType}, ${data.footwear}.
+Subject: ${data.characterName}, ${data.age}, ${data.bodyType}, wearing identical ${data.outfitType}, ${data.footwear}.${wardrobeRefClause}
 Flawless costume and physical consistency, dynamic body language, neutral studio backdrop, 8k resolution master render.`;
 
         if (targetPlatform === 'midjourney') {
@@ -461,7 +675,7 @@ Pose: Full-body ${poseLabel}, ${data.poseDetails}.
 Expression: ${emotionLabel}, ${data.expressionDetails}.
 Camera Angle: ${viewLabel}.
 Biometrics: ${data.facialStructure}, expressive ${data.eyes}, natural ${data.lips}, ${data.skinTone} (Hex ${data.skinToneHex}), ${data.hair} (Hex ${data.hairColorHex}), ${data.makeup}${facialHairClause}.
-Costume: Wearing ${data.outfitType}, neckline ${data.topNeckline}, ${data.bottomPiece}, ${data.footwear}, accessories ${data.accessories}.
+Costume: Wearing ${data.outfitType}, neckline ${data.topNeckline}, ${data.bottomPiece}, ${data.footwear}, accessories ${data.accessories}.${wardrobeRefClause}
 Color palette: ${colorString}. Materials: ${materialsString}.
 Lighting: ${data.lighting}. Setting: ${data.backgroundSetting}.
 Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, Hasselblad 100MP RAW quality, 8k resolution, authentic skin pore textures, photorealistic.`;

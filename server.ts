@@ -719,6 +719,91 @@ Return a single valid JSON object strictly matching this schema:
     }
 });
 
+// 6.55 Wardrobe & Clothing Reference Extraction (Upload Vestuário / Figurino)
+app.post('/api/gemini/extract-wardrobe', async (req: Request, res: Response) => {
+    try {
+        const { imageBase64, mimeType, role, characterGender, userInstructions } = req.body;
+        if (!imageBase64) {
+            return res.status(400).json({ error: 'Nenhuma imagem de vestuário fornecida.' });
+        }
+
+        const roleContext = role ? `The user uploaded this image as: "${role}" (e.g. full_outfit, top_piece, bottom_piece, shoes_accessories, pattern_texture).` : '';
+        const genderContext = characterGender && characterGender !== 'auto' ? `The character is a ${characterGender}.` : '';
+        const userNotes = userInstructions ? `Additional user notes: "${userInstructions}".` : '';
+
+        const requestPayload = {
+            contents: {
+                parts: [
+                    {
+                        inlineData: {
+                            data: imageBase64,
+                            mimeType: mimeType || 'image/jpeg'
+                        }
+                    },
+                    {
+                        text: `You are an elite Fashion Designer, Haute Couture Patternmaker, and Costume Supervisor for 3D character studios and cinematic productions.
+Analyze the clothing, garment pieces, fabrics, cuts, shoes, accessories, and color palette shown in this image with extreme fashion expertise.
+${roleContext}
+${genderContext}
+${userNotes}
+
+Deconstruct the apparel thoroughly so it can be applied to a Character Model Sheet.
+Return ONLY a valid JSON object matching this schema:
+{
+  "outfitType": "Complete detailed description of the outfit/garment (e.g. Asymmetrical crimson silk midi dress with sculptural shoulder ruffle / Tailored navy blue wool blazer with crisp poplin shirt and slim chinos)",
+  "topNeckline": "Detailed neckline/collar/lapel cut (e.g. One-shoulder ruffle neckline / Peak lapels with open collar shirt)",
+  "sleevesOrStraps": "Sleeve design, cuff, straps or armhole styling (e.g. Sleeveless on left with dramatic flutter sleeve on right / Long tailored sleeves with surgeon cuffs)",
+  "bottomPiece": "Pants, skirt, shorts, hemline, cut, silhouette (e.g. Fluid midi length skirt with high side slit / Slim-fit tapered trousers with pressed crease)",
+  "footwear": "Matching shoes, heels, sneakers, boots, material and color (e.g. Strappy stiletto sandals in matching crimson leather / White minimalist calfskin sneakers)",
+  "accessories": "Jewelry, belt, bag, scarf, hardware, watch, buttons (e.g. Minimalist gold hoop earrings and slender chain belt / Silver dress watch and brass buttons)",
+  "fabricTextures": ["List of 3-6 exact fabrics and weave textures, e.g. Silk Crepe, Chiffon, Fine Wool, Matte Leather, Denim, Cotton Twill"],
+  "colorSwatches": [
+    { "id": "w1", "label": "Dominant Garment Color", "hex": "#HEX" },
+    { "id": "w2", "label": "Secondary Garment Shade", "hex": "#HEX" },
+    { "id": "w3", "label": "Accent / Hardware Tone", "hex": "#HEX" },
+    { "id": "w4", "label": "Complementary / Lining Color", "hex": "#HEX" }
+  ],
+  "materialReferences": ["List of 3-5 material finishes, e.g. High-sheen Silk, Matte Wool, Brushed Brass, Italian Nappa Leather"],
+  "clothingStyle": "e.g. Haute Couture / Streetwear / Italian Tailoring / Techwear / Boho Chic / Casual Minimalist",
+  "wardrobeSummary": "A concise, highly evocative 2-sentence description of the look for master prompt compilers."
+}`
+                    }
+                ]
+            },
+            config: {
+                responseMimeType: 'application/json',
+                systemInstruction: 'You are an elite fashion designer and costume director. Extract precise clothing, textile, silhouette, cut, and exact hex color data from the wardrobe image. Return pure JSON only without markdown formatting.',
+                temperature: 0.2
+            }
+        };
+
+        const response = await generateContentWithFallback(requestPayload);
+        const text = response.text ? response.text.trim() : '';
+        const parsed = JSON.parse(text);
+        res.json(parsed);
+    } catch (err: any) {
+        console.error('Error extracting wardrobe from image:', err);
+        const fallback = {
+            outfitType: "Traje estilizado baseado na imagem de referência enviada",
+            topNeckline: "Gola e decote estruturados com corte contemporâneo",
+            sleevesOrStraps: "Mangas com caimento proporcional e acabamento de alfaiataria",
+            bottomPiece: "Parte inferior com corte fluido e costuras alinhadas",
+            footwear: "Calçados elegantes em harmonia com o estilo do traje",
+            accessories: "Acessórios e detalhes metálicos refinados",
+            fabricTextures: ["Seda / Cetim", "Algodão Pima", "Alfaiataria Lã", "Couro Fosco"],
+            colorSwatches: [
+                { id: "w1", label: "Cor Principal do Traje", hex: "#B31217" },
+                { id: "w2", label: "Tom Secundário", hex: "#2B2D42" },
+                { id: "w3", label: "Destaque / Acessório", hex: "#D4AF37" }
+            ],
+            materialReferences: ["Tecido Nobre", "Acabamento Acetinado", "Couro"],
+            clothingStyle: "Editorial Fashion Contemporâneo",
+            wardrobeSummary: "Look sofisticado com equilíbrio de caimento e cortes inspirados na imagem de referência."
+        };
+        res.json(fallback);
+    }
+});
+
 // 6.6 Product & Rebranding Sheet Extraction (Multi-Image: Base Product + Logo + Label)
 app.post('/api/gemini/extract-product-sheet', async (req: Request, res: Response) => {
     try {

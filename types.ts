@@ -278,7 +278,7 @@ export interface ModelSheetData {
     activePose: 'all_6_poses' | 'neutral_stand' | 'walking' | 'sitting' | 'relaxed' | 'tense' | 'action_ready';
     poseDetails: string;
 
-    // 6. Costume Details
+    // 6. Costume Details & Wardrobe References
     outfitType: string;
     topNeckline: string;
     sleevesOrStraps: string;
@@ -286,6 +286,9 @@ export interface ModelSheetData {
     footwear: string;
     accessories: string;
     fabricTextures: string[];
+    wardrobeReferences?: WardrobeReferenceItem[];
+    wardrobeChangeMode?: 'replace_entire_outfit' | 'mix_pieces' | 'keep_character_change_clothing';
+    wardrobeReferenceNotes?: string;
 
     // 7. Color & Material Palette
     colorSwatches: CharacterColorSwatch[];
@@ -297,6 +300,18 @@ export interface ModelSheetData {
     renderStyle: string;
     outputType: 'full_model_sheet' | 'turnaround_4_views' | 'expression_grid' | 'pose_grid' | 'single_shot';
     additionalNotes: string;
+}
+
+export interface WardrobeReferenceItem {
+    id: string;
+    role: 'full_outfit' | 'top_piece' | 'bottom_piece' | 'shoes_accessories' | 'pattern_texture';
+    label: string;
+    base64: string;
+    mimeType: string;
+    fileName: string;
+    notes?: string;
+    description?: string;
+    extractedColors?: CharacterColorSwatch[];
 }
 
 export interface ProductRebrandUploadedImages {

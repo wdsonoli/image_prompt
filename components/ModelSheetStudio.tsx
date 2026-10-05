@@ -3,9 +3,10 @@ import {
     User, Sparkles, Copy, Check, RefreshCw, Wand2, Palette, 
     Layers, Camera, Sliders, Eye, Heart, Zap, Shield, 
     Maximize2, ChevronDown, ChevronRight, Plus, Trash2, Tag, 
-    Shirt, Compass, Sun, Flame, Box, HelpCircle
+    Shirt, Compass, Sun, Flame, Box, HelpCircle, Upload, Image as ImageIcon,
+    Scissors, CheckCircle2, ArrowRight, Sparkle, AlertCircle
 } from 'lucide-react';
-import type { ModelSheetData, CharacterColorSwatch } from '../types.ts';
+import type { ModelSheetData, CharacterColorSwatch, WardrobeReferenceItem } from '../types.ts';
 import { 
     SOAIMA_PRESET, 
     SOFIA_PRESET, 
@@ -15,7 +16,10 @@ import {
     FEMALE_CASUAL_PRESET,
     DEFAULT_MODEL_SHEET, 
     extractModelSheetFromImage, 
-    compileModelSheetPrompt 
+    extractWardrobeFromImage,
+    compileModelSheetPrompt,
+    WARDROBE_PRESETS,
+    WardrobePresetItem
 } from '../services/modelSheetService.ts';
 
 interface ModelSheetStudioProps {
@@ -112,6 +116,172 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
         } finally {
             setIsExtracting(false);
         }
+    };
+
+    const wardrobeInputRef = React.useRef<HTMLInputElement>(null);
+    const [selectedRole, setSelectedRole] = useState<WardrobeReferenceItem['role']>('full_outfit');
+    const [wardrobeImages, setWardrobeImages] = useState<WardrobeReferenceItem[]>([]);
+    const [isExtractingWardrobe, setIsExtractingWardrobe] = useState<boolean>(false);
+    const [extractWardrobeMsg, setExtractWardrobeMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+    const [activeWardrobePreset, setActiveWardrobePreset] = useState<string | null>(null);
+
+    // Manipulador de upload de imagens de vestuário / roupas de referência
+    const handleWardrobeFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const newItems: WardrobeReferenceItem[] = [];
+        let processedCount = 0;
+
+        Array.from(files).forEach((file: File, index: number) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const result = reader.result as string;
+                const commaIndex = result.indexOf(',');
+                const base64 = commaIndex !== -1 ? result.substring(commaIndex + 1) : result;
+                
+                newItems.push({
+                    id: `w_ref_${Date.now()}_${index}`,
+                    role: selectedRole,
+                    label: selectedRole === 'full_outfit' ? 'Look Completo' 
+                         : selectedRole === 'top_piece' ? 'Parte Superior (Top/Blusa)' 
+                         : selectedRole === 'bottom_piece' ? 'Parte Inferior (Calça/Saia)' 
+                         : selectedRole === 'shoes_accessories' ? 'Calçados & Acessórios' 
+                         : 'Textura & Estampa',
+                    base64,
+                    mimeType: file.type || 'image/jpeg',
+                    fileName: file.name
+                });
+
+                processedCount++;
+                if (processedCount === files.length) {
+                    setWardrobeImages(prev => {
+                        const updated = [...prev, ...newItems];
+                        setData(d => ({ ...d, wardrobeReferences: updated }));
+                        return updated;
+                    });
+                    setExtractWardrobeMsg({
+                        text: `${files.length === 1 ? `Foto "${file.name}"` : `${files.length} fotos`} de vestuário adicionada(s) como referência! Clique em "✨ Extrair com IA" para preencher a ficha.`,
+                        type: 'success'
+                    });
+                    setTimeout(() => setExtractWardrobeMsg(null), 5000);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+
+        if (e.target) {
+            e.target.value = '';
+        }
+    };
+
+    const handleRemoveWardrobeImage = (id: string) => {
+        setWardrobeImages(prev => {
+            const updated = prev.filter(img => img.id !== id);
+            setData(d => ({ ...d, wardrobeReferences: updated }));
+            return updated;
+        });
+    };
+
+    const handleUpdateWardrobeRole = (id: string, newRole: WardrobeReferenceItem['role']) => {
+        setWardrobeImages(prev => {
+            const updated = prev.map(img => img.id === id ? { 
+                ...img, 
+                role: newRole,
+                label: newRole === 'full_outfit' ? 'Look Completo' 
+                     : newRole === 'top_piece' ? 'Parte Superior' 
+                     : newRole === 'bottom_piece' ? 'Parte Inferior' 
+                     : newRole === 'shoes_accessories' ? 'Calçados & Acessórios' 
+                     : 'Textura & Estampa'
+            } : img);
+            setData(d => ({ ...d, wardrobeReferences: updated }));
+            return updated;
+        });
+    };
+
+    // Auto-extrair vestuário da foto de referência usando Gemini Multimodal Vision
+    const handleExtractWardrobeItem = async (item: WardrobeReferenceItem) => {
+        setIsExtractingWardrobe(true);
+        setExtractWardrobeMsg(null);
+        try {
+            const extracted = await extractWardrobeFromImage(
+                item.base64,
+                item.mimeType,
+                item.role,
+                data.gender,
+                data.wardrobeReferenceNotes
+            );
+
+            setData(prev => {
+                const existingHexes = new Set(prev.colorSwatches.map(c => c.hex.toUpperCase()));
+                const newSwatches = (extracted.colorSwatches || []).filter(c => !existingHexes.has(c.hex.toUpperCase()));
+                const updatedColors = [...prev.colorSwatches, ...newSwatches];
+                const updatedFabrics = Array.from(new Set([...prev.fabricTextures, ...(extracted.fabricTextures || [])]));
+
+                return {
+                    ...prev,
+                    outfitType: extracted.outfitType || prev.outfitType,
+                    topNeckline: extracted.topNeckline || prev.topNeckline,
+                    sleevesOrStraps: extracted.sleevesOrStraps || prev.sleevesOrStraps,
+                    bottomPiece: extracted.bottomPiece || prev.bottomPiece,
+                    footwear: extracted.footwear || prev.footwear,
+                    accessories: extracted.accessories || prev.accessories,
+                    fabricTextures: updatedFabrics,
+                    colorSwatches: updatedColors,
+                    materialReferences: Array.from(new Set([...prev.materialReferences, ...(extracted.materialReferences || [])]))
+                };
+            });
+
+            setWardrobeImages(prev => {
+                const updated = prev.map(img => img.id === item.id ? { 
+                    ...img, 
+                    analysisSummary: extracted.wardrobeSummary || extracted.outfitType 
+                } : img);
+                setData(d => ({ ...d, wardrobeReferences: updated }));
+                return updated;
+            });
+
+            setExtractWardrobeMsg({
+                text: `Vestuário extraído com sucesso da imagem "${item.fileName}"! Todos os campos de figurino, tecidos e cores foram atualizados.`,
+                type: 'success'
+            });
+            setTimeout(() => setExtractWardrobeMsg(null), 5000);
+        } catch (err: any) {
+            console.error('Falha ao extrair vestuário:', err);
+            setExtractWardrobeMsg({
+                text: `Não foi possível extrair automaticamente o figurino: ${err.message || 'Erro de conexão'}.`,
+                type: 'error'
+            });
+            setTimeout(() => setExtractWardrobeMsg(null), 6000);
+        } finally {
+            setIsExtractingWardrobe(false);
+        }
+    };
+
+    // Aplicar preset de vestuário pronto
+    const handleApplyWardrobePreset = (preset: WardrobePresetItem) => {
+        setActiveWardrobePreset(preset.id);
+        setData(prev => {
+            const existingHexes = new Set(prev.colorSwatches.map(c => c.hex.toUpperCase()));
+            const newSwatches = preset.colorSwatches.filter(c => !existingHexes.has(c.hex.toUpperCase()));
+            return {
+                ...prev,
+                outfitType: preset.outfitType,
+                topNeckline: preset.topNeckline,
+                sleevesOrStraps: preset.sleevesOrStraps,
+                bottomPiece: preset.bottomPiece,
+                footwear: preset.footwear,
+                accessories: preset.accessories,
+                fabricTextures: preset.fabricTextures,
+                colorSwatches: [...prev.colorSwatches, ...newSwatches],
+                materialReferences: Array.from(new Set([...prev.materialReferences, ...preset.materialReferences]))
+            };
+        });
+        setExtractWardrobeMsg({
+            text: `Preset de figurino "${preset.name}" aplicado à ficha com sucesso!`,
+            type: 'success'
+        });
+        setTimeout(() => setExtractWardrobeMsg(null), 4000);
     };
 
     const handleCopy = () => {
@@ -363,6 +533,22 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                         <span>{isExtracting ? "Analisando com IA..." : "Auto-Preencher com IA da Foto"}</span>
                     </button>
 
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setActiveSection('costume');
+                            setTimeout(() => wardrobeInputRef.current?.click(), 100);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
+                        title="Enviar fotos de vestidos, jaquetas ou roupas de referência para trocar o vestuário"
+                    >
+                        <Shirt size={13} className="text-amber-200" />
+                        <span>Upar Fotos de Vestuário</span>
+                        <span className="px-1.5 py-0.5 text-[9px] bg-black/40 rounded-full text-amber-200 font-black border border-amber-400/30">
+                            NOVO
+                        </span>
+                    </button>
+
                     {data.gender === 'woman' ? (
                         <>
                             <button
@@ -478,7 +664,7 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                     { id: 'face', label: '3. Rosto & Biometria', icon: Eye },
                     { id: 'expressions', label: '4. Expressões (8)', icon: Heart },
                     { id: 'poses', label: '5. Poses (6)', icon: Zap },
-                    { id: 'costume', label: '6. Figurino', icon: Shirt },
+                    { id: 'costume', label: '6. Figurino & Roupas', icon: Shirt, badge: 'Fotos & IA' },
                     { id: 'palette', label: '7. Cores Hex', icon: Palette },
                     { id: 'lighting', label: '8. Estúdio & Luz', icon: Sun },
                 ].map(sec => {
@@ -496,6 +682,15 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                         >
                             <Icon size={13} className={isActive ? 'text-white' : 'text-slate-400'} />
                             <span>{sec.label}</span>
+                            {sec.badge && (
+                                <span className={`px-1.5 py-0.2 text-[9px] font-black rounded-full uppercase border ${
+                                    isActive 
+                                        ? 'bg-amber-400 text-slate-950 border-amber-300' 
+                                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                                }`}>
+                                    {sec.badge}
+                                </span>
+                            )}
                         </button>
                     );
                 })}
@@ -938,86 +1133,421 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                     </div>
                 )}
 
-                {/* 6. FIGURINO & DETALHES DE TECIDO */}
+                {/* 6. FIGURINO & REFERÊNCIAS DE VESTUÁRIO (UPLOAD DE FOTOS) */}
                 {activeSection === 'costume' && (
-                    <div className="space-y-4 animate-in fade-in">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                            <span className="text-xs font-black uppercase text-red-400 tracking-wider">
-                                6. Costume & Fabric Details (Figurino e Detalhes)
-                            </span>
-                            <span className="text-[10px] text-slate-500">Costura, tecidos e calçados</span>
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase">Descrição Completa do Traje</label>
-                            <input 
-                                type="text"
-                                value={data.outfitType}
-                                onChange={e => updateField('outfitType', e.target.value)}
-                                placeholder="Ex: Vestido vermelho assimétrico com drapeado / Conjunto camisa e calça vermelha com tênis branco"
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Gola / Decote</label>
-                                <input 
-                                    type="text"
-                                    value={data.topNeckline}
-                                    onChange={e => updateField('topNeckline', e.target.value)}
-                                    placeholder="Ex: Decote ombro único com babados"
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
-                                />
+                    <div className="space-y-5 animate-in fade-in">
+                        {/* Cabeçalho da Seção */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black uppercase text-red-400 tracking-wider flex items-center gap-1.5">
+                                        <Shirt size={14} className="text-amber-400" />
+                                        <span>6. Vestuário, Figurino & Upload de Imagens de Referência</span>
+                                    </span>
+                                    <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
+                                        NOVO MODO
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                    Envie fotos de vestidos, jaquetas, conjuntos ou roupas de referência para trocar o figurino do modelo com IA ou alterar manualmente cada peça.
+                                </p>
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Parte Inferior / Calça / Saia</label>
-                                <input 
-                                    type="text"
-                                    value={data.bottomPiece}
-                                    onChange={e => updateField('bottomPiece', e.target.value)}
-                                    placeholder="Ex: Calça de corte reto / Saia com fenda"
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
-                                />
-                            </div>
-
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Calçado (Footwear)</label>
-                                <input 
-                                    type="text"
-                                    value={data.footwear}
-                                    onChange={e => updateField('footwear', e.target.value)}
-                                    placeholder="Ex: Sandália de salto fino vermelha / Tênis branco minimalista"
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
-                                />
-                            </div>
+                            <button
+                                type="button"
+                                onClick={() => wardrobeInputRef.current?.click()}
+                                className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-400 hover:to-red-500 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer shrink-0"
+                            >
+                                <Upload size={13} />
+                                <span>+ Enviar Foto de Roupa</span>
+                            </button>
                         </div>
 
-                        {/* Texturas e Tecidos Clicáveis */}
-                        <div className="space-y-2 pt-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1.5">
-                                <Tag size={12} className="text-amber-400" />
-                                <span>Amostras de Tecido & Texturas Selecionadas</span>
-                            </label>
-                            <div className="flex flex-wrap gap-1.5">
-                                {FABRIC_OPTIONS.map(fabric => {
-                                    const isSelected = data.fabricTextures.includes(fabric);
+                        {/* Mensagem de Feedback de Extração de Vestuário */}
+                        {extractWardrobeMsg && (
+                            <div className={`p-3 rounded-xl border text-xs flex items-center gap-2.5 animate-in fade-in ${
+                                extractWardrobeMsg.type === 'success' 
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200' 
+                                    : 'bg-red-500/10 border-red-500/30 text-red-200'
+                            }`}>
+                                {extractWardrobeMsg.type === 'success' ? (
+                                    <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                                ) : (
+                                    <AlertCircle size={16} className="text-red-400 shrink-0" />
+                                )}
+                                <span className="leading-snug">{extractWardrobeMsg.text}</span>
+                            </div>
+                        )}
+
+                        {/* Input de arquivo invisível */}
+                        <input 
+                            type="file"
+                            ref={wardrobeInputRef}
+                            onChange={handleWardrobeFileUpload}
+                            multiple
+                            accept="image/*"
+                            className="hidden"
+                        />
+
+                        {/* Dropzone e Área de Upload de Roupas */}
+                        <div className="bg-slate-950/80 border-2 border-dashed border-slate-700/80 hover:border-amber-500/60 rounded-2xl p-4 sm:p-5 transition-all space-y-3">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                                        <Shirt size={22} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                                            <span>Carregar Fotos de Roupas / Peças de Referência</span>
+                                            <span className="text-[10px] text-amber-400 font-normal">(Multi-Upload)</span>
+                                        </h4>
+                                        <p className="text-[11px] text-slate-400">
+                                            Selecione imagens de vestidos, ternos, jaquetas ou estampas. A IA extrairá cortes, tecidos e cores exatas.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase">Papel da Foto:</span>
+                                    <select
+                                        value={selectedRole}
+                                        onChange={e => setSelectedRole(e.target.value as any)}
+                                        className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-200 outline-none focus:border-amber-500"
+                                    >
+                                        <option value="full_outfit">👗 Look Completo / Traje</option>
+                                        <option value="top_piece">👕 Parte Superior (Top / Jaqueta / Camisa)</option>
+                                        <option value="bottom_piece">👖 Parte Inferior (Calça / Saia)</option>
+                                        <option value="shoes_accessories">👟 Calçado & Acessórios</option>
+                                        <option value="pattern_texture">🧵 Estampa / Textura de Tecido</option>
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => wardrobeInputRef.current?.click()}
+                                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                                    >
+                                        <Upload size={13} />
+                                        <span>Procurar Imagens</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Galeria de Fotos de Vestuário Já Carregadas */}
+                            {wardrobeImages.length > 0 && (
+                                <div className="pt-2 border-t border-slate-800/80 space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-bold uppercase text-slate-300 flex items-center gap-1.5">
+                                            <ImageIcon size={13} className="text-amber-400" />
+                                            <span>Fotos de Referência de Vestuário ({wardrobeImages.length}):</span>
+                                        </span>
+                                        <span className="text-[10px] text-slate-500">
+                                            Clique em "Extrair com IA" para preencher automaticamente os campos da ficha
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {wardrobeImages.map((img, idx) => (
+                                            <div 
+                                                key={img.id}
+                                                className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-2.5 flex flex-col gap-2 relative group hover:border-amber-500/50 transition-all shadow-md"
+                                            >
+                                                <div className="flex items-start gap-2.5">
+                                                    <div className="w-16 h-20 rounded-lg overflow-hidden border border-slate-700 bg-black shrink-0 relative">
+                                                        <img 
+                                                            src={`data:${img.mimeType};base64,${img.base64}`}
+                                                            alt={img.fileName}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 bg-black/80 text-[8px] text-slate-300 font-mono rounded">
+                                                            #{idx + 1}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                                                        <div>
+                                                            <div className="flex items-center justify-between gap-1">
+                                                                <span className="text-[10px] font-black text-slate-200 truncate" title={img.fileName}>
+                                                                    {img.fileName}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleRemoveWardrobeImage(img.id)}
+                                                                    className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                                                                    title="Remover foto"
+                                                                >
+                                                                    <Trash2 size={13} />
+                                                                </button>
+                                                            </div>
+
+                                                            <select
+                                                                value={img.role}
+                                                                onChange={e => handleUpdateWardrobeRole(img.id, e.target.value as any)}
+                                                                className="mt-1 w-full bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-[10px] text-amber-300 font-bold outline-none"
+                                                            >
+                                                                <option value="full_outfit">Look Completo</option>
+                                                                <option value="top_piece">Parte Superior</option>
+                                                                <option value="bottom_piece">Parte Inferior</option>
+                                                                <option value="shoes_accessories">Calçado / Acessório</option>
+                                                                <option value="pattern_texture">Textura / Estampa</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            disabled={isExtractingWardrobe}
+                                                            onClick={() => handleExtractWardrobeItem(img)}
+                                                            className="mt-2 w-full py-1 px-2 rounded-lg bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white font-bold text-[10px] flex items-center justify-center gap-1 shadow transition-all active:scale-95 disabled:opacity-40"
+                                                        >
+                                                            {isExtractingWardrobe ? (
+                                                                <RefreshCw size={11} className="animate-spin" />
+                                                            ) : (
+                                                                <Wand2 size={11} className="text-amber-200" />
+                                                            )}
+                                                            <span>{isExtractingWardrobe ? "Analisando..." : "Extrair com IA"}</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {img.analysisSummary && (
+                                                    <div className="bg-slate-950/80 p-1.5 rounded-lg border border-slate-800/80 text-[10px] text-slate-300 leading-snug line-clamp-2">
+                                                        <span className="text-amber-400 font-bold">Identificado:</span> {img.analysisSummary}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Presets de Looks de Alta Costura e Estilos Prontos (1 Clique) */}
+                        <div className="space-y-1.5 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black uppercase text-amber-400 flex items-center gap-1.5">
+                                    <Sparkles size={12} />
+                                    <span>Presets de Figurino Rápidos (1 Clique para Aplicar Estilo Completo)</span>
+                                </label>
+                                <span className="text-[9px] text-slate-500">Clique para carregar corte, caimento e tecidos</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                                {WARDROBE_PRESETS.map(preset => {
+                                    const isSelected = activeWardrobePreset === preset.id;
                                     return (
                                         <button
-                                            key={fabric}
+                                            key={preset.id}
                                             type="button"
-                                            onClick={() => handleToggleFabric(fabric)}
-                                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
+                                            onClick={() => handleApplyWardrobePreset(preset)}
+                                            className={`p-2 rounded-xl text-left border transition-all ${
                                                 isSelected 
-                                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500 shadow-sm' 
-                                                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                                                    ? 'bg-amber-600/20 border-amber-500 text-white shadow-sm ring-1 ring-amber-400/50' 
+                                                    : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
                                             }`}
                                         >
-                                            {isSelected && '✓ '} {fabric}
+                                            <div className="text-[11px] font-bold truncate flex items-center justify-between">
+                                                <span>{preset.name}</span>
+                                                {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
+                                            </div>
+                                            <div className="text-[9px] text-slate-500 truncate mt-0.5">{preset.category}</div>
                                         </button>
                                     );
                                 })}
+                            </div>
+                        </div>
+
+                        {/* Modo de Substituição de Figurino */}
+                        <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                                <Scissors size={13} className="text-red-400" />
+                                <span>Modo de Aplicação do Vestuário:</span>
+                            </span>
+
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                {[
+                                    { id: 'replace_entire_outfit', label: 'Substituir Figurino Inteiro' },
+                                    { id: 'keep_character_change_clothing', label: 'Preservar Rosto & Mudar Roupa' },
+                                    { id: 'mix_pieces', label: 'Mesclar Peças de Referência' },
+                                ].map(mode => (
+                                    <button
+                                        key={mode.id}
+                                        type="button"
+                                        onClick={() => updateField('wardrobeChangeMode', mode.id as any)}
+                                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                            (data.wardrobeChangeMode || 'replace_entire_outfit') === mode.id
+                                                ? 'bg-red-600 text-white border-red-500 shadow-sm'
+                                                : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                                        }`}
+                                    >
+                                        {mode.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Campos de Customização e Alteração do Figurino */}
+                        <div className="space-y-3 bg-slate-950/40 p-3 rounded-xl border border-slate-800/80">
+                            <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+                                <span className="text-[11px] font-black uppercase text-slate-300">
+                                    Especificações do Figurino (Edite e Altere Livremente)
+                                </span>
+                                <span className="text-[10px] text-slate-500">Campos sincronizados com o prompt mestre</span>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">Descrição Completa do Traje / Look</label>
+                                <input 
+                                    type="text"
+                                    value={data.outfitType}
+                                    onChange={e => updateField('outfitType', e.target.value)}
+                                    placeholder="Ex: Vestido vermelho assimétrico com drapeado / Terno slim azul marinho italiano"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Gola / Decote / Lapela</label>
+                                    <input 
+                                        type="text"
+                                        value={data.topNeckline}
+                                        onChange={e => updateField('topNeckline', e.target.value)}
+                                        placeholder="Ex: Decote ombro único com babados / Lapela notch clássica"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Mangas / Alças / Punhos</label>
+                                    <input 
+                                        type="text"
+                                        value={data.sleevesOrStraps}
+                                        onChange={e => updateField('sleevesOrStraps', e.target.value)}
+                                        placeholder="Ex: Alça fina à esquerda e babado à direita / Manga longa estruturada"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Parte Inferior / Calça / Saia</label>
+                                    <input 
+                                        type="text"
+                                        value={data.bottomPiece}
+                                        onChange={e => updateField('bottomPiece', e.target.value)}
+                                        placeholder="Ex: Saia midi com fenda lateral / Calça slim alfaiataria com vinco"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Calçado (Footwear)</label>
+                                    <input 
+                                        type="text"
+                                        value={data.footwear}
+                                        onChange={e => updateField('footwear', e.target.value)}
+                                        placeholder="Ex: Sandália de salto agulha vermelha / Tênis branco minimalista / Botas de couro"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase">Acessórios, Joias & Detalhes</label>
+                                    <input 
+                                        type="text"
+                                        value={data.accessories}
+                                        onChange={e => updateField('accessories', e.target.value)}
+                                        placeholder="Ex: Brincos pequenos dourados, anel solitário, relógio minimalista"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Texturas e Tecidos Clicáveis */}
+                            <div className="space-y-2 pt-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5">
+                                        <Tag size={12} className="text-amber-400" />
+                                        <span>Amostras de Tecido & Texturas Selecionadas</span>
+                                    </span>
+                                    <span className="text-[9px] text-slate-500 font-normal">Clique para alternar</span>
+                                </label>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {FABRIC_OPTIONS.map(fabric => {
+                                        const isSelected = data.fabricTextures.includes(fabric);
+                                        return (
+                                            <button
+                                                key={fabric}
+                                                type="button"
+                                                onClick={() => handleToggleFabric(fabric)}
+                                                className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
+                                                    isSelected 
+                                                        ? 'bg-amber-500/20 text-amber-300 border-amber-500 shadow-sm' 
+                                                        : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                                                }`}
+                                            >
+                                                {isSelected && '✓ '} {fabric}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Notas adicionais de figurino */}
+                            <div className="space-y-1 pt-1">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Instruções Especiais de Figurino para o Gerador
+                                </label>
+                                <input 
+                                    type="text"
+                                    value={data.wardrobeReferenceNotes || ''}
+                                    onChange={e => updateField('wardrobeReferenceNotes', e.target.value)}
+                                    placeholder="Ex: Manter exatamente as dobras da foto de referência, botões dourados e costura pespontada visível"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Barra de Ações Rápidas no Rodapé da Seção de Figurino */}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-800 gap-2 flex-wrap">
+                            <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                                <Sparkle size={13} className="text-amber-400" />
+                                <span>O prompt é compilado instantaneamente com todas as referências de vestuário.</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleCopy}
+                                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
+                                >
+                                    {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                                    <span>{copied ? "Copiado!" : "Copiar Prompt"}</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleApply}
+                                    className="px-3 py-1.5 bg-red-600/30 hover:bg-red-600/50 border border-red-500/50 text-red-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer"
+                                >
+                                    {appliedSuccess ? <Check size={13} className="text-emerald-400" /> : <Wand2 size={13} />}
+                                    <span>{appliedSuccess ? "Aplicado!" : "Aplicar ao Arquiteto"}</span>
+                                </button>
+
+                                {onCreateVisual && (
+                                    <button
+                                        type="button"
+                                        onClick={handleGenerateVisual}
+                                        disabled={isGeneratingVisual}
+                                        className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 hover:from-amber-400 hover:to-red-500 text-white text-xs font-black rounded-lg flex items-center gap-1.5 shadow-lg shadow-orange-500/25 transition-all cursor-pointer active:scale-95 disabled:opacity-40"
+                                    >
+                                        {isGeneratingVisual ? (
+                                            <RefreshCw size={13} className="animate-spin text-white" />
+                                        ) : (
+                                            <Sparkles size={13} className="text-amber-200" />
+                                        )}
+                                        <span>{isGeneratingVisual ? "Gerando..." : "Gerar Visual 4K com este Figurino"}</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
