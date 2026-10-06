@@ -4,9 +4,17 @@ import {
     Layers, Camera, Sliders, Eye, Heart, Zap, Shield, 
     Maximize2, ChevronDown, ChevronRight, Plus, Trash2, Tag, 
     Shirt, Compass, Sun, Flame, Box, HelpCircle, Upload, Image as ImageIcon,
-    Scissors, CheckCircle2, ArrowRight, Sparkle, AlertCircle
+    Scissors, CheckCircle2, ArrowRight, Sparkle, AlertCircle,
+    ToggleLeft, ToggleRight, Power, Baby, Smile
 } from 'lucide-react';
-import type { ModelSheetData, CharacterColorSwatch, WardrobeReferenceItem } from '../types.ts';
+import type { 
+    ModelSheetData, 
+    CharacterColorSwatch, 
+    WardrobeReferenceItem, 
+    UploadedImage,
+    ModelSectionToggles,
+    ModelGender
+} from '../types.ts';
 import { 
     SOAIMA_PRESET, 
     SOFIA_PRESET, 
@@ -14,9 +22,15 @@ import {
     MALE_CASUAL_PRESET,
     MALE_BUSINESS_PRESET,
     FEMALE_CASUAL_PRESET,
+    KID_BOY_PRESET,
+    KID_GIRL_PRESET,
+    TEEN_BOY_PRESET,
+    TEEN_GIRL_PRESET,
     DEFAULT_MODEL_SHEET, 
+    DEFAULT_SECTION_TOGGLES,
     extractModelSheetFromImage, 
     extractWardrobeFromImage,
+    extractModelWithWardrobe,
     compileModelSheetPrompt,
     WARDROBE_PRESETS,
     WardrobePresetItem
@@ -26,6 +40,7 @@ interface ModelSheetStudioProps {
     activeImageBase64?: string;
     activeImageMimeType?: string;
     activeImageName?: string;
+    availableImages?: UploadedImage[];
     targetPlatform?: string;
     onApplyPrompt: (compiledPrompt: string) => void;
     onCreateVisual?: (promptText: string) => void;
@@ -64,6 +79,7 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
     activeImageBase64,
     activeImageMimeType = 'image/jpeg',
     activeImageName,
+    availableImages = [],
     targetPlatform = 'midjourney',
     onApplyPrompt,
     onCreateVisual,
@@ -78,8 +94,36 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
     const [appliedSuccess, setAppliedSuccess] = useState<boolean>(false);
     const [showLivePrompt, setShowLivePrompt] = useState<boolean>(false);
 
-    // Prompt compilado em tempo real
-    const currentPrompt = compileModelSheetPrompt(data, targetPlatform);
+    // Chaves ON/OFF para cada um dos 8 tipos de preenchimento da ficha
+    const [sectionToggles, setSectionToggles] = useState<ModelSectionToggles>(() => {
+        return data.sectionToggles || DEFAULT_SECTION_TOGGLES;
+    });
+
+    const toggleSection = (sec: StudioSection) => {
+        setSectionToggles(prev => {
+            const next = { ...prev, [sec]: !prev[sec] };
+            setData(d => ({ ...d, sectionToggles: next }));
+            return next;
+        });
+    };
+
+    const handleSetAllSections = (enabled: boolean) => {
+        const next: ModelSectionToggles = {
+            profile: enabled,
+            turnaround: enabled,
+            face: enabled,
+            expressions: enabled,
+            poses: enabled,
+            costume: enabled,
+            palette: enabled,
+            lighting: enabled,
+        };
+        setSectionToggles(next);
+        setData(d => ({ ...d, sectionToggles: next }));
+    };
+
+    // Prompt compilado em tempo real respeitando as seções ativadas/desativadas
+    const currentPrompt = compileModelSheetPrompt(data, targetPlatform, sectionToggles);
 
     // Atualizador de campo genérico
     const updateField = <K extends keyof ModelSheetData>(field: K, value: ModelSheetData[K]) => {
@@ -118,30 +162,199 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
         }
     };
 
+    const modelFileInputRef = React.useRef<HTMLInputElement>(null);
+    const [customModelImage, setCustomModelImage] = useState<{ base64: string; mimeType: string; name: string } | null>(null);
+    const [isSynthesizing, setIsSynthesizing] = useState<boolean>(false);
+
+    // Modelo efetivo (imagem carregada diretamente no estúdio OU recebida via prop da imagem ativa)
+    const effectiveModel = customModelImage || (activeImageBase64 ? {
+        base64: activeImageBase64,
+        mimeType: activeImageMimeType,
+        name: activeImageName || 'Modelo Ativo'
+    } : null);
+
+    const handleModelFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result as string;
+            const commaIndex = result.indexOf(',');
+            const base64 = commaIndex !== -1 ? result.substring(commaIndex + 1) : result;
+            setCustomModelImage({
+                base64,
+                mimeType: file.type || 'image/jpeg',
+                name: file.name
+            });
+            setExtractSuccess(`Foto do Modelo "${file.name}" carregada com sucesso!`);
+            setTimeout(() => setExtractSuccess(null), 4000);
+        };
+        reader.readAsDataURL(file);
+        if (e.target) {
+            e.target.value = '';
+        }
+    };
+
+    const [isDragOverModel, setIsDragOverModel] = useState<boolean>(false);
+
+    const handleModelDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOverModel(true);
+    };
+
+    const handleModelDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOverModel(false);
+    };
+
+    const handleModelDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOverModel(false);
+        const files = Array.from(e.dataTransfer.files) as File[];
+        if (files.length > 0) {
+            const file = files[0];
+            const reader = new FileReader();
+            reader.onload = () => {
+                const result = reader.result as string;
+                const commaIndex = result.indexOf(',');
+                const base64 = commaIndex !== -1 ? result.substring(commaIndex + 1) : result;
+                setCustomModelImage({
+                    base64,
+                    mimeType: file.type || 'image/jpeg',
+                    name: file.name
+                });
+                setExtractSuccess(`Foto do Modelo "${file.name}" carregada com sucesso!`);
+                setTimeout(() => setExtractSuccess(null), 4000);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleRemoveModelImage = () => {
+        setCustomModelImage(null);
+    };
+
+    // Auto-preencher biometria do modelo a partir do modelo efetivo
+    const handleExtractModelIdentity = async () => {
+        if (!effectiveModel?.base64) {
+            setExtractSuccess('Envie uma foto do modelo para a IA extrair a biometria facial e corporal.');
+            setTimeout(() => setExtractSuccess(null), 4000);
+            return;
+        }
+        setIsExtracting(true);
+        setExtractSuccess(null);
+        try {
+            const extracted = await extractModelSheetFromImage(effectiveModel.base64, effectiveModel.mimeType);
+            setData(prev => ({
+                ...prev,
+                ...extracted,
+                colorSwatches: (extracted.colorSwatches && extracted.colorSwatches.length > 0) 
+                    ? extracted.colorSwatches 
+                    : prev.colorSwatches,
+                materialReferences: (extracted.materialReferences && extracted.materialReferences.length > 0)
+                    ? extracted.materialReferences
+                    : prev.materialReferences,
+                fabricTextures: (extracted.fabricTextures && extracted.fabricTextures.length > 0)
+                    ? extracted.fabricTextures
+                    : prev.fabricTextures,
+            }));
+            setExtractSuccess(`Biometria, traços faciais e identidade extraídos com sucesso de "${effectiveModel.name}"!`);
+            setTimeout(() => setExtractSuccess(null), 4000);
+        } catch (err: any) {
+            console.error('Falha ao extrair biometria do modelo:', err);
+            setExtractSuccess('Não foi possível extrair a identidade do modelo. Tente novamente.');
+            setTimeout(() => setExtractSuccess(null), 5000);
+        } finally {
+            setIsExtracting(false);
+        }
+    };
+
+    // Ação Mestre: Vestir o Modelo com a Roupa da Foto
+    const handleSynthesizeModelAndWardrobe = async () => {
+        const clothingImg = wardrobeImages[0];
+        if (!effectiveModel && !clothingImg) {
+            setExtractWardrobeMsg({
+                text: 'Por favor, envie a foto do modelo ou a foto da roupa para extrair o visual.',
+                type: 'error'
+            });
+            setTimeout(() => setExtractWardrobeMsg(null), 4000);
+            return;
+        }
+
+        setIsSynthesizing(true);
+        setExtractWardrobeMsg(null);
+        try {
+            const combined = await extractModelWithWardrobe(
+                effectiveModel ? { base64: effectiveModel.base64, mimeType: effectiveModel.mimeType } : undefined,
+                clothingImg ? { base64: clothingImg.base64, mimeType: clothingImg.mimeType } : undefined,
+                data.gender,
+                data.wardrobeReferenceNotes
+            );
+
+            setData(prev => ({
+                ...prev,
+                ...combined,
+                colorSwatches: (combined.colorSwatches && combined.colorSwatches.length > 0)
+                    ? combined.colorSwatches
+                    : prev.colorSwatches,
+                fabricTextures: (combined.fabricTextures && combined.fabricTextures.length > 0)
+                    ? combined.fabricTextures
+                    : prev.fabricTextures,
+                materialReferences: (combined.materialReferences && combined.materialReferences.length > 0)
+                    ? combined.materialReferences
+                    : prev.materialReferences
+            }));
+
+            setExtractWardrobeMsg({
+                text: `Sucesso! O Modelo (${effectiveModel?.name || data.characterName}) foi vestido com o figurino da foto de referência!`,
+                type: 'success'
+            });
+            setTimeout(() => setExtractWardrobeMsg(null), 5000);
+        } catch (err: any) {
+            console.error('Erro na síntese de modelo e roupa:', err);
+            setExtractWardrobeMsg({
+                text: `Não foi possível combinar modelo e roupa automaticamente: ${err.message || 'Erro de conexão'}.`,
+                type: 'error'
+            });
+            setTimeout(() => setExtractWardrobeMsg(null), 5000);
+        } finally {
+            setIsSynthesizing(false);
+        }
+    };
+
     const wardrobeInputRef = React.useRef<HTMLInputElement>(null);
     const [selectedRole, setSelectedRole] = useState<WardrobeReferenceItem['role']>('full_outfit');
     const [wardrobeImages, setWardrobeImages] = useState<WardrobeReferenceItem[]>([]);
     const [isExtractingWardrobe, setIsExtractingWardrobe] = useState<boolean>(false);
     const [extractWardrobeMsg, setExtractWardrobeMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
     const [activeWardrobePreset, setActiveWardrobePreset] = useState<string | null>(null);
+    const [isDragOverWardrobe, setIsDragOverWardrobe] = useState<boolean>(false);
 
-    // Manipulador de upload de imagens de vestuário / roupas de referência
-    const handleWardrobeFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
+    // Processamento robusto de arquivos de vestuário / figurino
+    const processWardrobeFiles = (filesList: File[]) => {
+        if (!filesList || filesList.length === 0) return;
 
         const newItems: WardrobeReferenceItem[] = [];
         let processedCount = 0;
 
-        Array.from(files).forEach((file: File, index: number) => {
+        filesList.forEach((file: File, index: number) => {
             const reader = new FileReader();
             reader.onload = () => {
                 const result = reader.result as string;
                 const commaIndex = result.indexOf(',');
                 const base64 = commaIndex !== -1 ? result.substring(commaIndex + 1) : result;
                 
+                const ext = file.name.split('.').pop()?.toLowerCase();
+                const mime = file.type && file.type.startsWith('image/') 
+                    ? file.type 
+                    : (ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : ext === 'gif' ? 'image/gif' : ext === 'svg' ? 'image/svg+xml' : 'image/jpeg');
+
                 newItems.push({
-                    id: `w_ref_${Date.now()}_${index}`,
+                    id: `w_ref_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 6)}`,
                     role: selectedRole,
                     label: selectedRole === 'full_outfit' ? 'Look Completo' 
                          : selectedRole === 'top_piece' ? 'Parte Superior (Top/Blusa)' 
@@ -149,30 +362,100 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                          : selectedRole === 'shoes_accessories' ? 'Calçados & Acessórios' 
                          : 'Textura & Estampa',
                     base64,
-                    mimeType: file.type || 'image/jpeg',
+                    mimeType: mime,
                     fileName: file.name
                 });
 
                 processedCount++;
-                if (processedCount === files.length) {
+                if (processedCount === filesList.length) {
                     setWardrobeImages(prev => {
                         const updated = [...prev, ...newItems];
                         setData(d => ({ ...d, wardrobeReferences: updated }));
                         return updated;
                     });
                     setExtractWardrobeMsg({
-                        text: `${files.length === 1 ? `Foto "${file.name}"` : `${files.length} fotos`} de vestuário adicionada(s) como referência! Clique em "✨ Extrair com IA" para preencher a ficha.`,
+                        text: `${filesList.length === 1 ? `Foto "${file.name}"` : `${filesList.length} fotos`} de vestuário adicionada(s)! Clique em "✨ Extrair com IA" para preencher a ficha.`,
                         type: 'success'
                     });
                     setTimeout(() => setExtractWardrobeMsg(null), 5000);
                 }
             };
+            reader.onerror = () => {
+                processedCount++;
+            };
             reader.readAsDataURL(file);
         });
+    };
 
+    // Manipulador de upload de imagens de vestuário
+    const handleWardrobeFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        processWardrobeFiles(Array.from(files));
         if (e.target) {
             e.target.value = '';
         }
+    };
+
+    const handleWardrobeDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOverWardrobe(true);
+    };
+
+    const handleWardrobeDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOverWardrobe(false);
+    };
+
+    const handleWardrobeDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOverWardrobe(false);
+        const files = Array.from(e.dataTransfer.files) as File[];
+        if (files.length > 0) {
+            processWardrobeFiles(files);
+        }
+    };
+
+    // Adiciona uma das fotos já enviadas no app principal como referência de figurino
+    const handleAddAvailableImageAsWardrobe = (img: UploadedImage) => {
+        if (!img.base64Data) return;
+        const newItem: WardrobeReferenceItem = {
+            id: `w_ref_${Date.now()}_${img.id}`,
+            role: selectedRole,
+            label: selectedRole === 'full_outfit' ? 'Look Completo' 
+                 : selectedRole === 'top_piece' ? 'Parte Superior' 
+                 : selectedRole === 'bottom_piece' ? 'Parte Inferior' 
+                 : selectedRole === 'shoes_accessories' ? 'Calçados & Acessórios' 
+                 : 'Textura & Estampa',
+            base64: img.base64Data,
+            mimeType: img.mimeType || 'image/jpeg',
+            fileName: img.name
+        };
+        setWardrobeImages(prev => {
+            const updated = [...prev, newItem];
+            setData(d => ({ ...d, wardrobeReferences: updated }));
+            return updated;
+        });
+        setExtractWardrobeMsg({
+            text: `Foto "${img.name}" adicionada como referência de figurino!`,
+            type: 'success'
+        });
+        setTimeout(() => setExtractWardrobeMsg(null), 4000);
+    };
+
+    // Define uma das fotos já enviadas no app principal como Foto do Modelo
+    const handleSelectAvailableImageAsModel = (img: UploadedImage) => {
+        if (!img.base64Data) return;
+        setCustomModelImage({
+            base64: img.base64Data,
+            mimeType: img.mimeType || 'image/jpeg',
+            name: img.name
+        });
+        setExtractSuccess(`Foto "${img.name}" selecionada como Modelo!`);
+        setTimeout(() => setExtractSuccess(null), 4000);
     };
 
     const handleRemoveWardrobeImage = (id: string) => {
@@ -338,96 +621,28 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
         });
     };
 
-    // Alternador inteligente de Gênero (Homem / Mulher) com adaptação automática de biometria e traje
-    const handleSwitchGender = (newGender: 'woman' | 'man') => {
-        if (newGender === data.gender) return;
-
-        if (newGender === 'man') {
-            setData(prev => {
-                const isCurrentlyDefaultFemale = 
-                    prev.characterName === 'Aura' || 
-                    prev.characterName === 'Soaima AI' || 
-                    prev.characterName === 'Sofia' || 
-                    prev.characterName === 'Clara';
-
-                return {
-                    ...prev,
-                    gender: 'man',
-                    characterName: isCurrentlyDefaultFemale ? 'Lucas' : prev.characterName,
-                    role: prev.role.includes('Feminina') || prev.role.includes('Model') ? 'Protagonista / Modelo Masculino' : prev.role,
-                    bodyType: prev.bodyType === 'Slim' || prev.bodyType === 'Slim / Elegante' || prev.bodyType === 'Curvy' ? 'Athletic / Fit Masculine' : prev.bodyType,
-                    facialStructure: (prev.facialStructure.includes('feminina') || prev.facialStructure.includes('oval') || prev.facialStructure.includes('suave'))
-                        ? 'Estrutura óssea facial masculina definida, mandíbula angular esculpida, maçãs do rosto marcadas'
-                        : prev.facialStructure || 'Estrutura óssea facial masculina definida, mandíbula angular esculpida',
-                    facialHair: prev.facialHair && prev.facialHair !== 'Nenhum' ? prev.facialHair : 'Barba por fazer bem aparada e alinhada (clean stubble)',
-                    hair: (prev.hair.includes('longo') || prev.hair.includes('ondulado') || prev.hair.includes('ondas'))
-                        ? 'Cabelo curto texturizado masculino, corte moderno com fade sutil nas têmporas'
-                        : prev.hair,
-                    hairColorHex: prev.hairColorHex || '#251E1A',
-                    makeup: 'Pele limpa e natural sem maquiagem',
-                    outfitType: prev.outfitType.toLowerCase().includes('vestido')
-                        ? 'Jaqueta bomber ou blazer de alfaiataria carmesim moderno sobre camiseta escura e calça chino ajustada'
-                        : prev.outfitType,
-                    topNeckline: prev.topNeckline.toLowerCase().includes('decote') || prev.topNeckline.toLowerCase().includes('ombro')
-                        ? 'Gola estruturada de jaqueta/blazer moderno'
-                        : prev.topNeckline,
-                    bottomPiece: prev.bottomPiece.toLowerCase().includes('vestido') || prev.bottomPiece.toLowerCase().includes('saia') || prev.bottomPiece.toLowerCase().includes('fenda')
-                        ? 'Calça alfaiataria escura de caimento reto contemporâneo'
-                        : prev.bottomPiece,
-                    footwear: prev.footwear.toLowerCase().includes('salto') || prev.footwear.toLowerCase().includes('sandália')
-                        ? 'Bota chelsea de couro legítimo ou tênis minimalista premium'
-                        : prev.footwear,
-                    accessories: prev.accessories.toLowerCase().includes('brinco')
-                        ? 'Relógio analógico minimalista com pulseira de couro'
-                        : prev.accessories,
-                    renderStyle: 'Fotorealista 8K, Master Studio Male Character Sheet'
-                };
-            });
-            setExtractSuccess('Modo Masculino (Homem) ativado: traços anatômicos, corte de cabelo e figurino adaptados!');
-            setTimeout(() => setExtractSuccess(null), 3000);
+    // Alternador inteligente de Categoria & Gênero do Modelo (Mulher, Homem, Crianças e Adolescentes)
+    const handleSwitchGender = (newGender: ModelGender) => {
+        if (newGender === 'boy') {
+            setData(KID_BOY_PRESET);
+            setExtractSuccess('Modelo Criança (Menino 8 anos) ativado: proporções infantis e figurino lúdico!');
+        } else if (newGender === 'girl') {
+            setData(KID_GIRL_PRESET);
+            setExtractSuccess('Modelo Criança (Menina 7 anos) ativada: proporções infantis e vestidinho doce!');
+        } else if (newGender === 'teen_boy') {
+            setData(TEEN_BOY_PRESET);
+            setExtractSuccess('Modelo Adolescente (Garoto 15 anos) ativado: estilo streetwear teen!');
+        } else if (newGender === 'teen_girl') {
+            setData(TEEN_GIRL_PRESET);
+            setExtractSuccess('Modelo Adolescente (Garota 16 anos) ativada: estilo aesthetic Gen-Z!');
+        } else if (newGender === 'man') {
+            setData(MALE_MODEL_PRESET);
+            setExtractSuccess('Modelo Adulto Masculino (Homem) ativado!');
         } else {
-            setData(prev => {
-                const isCurrentlyDefaultMale = 
-                    prev.characterName === 'Lucas' || 
-                    prev.characterName === 'Alex' || 
-                    prev.characterName === 'Gabriel';
-
-                return {
-                    ...prev,
-                    gender: 'woman',
-                    characterName: isCurrentlyDefaultMale ? 'Aura' : prev.characterName,
-                    role: prev.role.includes('Masculino') ? 'Protagonista / Modelo Feminina' : prev.role,
-                    bodyType: prev.bodyType === 'Athletic / Fit Masculine' || prev.bodyType.includes('Masculine') ? 'Slim / Elegante' : prev.bodyType,
-                    facialStructure: (prev.facialStructure.includes('masculina') || prev.facialStructure.includes('mandíbula angular'))
-                        ? 'Rosto oval simétrico, maçãs do rosto suaves, linha de mandíbula graciosa'
-                        : prev.facialStructure || 'Rosto oval simétrico, maçãs do rosto definidas',
-                    facialHair: 'Nenhum',
-                    hair: (prev.hair.includes('curto') || prev.hair.includes('fade') || prev.hair.includes('slick back'))
-                        ? 'Cabelo longo ondulado castanho escuro com divisão central fluida'
-                        : prev.hair,
-                    hairColorHex: prev.hairColorHex || '#3B2A1F',
-                    makeup: 'Maquiagem natural glow com contorno suave e iluminador discreto',
-                    outfitType: prev.outfitType.toLowerCase().includes('jaqueta bomber') || prev.outfitType.toLowerCase().includes('costume') || prev.outfitType.toLowerCase().includes('blazer masculino')
-                        ? 'Vestido contemporâneo elegante ou conjunto sofisticado com corte fluido'
-                        : prev.outfitType,
-                    topNeckline: prev.topNeckline.toLowerCase().includes('colarinho') || prev.topNeckline.toLowerCase().includes('gola estruturada')
-                        ? 'Decote assimétrico moderno com drapeado'
-                        : prev.topNeckline,
-                    bottomPiece: prev.bottomPiece.toLowerCase().includes('chino')
-                        ? 'Comprimento midi com fenda sutil ou calça alfaiataria elegante'
-                        : prev.bottomPiece,
-                    footwear: prev.footwear.toLowerCase().includes('bota chelsea') || prev.footwear.toLowerCase().includes('oxford')
-                        ? 'Sandália de salto fino delicada ou tênis minimalista'
-                        : prev.footwear,
-                    accessories: prev.accessories.toLowerCase().includes('relógio') || prev.accessories.toLowerCase().includes('abotoaduras')
-                        ? 'Brincos pequenos dourados e colar delicado'
-                        : prev.accessories,
-                    renderStyle: 'Fotorealista 8K, Master Studio Portrait'
-                };
-            });
-            setExtractSuccess('Modo Feminino (Mulher) ativado: traços anatômicos, cabelo e vestuário adaptados!');
-            setTimeout(() => setExtractSuccess(null), 3000);
+            setData(SOAIMA_PRESET);
+            setExtractSuccess('Modelo Adulto Feminino (Mulher) ativada!');
         }
+        setTimeout(() => setExtractSuccess(null), 3500);
     };
 
     return (
@@ -467,57 +682,116 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                     </div>
                 </div>
 
-                {/* Seletor Master de Gênero: Mulher / Homem (Destacado no Topo) */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-950/90 p-3 rounded-xl border border-slate-800 gap-3">
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-black uppercase text-slate-300 flex items-center gap-1.5">
-                            <User size={14} className={data.gender === 'man' ? 'text-blue-400' : 'text-pink-400'} />
-                            <span>Gênero do Personagem:</span>
+                {/* Seletor Master de Modelo: Adultos, Crianças e Adolescentes */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between bg-slate-950/90 p-3 rounded-xl border border-slate-800 gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                        <span className="text-xs font-black uppercase text-slate-300 flex items-center gap-1.5 shrink-0">
+                            <User size={14} className={data.gender === 'boy' || data.gender === 'man' || data.gender === 'teen_boy' ? 'text-blue-400' : 'text-pink-400'} />
+                            <span>Categoria / Idade do Modelo:</span>
                         </span>
                         
-                        <div className="inline-flex p-1 bg-slate-900 border border-slate-700/80 rounded-xl shadow-inner">
+                        <div className="flex flex-wrap p-1 bg-slate-900 border border-slate-700/80 rounded-xl gap-1">
+                            {/* ADULTOS */}
                             <button
                                 type="button"
                                 onClick={() => handleSwitchGender('woman')}
-                                className={`px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
                                     data.gender === 'woman'
-                                        ? 'bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 text-white shadow-lg shadow-pink-500/30 ring-1 ring-pink-400'
-                                        : 'text-slate-400 hover:text-slate-200'
+                                        ? 'bg-gradient-to-r from-pink-600 via-rose-600 to-red-600 text-white shadow-md shadow-pink-500/30 ring-1 ring-pink-400'
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                                 }`}
+                                title="Modelo Adulta Feminina (22-28 anos)"
                             >
-                                <span className="text-sm">👩</span>
-                                <span>Mulher (Woman)</span>
+                                <span>👩 Mulher</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleSwitchGender('man')}
-                                className={`px-3.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
                                     data.gender === 'man'
-                                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400'
-                                        : 'text-slate-400 hover:text-slate-200'
+                                        ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white shadow-md shadow-blue-500/30 ring-1 ring-blue-400'
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                                 }`}
+                                title="Modelo Adulto Masculino (24-30 anos)"
                             >
-                                <span className="text-sm">👨</span>
-                                <span>Homem (Man)</span>
+                                <span>👨 Homem</span>
+                            </button>
+
+                            {/* CRIANÇAS */}
+                            <button
+                                type="button"
+                                onClick={() => handleSwitchGender('boy')}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                                    data.gender === 'boy'
+                                        ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/30 ring-1 ring-amber-400'
+                                        : 'text-amber-400/80 hover:text-amber-200 hover:bg-amber-950/30'
+                                }`}
+                                title="Modelo Infantil Masculino (Criança de 8 anos)"
+                            >
+                                <span>👦 Criança (Menino)</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleSwitchGender('girl')}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                                    data.gender === 'girl'
+                                        ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md shadow-pink-500/30 ring-1 ring-pink-400'
+                                        : 'text-rose-400/80 hover:text-rose-200 hover:bg-rose-950/30'
+                                }`}
+                                title="Modelo Infantil Feminino (Criança de 7 anos)"
+                            >
+                                <span>👧 Criança (Menina)</span>
+                            </button>
+
+                            {/* ADOLESCENTES */}
+                            <button
+                                type="button"
+                                onClick={() => handleSwitchGender('teen_boy')}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                                    data.gender === 'teen_boy'
+                                        ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white shadow-md shadow-cyan-500/30 ring-1 ring-cyan-400'
+                                        : 'text-cyan-400/80 hover:text-cyan-200 hover:bg-cyan-950/30'
+                                }`}
+                                title="Modelo Adolescente Masculino (Teen de 15 anos)"
+                            >
+                                <span>🛹 Teen (Garoto)</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleSwitchGender('teen_girl')}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer ${
+                                    data.gender === 'teen_girl'
+                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md shadow-purple-500/30 ring-1 ring-purple-400'
+                                        : 'text-purple-400/80 hover:text-purple-200 hover:bg-purple-950/30'
+                                }`}
+                                title="Modelo Adolescente Feminino (Teen de 16 anos)"
+                            >
+                                <span>🌸 Teen (Garota)</span>
                             </button>
                         </div>
                     </div>
 
                     <div className="text-[11px] text-slate-400 flex items-center gap-2">
                         <span className={`font-mono text-[10px] px-2.5 py-1 rounded-md border font-bold ${
-                            data.gender === 'woman' 
-                                ? 'bg-pink-500/10 border-pink-500/30 text-pink-300' 
+                            data.gender === 'boy' || data.gender === 'girl'
+                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                                : data.gender === 'teen_boy' || data.gender === 'teen_girl'
+                                ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300'
+                                : data.gender === 'woman'
+                                ? 'bg-pink-500/10 border-pink-500/30 text-pink-300'
                                 : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
                         }`}>
-                            {data.gender === 'woman' ? '✓ Modo Mulher Ativo' : '✓ Modo Homem Ativo'}
-                        </span>
-                        <span className="text-slate-500 text-[10px] hidden md:inline">
-                            (adapta automaticamente traços, barba, cabelo e figurino)
+                            {data.gender === 'boy' ? '✓ Criança (Menino 8a)'
+                             : data.gender === 'girl' ? '✓ Criança (Menina 7a)'
+                             : data.gender === 'teen_boy' ? '✓ Teen (Garoto 15a)'
+                             : data.gender === 'teen_girl' ? '✓ Teen (Garota 16a)'
+                             : data.gender === 'woman' ? '✓ Mulher Adulta'
+                             : '✓ Homem Adulto'}
                         </span>
                     </div>
                 </div>
 
-                {/* Presets Rápidos Contextuais por Gênero */}
+                {/* Presets Rápidos Contextuais por Categoria & Gênero */}
                 <div className="flex items-center gap-2 flex-wrap pt-0.5">
                     <button
                         onClick={handleAutoExtract}
@@ -549,62 +823,108 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                         </span>
                     </button>
 
-                    {data.gender === 'woman' ? (
+                    {/* Presets específicos de Crianças */}
+                    {(data.gender === 'boy' || data.gender === 'girl') && (
+                        <>
+                            <button
+                                onClick={() => setData(KID_BOY_PRESET)}
+                                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                                    data.gender === 'boy'
+                                        ? 'bg-amber-600/30 border-amber-500 text-amber-200'
+                                        : 'bg-slate-800/90 hover:bg-slate-700 border-slate-700 text-slate-300'
+                                }`}
+                            >
+                                <span>👦 Lucas (Criança 8a - Aventura)</span>
+                            </button>
+                            <button
+                                onClick={() => setData(KID_GIRL_PRESET)}
+                                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                                    data.gender === 'girl'
+                                        ? 'bg-rose-600/30 border-rose-500 text-rose-200'
+                                        : 'bg-slate-800/90 hover:bg-slate-700 border-slate-700 text-slate-300'
+                                }`}
+                            >
+                                <span>👧 Maya (Criança 7a - Vestidinho)</span>
+                            </button>
+                        </>
+                    )}
+
+                    {/* Presets específicos de Adolescentes */}
+                    {(data.gender === 'teen_boy' || data.gender === 'teen_girl') && (
+                        <>
+                            <button
+                                onClick={() => setData(TEEN_BOY_PRESET)}
+                                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                                    data.gender === 'teen_boy'
+                                        ? 'bg-cyan-600/30 border-cyan-500 text-cyan-200'
+                                        : 'bg-slate-800/90 hover:bg-slate-700 border-slate-700 text-slate-300'
+                                }`}
+                            >
+                                <span>🛹 Theo (Teen 15a - Streetwear Cargo)</span>
+                            </button>
+                            <button
+                                onClick={() => setData(TEEN_GIRL_PRESET)}
+                                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                                    data.gender === 'teen_girl'
+                                        ? 'bg-purple-600/30 border-purple-500 text-purple-200'
+                                        : 'bg-slate-800/90 hover:bg-slate-700 border-slate-700 text-slate-300'
+                                }`}
+                            >
+                                <span>🌸 Clara (Teen 16a - Aesthetic Gen-Z)</span>
+                            </button>
+                        </>
+                    )}
+
+                    {/* Presets de Mulher Adulta */}
+                    {data.gender === 'woman' && (
                         <>
                             <button
                                 onClick={() => setData(SOAIMA_PRESET)}
                                 className="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-red-500/40 text-red-300 hover:text-white font-bold text-[11px] flex items-center gap-1.5 transition-all"
-                                title="Carregar Template Soaima AI (Vestido Vermelho / Red Dress da referência 1)"
                             >
                                 <span className="w-2 h-2 rounded-full bg-red-500" />
-                                <span>Preset Soaima (Vestido)</span>
+                                <span>Soaima (Vestido Gala)</span>
                             </button>
-
                             <button
                                 onClick={() => setData(SOFIA_PRESET)}
                                 className="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-amber-500/40 text-amber-300 hover:text-white font-bold text-[11px] flex items-center gap-1.5 transition-all"
-                                title="Carregar Template Sofia (Conjunto Vermelho & Tênis Branco da referência 2)"
                             >
                                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                                <span>Preset Sofia (Conjunto)</span>
+                                <span>Sofia (Conjunto & Tênis)</span>
                             </button>
-
                             <button
                                 onClick={() => setData(FEMALE_CASUAL_PRESET)}
                                 className="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-pink-500/40 text-pink-300 hover:text-white font-bold text-[11px] flex items-center gap-1.5 transition-all"
-                                title="Carregar Template Clara (Blazer Bege & Jeans Casual)"
                             >
                                 <span className="w-2 h-2 rounded-full bg-pink-400" />
-                                <span>Preset Clara (Casual Chic)</span>
+                                <span>Clara (Casual Chic)</span>
                             </button>
                         </>
-                    ) : (
+                    )}
+
+                    {/* Presets de Homem Adulto */}
+                    {data.gender === 'man' && (
                         <>
                             <button
                                 onClick={() => setData(MALE_MODEL_PRESET)}
                                 className="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-blue-500/40 text-blue-300 hover:text-white font-bold text-[11px] flex items-center gap-1.5 transition-all"
-                                title="Carregar Template Masculino (Lucas - Jaqueta Carmesim & Alfaiataria)"
                             >
                                 <span className="w-2 h-2 rounded-full bg-blue-500" />
-                                <span>Preset Lucas (Jaqueta Carmesim)</span>
+                                <span>Lucas (Jaqueta Carmesim)</span>
                             </button>
-
                             <button
                                 onClick={() => setData(MALE_CASUAL_PRESET)}
                                 className="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-cyan-500/40 text-cyan-300 hover:text-white font-bold text-[11px] flex items-center gap-1.5 transition-all"
-                                title="Carregar Template Masculino Alex (Camisa Linho & Calça Chino)"
                             >
                                 <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                                <span>Preset Alex (Casual Linho)</span>
+                                <span>Alex (Casual Linho)</span>
                             </button>
-
                             <button
                                 onClick={() => setData(MALE_BUSINESS_PRESET)}
                                 className="px-2.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-indigo-500/40 text-indigo-300 hover:text-white font-bold text-[11px] flex items-center gap-1.5 transition-all"
-                                title="Carregar Template Masculino Gabriel (Editorial Business & Terno Slim)"
                             >
                                 <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                                <span>Preset Gabriel (Terno Editorial)</span>
+                                <span>Gabriel (Terno Slim)</span>
                             </button>
                         </>
                     )}
@@ -624,6 +944,410 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                         <span>{extractSuccess}</span>
                     </div>
                 )}
+            </div>
+
+            {/* Inputs Ocultos para Upload do Modelo e Vestuário (Sempre Ativos em Qualquer Seção) */}
+            <input 
+                type="file"
+                ref={modelFileInputRef}
+                onChange={handleModelFileUpload}
+                accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.jfif,.jiff,.heic,.heif,.svg,.avif,.dng,.raw"
+                className="hidden"
+            />
+            <input 
+                type="file"
+                ref={wardrobeInputRef}
+                onChange={handleWardrobeFileUpload}
+                multiple
+                accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.jfif,.jiff,.heic,.heif,.svg,.avif,.dng,.raw"
+                className="hidden"
+            />
+
+            {/* PAINEL CENTRAL DE REFERÊNCIAS: FOTO DO MODELO + FOTO DA ROUPA */}
+            <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-3.5 sm:p-4 rounded-2xl border border-slate-800 shadow-xl space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-slate-800/80 pb-2">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase text-amber-400 flex items-center gap-1.5">
+                            <Camera size={14} className="text-amber-400" />
+                            <span>Central de Referências: Modelo & Vestuário</span>
+                        </span>
+                        <span className="px-1.5 py-0.2 text-[9px] font-black uppercase rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            Extração Visual
+                        </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400">
+                        Carregue a foto de quem vai vestir (Modelo) e a foto do que vai vestir (Roupa / Figurino)
+                    </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {/* CARD 1: FOTO DO MODELO / PERSONAGEM (Com Drag & Drop direto) */}
+                    <div 
+                        onDragOver={handleModelDragOver}
+                        onDragLeave={handleModelDragLeave}
+                        onDrop={handleModelDrop}
+                        className={`p-3 rounded-xl border transition-all flex flex-col justify-between gap-2.5 ${
+                            isDragOverModel
+                                ? 'bg-blue-950/60 border-blue-400 ring-2 ring-blue-400/50 shadow-lg'
+                                : effectiveModel 
+                                ? 'bg-slate-900/90 border-blue-500/40 shadow-md shadow-blue-500/10' 
+                                : 'bg-slate-950/70 border-slate-800 border-dashed hover:border-blue-500/60'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                <User size={13} className={data.gender === 'boy' || data.gender === 'man' || data.gender === 'teen_boy' ? 'text-blue-400' : 'text-pink-400'} />
+                                <span>1. Foto do Modelo / Pessoa</span>
+                            </span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                                effectiveModel 
+                                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' 
+                                    : 'bg-slate-800 text-slate-400 border-slate-700'
+                            }`}>
+                                {effectiveModel ? '✓ Foto Carregada' : 'Aguardando Foto / Arraste Aqui'}
+                            </span>
+                        </div>
+
+                        {effectiveModel ? (
+                            <div className="flex items-center gap-3">
+                                <div className="w-20 h-24 rounded-lg overflow-hidden border border-slate-700 bg-black shrink-0 relative shadow">
+                                    <img 
+                                        src={`data:${effectiveModel.mimeType};base64,${effectiveModel.base64}`} 
+                                        alt={effectiveModel.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 bg-black/80 text-[8px] text-blue-300 font-mono rounded">
+                                        Modelo
+                                    </span>
+                                </div>
+                                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5 space-y-1.5">
+                                    <div>
+                                        <p className="text-xs font-bold text-white truncate" title={effectiveModel.name}>
+                                            {effectiveModel.name}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 leading-tight">
+                                            Rosto, biometria facial, tom de pele e cabelo serão preservados na ficha.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <button
+                                            type="button"
+                                            onClick={handleExtractModelIdentity}
+                                            disabled={isExtracting}
+                                            className="px-2 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] flex items-center gap-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
+                                            title="Extrair biometria e traços faciais desta foto"
+                                        >
+                                            {isExtracting ? <RefreshCw size={10} className="animate-spin" /> : <Wand2 size={10} />}
+                                            <span>{isExtracting ? "Extraindo..." : "Extrair Biometria"}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => modelFileInputRef.current?.click()}
+                                            className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-[10px] border border-slate-700 transition-all cursor-pointer"
+                                        >
+                                            Trocar Foto
+                                        </button>
+                                        {customModelImage && (
+                                            <button
+                                                type="button"
+                                                onClick={handleRemoveModelImage}
+                                                className="p-1 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                                                title="Remover foto personalizada"
+                                            >
+                                                <Trash2 size={13} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div 
+                                onClick={() => modelFileInputRef.current?.click()}
+                                className="py-5 px-3 flex flex-col items-center justify-center text-center cursor-pointer group"
+                            >
+                                <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-2 group-hover:scale-105 transition-transform">
+                                    <Upload size={18} />
+                                </div>
+                                <p className="text-xs font-bold text-slate-300 group-hover:text-blue-300 transition-colors">
+                                    Clique ou Arraste a Foto do Modelo Aqui
+                                </p>
+                                <p className="text-[10px] text-slate-500 mt-0.5">
+                                    Envie foto de pessoa ou use o preset ativo ({data.characterName})
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* CARD 2: FOTO DO VESTUÁRIO / ROUPA A EXTRAIR (Com Drag & Drop direto e clique imediato) */}
+                    <div 
+                        onDragOver={handleWardrobeDragOver}
+                        onDragLeave={handleWardrobeDragLeave}
+                        onDrop={handleWardrobeDrop}
+                        className={`p-3 rounded-xl border transition-all flex flex-col justify-between gap-2.5 ${
+                            isDragOverWardrobe
+                                ? 'bg-amber-950/60 border-amber-400 ring-2 ring-amber-400/50 shadow-lg'
+                                : wardrobeImages.length > 0 
+                                ? 'bg-slate-900/90 border-amber-500/40 shadow-md shadow-amber-500/10' 
+                                : 'bg-slate-950/70 border-slate-800 border-dashed hover:border-amber-500/60'
+                        }`}
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                <Shirt size={13} className="text-amber-400" />
+                                <span>2. Foto da Roupa / Figurino</span>
+                            </span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${
+                                wardrobeImages.length > 0 
+                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                                    : 'bg-slate-800 text-slate-400 border-slate-700'
+                            }`}>
+                                {wardrobeImages.length > 0 ? `✓ ${wardrobeImages.length} Foto(s) de Roupa` : 'Aguardando Roupa / Arraste Aqui'}
+                            </span>
+                        </div>
+
+                        {wardrobeImages.length > 0 ? (
+                            <div className="flex items-center gap-3">
+                                <div className="w-20 h-24 rounded-lg overflow-hidden border border-slate-700 bg-black shrink-0 relative shadow">
+                                    <img 
+                                        src={`data:${wardrobeImages[0].mimeType};base64,${wardrobeImages[0].base64}`} 
+                                        alt={wardrobeImages[0].fileName}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <span className="absolute bottom-0.5 right-0.5 px-1 py-0.2 bg-black/80 text-[8px] text-amber-300 font-mono rounded">
+                                        Roupa
+                                    </span>
+                                </div>
+                                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5 space-y-1.5">
+                                    <div>
+                                        <p className="text-xs font-bold text-white truncate" title={wardrobeImages[0].fileName}>
+                                            {wardrobeImages[0].fileName}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 leading-tight truncate">
+                                            {data.outfitType || 'Cortes, tecidos, gola, calçados e cores extraídos.'}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleExtractWardrobeItem(wardrobeImages[0])}
+                                            disabled={isExtractingWardrobe}
+                                            className="px-2 py-1 rounded bg-amber-600 hover:bg-amber-500 text-white font-bold text-[10px] flex items-center gap-1 transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
+                                            title="Extrair cortes e cores desta roupa para a ficha"
+                                        >
+                                            {isExtractingWardrobe ? <RefreshCw size={10} className="animate-spin" /> : <Wand2 size={10} />}
+                                            <span>{isExtractingWardrobe ? "Extraindo..." : "Extrair Roupa"}</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => wardrobeInputRef.current?.click()}
+                                            className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-[10px] border border-slate-700 transition-all cursor-pointer"
+                                        >
+                                            + Mais Roupas
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveSection('costume')}
+                                            className="px-2 py-1 rounded bg-slate-800/80 hover:bg-slate-700 text-amber-300 font-bold text-[10px] border border-slate-700/80 transition-all cursor-pointer"
+                                        >
+                                            Ver Figurino
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div 
+                                onClick={() => wardrobeInputRef.current?.click()}
+                                className="py-5 px-3 flex flex-col items-center justify-center text-center cursor-pointer group"
+                            >
+                                <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-2 group-hover:scale-105 transition-transform">
+                                    <Upload size={18} />
+                                </div>
+                                <p className="text-xs font-bold text-slate-300 group-hover:text-amber-300 transition-colors">
+                                    Clique ou Arraste a Foto da Roupa Aqui
+                                </p>
+                                <p className="text-[10px] text-slate-500 mt-0.5">
+                                    Envie fotos de vestidos, jaquetas, camisas ou calças para vestir no modelo
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* BOTÃO MESTRE COMBINADO: VESTIR MODELO COM A ROUPA DA FOTO */}
+                {(effectiveModel || wardrobeImages.length > 0) && (
+                    <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                        <div className="text-[11px] text-slate-300 flex items-center gap-1.5">
+                            <Sparkle size={13} className="text-amber-400 shrink-0" />
+                            <span>
+                                {effectiveModel && wardrobeImages.length > 0 
+                                    ? `Pronto para transferir a roupa de "${wardrobeImages[0].fileName}" para o modelo "${effectiveModel.name}".`
+                                    : wardrobeImages.length > 0 
+                                    ? `Roupa carregada! A IA vestirá no modelo ${data.characterName} preservando biometria.`
+                                    : `Modelo carregado! Carregue a foto da roupa para fazer a transferência de figurino.`}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleSynthesizeModelAndWardrobe}
+                            disabled={isSynthesizing || (!effectiveModel && wardrobeImages.length === 0)}
+                            className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 hover:from-amber-400 hover:to-red-500 text-white font-black text-xs rounded-xl shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-40 cursor-pointer"
+                        >
+                            {isSynthesizing ? (
+                                <RefreshCw size={13} className="animate-spin text-white" />
+                            ) : (
+                                <Sparkles size={13} className="text-amber-200" />
+                            )}
+                            <span>{isSynthesizing ? "Vestindo Modelo com IA..." : "✨ Vestir Modelo com a Roupa da Foto (IA)"}</span>
+                        </button>
+                    </div>
+                )}
+
+                {/* GALERIA DE FOTOS JÁ ENVIADAS NO APP (1 CLIQUE PARA USAR COMO MODELO OU ROUPA) */}
+                {availableImages && availableImages.length > 0 && (
+                    <div className="pt-2 border-t border-slate-800/80">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[11px] font-black uppercase text-slate-300 flex items-center gap-1.5">
+                                <ImageIcon size={13} className="text-amber-400" />
+                                <span>Fotos Já Enviadas no Aplicativo ({availableImages.length}):</span>
+                            </span>
+                            <span className="text-[10px] text-slate-500">Clique para definir como Modelo ou como Roupa sem re-enviar</span>
+                        </div>
+                        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 custom-scrollbar">
+                            {availableImages.map(img => (
+                                <div key={img.id} className="p-1.5 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center gap-2 shrink-0 hover:border-amber-500/50 transition-all shadow-sm">
+                                    <img 
+                                        src={img.previewUrl || `data:${img.mimeType};base64,${img.base64Data}`} 
+                                        alt={img.name} 
+                                        className="w-10 h-10 rounded-lg object-cover bg-black shrink-0" 
+                                    />
+                                    <div className="flex flex-col gap-1 min-w-0">
+                                        <span className="text-[10px] font-bold text-slate-200 truncate max-w-[130px]" title={img.name}>
+                                            {img.name}
+                                        </span>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSelectAvailableImageAsModel(img)}
+                                                className="px-1.5 py-0.5 rounded bg-blue-600/30 hover:bg-blue-600/60 border border-blue-500/40 text-[9px] font-black text-blue-300 hover:text-white transition-all cursor-pointer"
+                                                title="Definir esta foto como o Modelo"
+                                            >
+                                                👤 Modelo
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleAddAvailableImageAsWardrobe(img)}
+                                                className="px-1.5 py-0.5 rounded bg-amber-600/30 hover:bg-amber-600/60 border border-amber-500/40 text-[9px] font-black text-amber-300 hover:text-white transition-all cursor-pointer"
+                                                title="Adicionar esta foto como Roupa / Figurino"
+                                            >
+                                                👗 Roupa
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* PAINEL MASTER ON/OFF DOS 8 TIPOS DE PREENCHIMENTO DA FICHA */}
+            <div className="bg-slate-950/90 p-3 sm:p-3.5 rounded-2xl border border-slate-800 space-y-2.5 shadow-md">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-red-600/20 text-red-400 border border-red-500/30">
+                            <Power size={14} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-black uppercase text-slate-200 tracking-wide">
+                                    Controle de Ativação dos 8 Tipos de Preenchimento (ON / OFF)
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border ${
+                                    Object.values(sectionToggles).filter(Boolean).length === 8
+                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                        : Object.values(sectionToggles).filter(Boolean).length > 0
+                                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                        : 'bg-red-500/20 text-red-300 border-red-500/40'
+                                }`}>
+                                    {Object.values(sectionToggles).filter(Boolean).length}/8 Seções Ativas no Prompt
+                                </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                                Ative ou desative qualquer seção com 1 clique para incluí-la ou removê-la do prompt master final gerado.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => handleSetAllSections(true)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                            title="Ligar todas as 8 seções"
+                        >
+                            <CheckCircle2 size={12} />
+                            <span>Ligar Todas (ON)</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleSetAllSections(false)}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                            title="Desligar todas as 8 seções"
+                        >
+                            <Power size={12} />
+                            <span>Desligar Todas (OFF)</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* 8 BOTOES SWITCHES INTERATIVOS ON/OFF */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5">
+                    {[
+                        { id: 'profile', number: '1', label: '1. Perfil', desc: 'Identidade & Biótipo', icon: User },
+                        { id: 'turnaround', number: '2', label: '2. 4 Vistas', desc: 'Turnaround 360°', icon: Compass },
+                        { id: 'face', number: '3', label: '3. Rosto', desc: 'Biometria Facial', icon: Eye },
+                        { id: 'expressions', number: '4', label: '4. Expressões', desc: '8 Emoções', icon: Heart },
+                        { id: 'poses', number: '5', label: '5. Poses', desc: '6 Poses Corporais', icon: Zap },
+                        { id: 'costume', number: '6', label: '6. Figurino', desc: 'Roupas & Fotos', icon: Shirt },
+                        { id: 'palette', number: '7', label: '7. Cores Hex', desc: 'Amostras de Cores', icon: Palette },
+                        { id: 'lighting', number: '8', label: '8. Estúdio/Luz', desc: 'Iluminação & Fundo', icon: Sun },
+                    ].map(item => {
+                        const isEnabled = sectionToggles[item.id as StudioSection];
+                        const Icon = item.icon;
+                        return (
+                            <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => toggleSection(item.id as StudioSection)}
+                                className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer group ${
+                                    isEnabled 
+                                        ? 'bg-slate-900 border-emerald-500/50 shadow-sm hover:border-emerald-400' 
+                                        : 'bg-slate-950/60 border-slate-800 text-slate-500 hover:border-slate-700 opacity-60 hover:opacity-90'
+                                }`}
+                                title={`Clique para ${isEnabled ? 'DESLIGAR (OFF)' : 'LIGAR (ON)'} a seção ${item.label}`}
+                            >
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                    <span className={`text-[10px] font-mono font-bold ${isEnabled ? 'text-amber-400' : 'text-slate-500'}`}>
+                                        #{item.number}
+                                    </span>
+                                    <span className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase flex items-center gap-0.5 border ${
+                                        isEnabled 
+                                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                                            : 'bg-red-500/10 text-red-400 border-red-500/30'
+                                    }`}>
+                                        {isEnabled ? <ToggleRight size={10} /> : <ToggleLeft size={10} />}
+                                        <span>{isEnabled ? 'ON' : 'OFF'}</span>
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-1 text-[11px] font-bold truncate">
+                                    <Icon size={12} className={isEnabled ? 'text-red-400' : 'text-slate-500'} />
+                                    <span className={isEnabled ? 'text-slate-200' : 'text-slate-500'}>{item.label}</span>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Seletor de Tipo de Saída (Layout do Prompt) */}
@@ -656,82 +1380,190 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                 </div>
             </div>
 
-            {/* Menu de Abas de Seções */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-1 border-b border-slate-800/80 custom-scrollbar">
+            {/* Menu de Abas de Seções com Indicador e Toggle ON/OFF */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-800/80 custom-scrollbar">
                 {[
-                    { id: 'profile', label: '1. Perfil', icon: User },
-                    { id: 'turnaround', label: '2. 4 Vistas', icon: Compass },
-                    { id: 'face', label: '3. Rosto & Biometria', icon: Eye },
-                    { id: 'expressions', label: '4. Expressões (8)', icon: Heart },
-                    { id: 'poses', label: '5. Poses (6)', icon: Zap },
-                    { id: 'costume', label: '6. Figurino & Roupas', icon: Shirt, badge: 'Fotos & IA' },
-                    { id: 'palette', label: '7. Cores Hex', icon: Palette },
-                    { id: 'lighting', label: '8. Estúdio & Luz', icon: Sun },
+                    { id: 'profile', number: '1', label: '1. Perfil', icon: User },
+                    { id: 'turnaround', number: '2', label: '2. 4 Vistas', icon: Compass },
+                    { id: 'face', number: '3', label: '3. Rosto', icon: Eye },
+                    { id: 'expressions', number: '4', label: '4. Expressões (8)', icon: Heart },
+                    { id: 'poses', number: '5', label: '5. Poses (6)', icon: Zap },
+                    { id: 'costume', number: '6', label: '6. Figurino & Roupas', icon: Shirt, badge: 'Fotos & IA' },
+                    { id: 'palette', number: '7', label: '7. Cores Hex', icon: Palette },
+                    { id: 'lighting', number: '8', label: '8. Estúdio & Luz', icon: Sun },
                 ].map(sec => {
                     const Icon = sec.icon;
                     const isActive = activeSection === sec.id;
+                    const isEnabled = sectionToggles[sec.id as StudioSection];
                     return (
-                        <button
+                        <div
                             key={sec.id}
-                            onClick={() => setActiveSection(sec.id as StudioSection)}
-                            className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
+                            className={`flex items-center rounded-xl p-0.5 border transition-all shrink-0 ${
                                 isActive
-                                    ? 'bg-red-600 text-white shadow-lg shadow-red-500/25 ring-1 ring-red-400'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                                    ? 'bg-red-600/30 border-red-500 shadow-md ring-1 ring-red-400/50'
+                                    : isEnabled
+                                    ? 'bg-slate-900/90 border-slate-800 hover:border-slate-700'
+                                    : 'bg-slate-950/60 border-slate-800/60 opacity-60 hover:opacity-90'
                             }`}
                         >
-                            <Icon size={13} className={isActive ? 'text-white' : 'text-slate-400'} />
-                            <span>{sec.label}</span>
-                            {sec.badge && (
-                                <span className={`px-1.5 py-0.2 text-[9px] font-black rounded-full uppercase border ${
-                                    isActive 
-                                        ? 'bg-amber-400 text-slate-950 border-amber-300' 
-                                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                                }`}>
-                                    {sec.badge}
-                                </span>
-                            )}
-                        </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveSection(sec.id as StudioSection)}
+                                className={`px-2.5 py-1.5 text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all cursor-pointer ${
+                                    isActive
+                                        ? 'text-white'
+                                        : isEnabled
+                                        ? 'text-slate-300 hover:text-white'
+                                        : 'text-slate-500 hover:text-slate-300'
+                                }`}
+                            >
+                                <Icon size={13} className={isActive ? 'text-white' : isEnabled ? 'text-amber-400' : 'text-slate-500'} />
+                                <span>{sec.label}</span>
+                                {sec.badge && (
+                                    <span className={`px-1.5 py-0.2 text-[9px] font-black rounded-full uppercase border ${
+                                        isActive 
+                                            ? 'bg-amber-400 text-slate-950 border-amber-300' 
+                                            : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                                    }`}>
+                                        {sec.badge}
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Mini Toggle ON/OFF individual por Aba */}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleSection(sec.id as StudioSection);
+                                }}
+                                className={`px-1.5 py-0.5 mr-1 rounded-md text-[9px] font-mono font-black uppercase flex items-center gap-0.5 border transition-all cursor-pointer ${
+                                    isEnabled
+                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/40'
+                                        : 'bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/30'
+                                }`}
+                                title={`Clique para ${isEnabled ? 'DESLIGAR (OFF)' : 'LIGAR (ON)'} esta seção no prompt`}
+                            >
+                                {isEnabled ? <ToggleRight size={10} /> : <ToggleLeft size={10} />}
+                                <span>{isEnabled ? 'ON' : 'OFF'}</span>
+                            </button>
+                        </div>
                     );
                 })}
             </div>
 
             {/* Conteúdo da Seção Ativa */}
             <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-4">
+                {/* Banner de Status ON/OFF da Seção Ativa */}
+                <div className={`p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-all ${
+                    sectionToggles[activeSection]
+                        ? 'bg-slate-900/80 border-emerald-500/30 text-slate-200'
+                        : 'bg-red-950/30 border-red-500/40 text-red-200'
+                }`}>
+                    <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                            sectionToggles[activeSection] 
+                                ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' 
+                                : 'bg-red-500'
+                        }`} />
+                        <span className="text-xs">
+                            {sectionToggles[activeSection] ? (
+                                <span>Esta seção está <strong className="text-emerald-400 font-black">LIGADA (ON)</strong> e será incluída no Prompt Mestre.</span>
+                            ) : (
+                                <span>⚠️ Esta seção está <strong className="text-red-400 font-black">DESLIGADA (OFF)</strong>. Os dados abaixo não serão incluídos no prompt compilado.</span>
+                            )}
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => toggleSection(activeSection)}
+                        className={`px-3 py-1 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                            sectionToggles[activeSection]
+                                ? 'bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/40'
+                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
+                        }`}
+                    >
+                        {sectionToggles[activeSection] ? <ToggleLeft size={14} /> : <ToggleRight size={14} />}
+                        <span>{sectionToggles[activeSection] ? 'Desligar Seção (OFF)' : 'Ligar Seção no Prompt (ON)'}</span>
+                    </button>
+                </div>
                 
                 {/* 1. PERFIL DO PERSONAGEM */}
                 {activeSection === 'profile' && (
                     <div className="space-y-4 animate-in fade-in">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
                             <span className="text-xs font-black uppercase text-red-400 tracking-wider">
                                 1. Character Profile (Perfil do Personagem)
                             </span>
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase">Gênero:</span>
-                                <div className="inline-flex p-0.5 bg-slate-900 border border-slate-700 rounded-lg">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase">Categoria / Idade:</span>
+                                <div className="inline-flex p-0.5 bg-slate-900 border border-slate-700 rounded-lg flex-wrap gap-0.5">
                                     <button
                                         type="button"
                                         onClick={() => handleSwitchGender('woman')}
-                                        className={`px-2.5 py-1 rounded text-[11px] font-black flex items-center gap-1 transition-all ${
+                                        className={`px-2 py-1 rounded text-[10px] font-black flex items-center gap-1 transition-all ${
                                             data.gender === 'woman'
                                                 ? 'bg-pink-600 text-white shadow'
                                                 : 'text-slate-400 hover:text-white'
                                         }`}
                                     >
-                                        <span>👩</span>
-                                        <span>Mulher</span>
+                                        <span>👩 Mulher</span>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => handleSwitchGender('man')}
-                                        className={`px-2.5 py-1 rounded text-[11px] font-black flex items-center gap-1 transition-all ${
+                                        className={`px-2 py-1 rounded text-[10px] font-black flex items-center gap-1 transition-all ${
                                             data.gender === 'man'
                                                 ? 'bg-blue-600 text-white shadow'
                                                 : 'text-slate-400 hover:text-white'
                                         }`}
                                     >
-                                        <span>👨</span>
-                                        <span>Homem</span>
+                                        <span>👨 Homem</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSwitchGender('boy')}
+                                        className={`px-2 py-1 rounded text-[10px] font-black flex items-center gap-1 transition-all ${
+                                            data.gender === 'boy'
+                                                ? 'bg-amber-600 text-white shadow'
+                                                : 'text-amber-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <span>👦 Criança (Menino)</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSwitchGender('girl')}
+                                        className={`px-2 py-1 rounded text-[10px] font-black flex items-center gap-1 transition-all ${
+                                            data.gender === 'girl'
+                                                ? 'bg-rose-600 text-white shadow'
+                                                : 'text-rose-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <span>👧 Criança (Menina)</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSwitchGender('teen_boy')}
+                                        className={`px-2 py-1 rounded text-[10px] font-black flex items-center gap-1 transition-all ${
+                                            data.gender === 'teen_boy'
+                                                ? 'bg-cyan-600 text-white shadow'
+                                                : 'text-cyan-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <span>🛹 Teen (Garoto)</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSwitchGender('teen_girl')}
+                                        className={`px-2 py-1 rounded text-[10px] font-black flex items-center gap-1 transition-all ${
+                                            data.gender === 'teen_girl'
+                                                ? 'bg-purple-600 text-white shadow'
+                                                : 'text-purple-400 hover:text-white'
+                                        }`}
+                                    >
+                                        <span>🌸 Teen (Garota)</span>
                                     </button>
                                 </div>
                             </div>
@@ -744,7 +1576,7 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                                     type="text"
                                     value={data.characterName}
                                     onChange={e => updateField('characterName', e.target.value)}
-                                    placeholder={data.gender === 'man' ? "Ex: Lucas / Alex / Gabriel" : "Ex: Soaima AI / Sofia / Clara"}
+                                    placeholder={data.gender === 'boy' ? "Ex: Lucas (Criança)" : data.gender === 'girl' ? "Ex: Maya (Criança)" : data.gender === 'teen_boy' ? "Ex: Theo (Adolescente)" : data.gender === 'teen_girl' ? "Ex: Clara (Adolescente)" : data.gender === 'man' ? "Ex: Lucas / Alex / Gabriel" : "Ex: Soaima AI / Sofia / Clara"}
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
                                 />
                             </div>
@@ -755,7 +1587,7 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                                     type="text"
                                     value={data.role}
                                     onChange={e => updateField('role', e.target.value)}
-                                    placeholder={data.gender === 'man' ? "Ex: Protagonista / Modelo Masculino" : "Ex: Creator / Modelo Feminina"}
+                                    placeholder={data.gender === 'boy' || data.gender === 'girl' ? "Ex: Protagonista Kids / Aventureiro Infantil" : data.gender === 'teen_boy' || data.gender === 'teen_girl' ? "Ex: Teen Protagonista / Jovem Creator" : data.gender === 'man' ? "Ex: Protagonista / Modelo Masculino" : "Ex: Creator / Modelo Feminina"}
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
                                 />
                             </div>
@@ -766,7 +1598,7 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                                     type="text"
                                     value={data.age}
                                     onChange={e => updateField('age', e.target.value)}
-                                    placeholder="Ex: 22-26 / Mid 20s"
+                                    placeholder={data.gender === 'boy' ? "8 anos (8 years old)" : data.gender === 'girl' ? "7 anos (7 years old)" : data.gender === 'teen_boy' ? "15 anos (15 years old)" : data.gender === 'teen_girl' ? "16 anos (16 years old)" : "22-26 / Mid 20s"}
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
                                 />
                             </div>
@@ -777,7 +1609,7 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                                     type="text"
                                     value={data.height}
                                     onChange={e => updateField('height', e.target.value)}
-                                    placeholder={data.gender === 'man' ? "Ex: 6'0\" (183 cm) - Athletic" : "Ex: 5'8\" (173 cm) - Slim"}
+                                    placeholder={data.gender === 'boy' ? "4'2\" (128 cm)" : data.gender === 'girl' ? "3'11\" (120 cm)" : data.gender === 'teen_boy' ? "5'8\" (173 cm)" : data.gender === 'teen_girl' ? "5'5\" (165 cm)" : data.gender === 'man' ? "6'0\" (183 cm) - Athletic" : "5'8\" (173 cm) - Slim"}
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
                                 />
                             </div>
@@ -790,19 +1622,35 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                                     type="text"
                                     value={data.personality}
                                     onChange={e => updateField('personality', e.target.value)}
-                                    placeholder={data.gender === 'man' ? "Ex: Confiante, carismático, determinado, moderno" : "Ex: Criativa, confiante, empática, profissional, elegante"}
+                                    placeholder={data.gender === 'boy' || data.gender === 'girl' ? "Ex: Curioso, alegre, expressivo, imaginativo e carismático" : data.gender === 'teen_boy' || data.gender === 'teen_girl' ? "Ex: Descolado, criativo, conectado, espontâneo e autêntico" : data.gender === 'man' ? "Ex: Confiante, carismático, determinado, moderno" : "Ex: Criativa, confiante, empática, profissional, elegante"}
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
                                 />
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Biótipo Corporal ({data.gender === 'man' ? 'Masculino' : 'Feminino'})</label>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase">
+                                    Biótipo Corporal ({data.gender === 'boy' || data.gender === 'girl' ? 'Infantil' : data.gender === 'teen_boy' || data.gender === 'teen_girl' ? 'Adolescente' : data.gender === 'man' ? 'Masculino' : 'Feminino'})
+                                </label>
                                 <select 
                                     value={data.bodyType}
                                     onChange={e => updateField('bodyType', e.target.value)}
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500 h-8"
                                 >
-                                    {data.gender === 'man' ? (
+                                    {data.gender === 'boy' || data.gender === 'girl' ? (
+                                        <>
+                                            <option value="Infantil Natural / Criança Saudável">Infantil Natural / Criança Saudável (Proporções 7-8 anos)</option>
+                                            <option value="Infantil Delicada / Slim Child">Infantil Delicada / Slim Child</option>
+                                            <option value="Infantil Ativo / Ágil">Infantil Ativo / Ágil e Enérgico</option>
+                                            <option value="Infantil Robusto / Forte">Infantil Robusto / Forte</option>
+                                        </>
+                                    ) : data.gender === 'teen_boy' || data.gender === 'teen_girl' ? (
+                                        <>
+                                            <option value="Adolescente Longilíneo / Slim Teen">Adolescente Longilíneo / Slim Teen (15-16 anos)</option>
+                                            <option value="Teen Atlético Juvenil">Teen Atlético Juvenil (Esportivo)</option>
+                                            <option value="Jovem Delicada / Slim Teen Feminina">Jovem Delicada / Slim Teen Feminina</option>
+                                            <option value="Teen Médio Natural">Teen Médio Natural</option>
+                                        </>
+                                    ) : data.gender === 'man' ? (
                                         <>
                                             <option value="Athletic / Fit Masculine">Athletic / Fit Masculine (Atlético e Definido)</option>
                                             <option value="Muscular / Broad Shoulders">Muscular / Broad Shoulders (Musculoso / Ombros Largos)</option>
@@ -1179,30 +2027,42 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                             </div>
                         )}
 
-                        {/* Input de arquivo invisível */}
+                        {/* Input de arquivo invisível para a Seção 6 */}
                         <input 
-                            type="file"
+                            type="file" 
                             ref={wardrobeInputRef}
                             onChange={handleWardrobeFileUpload}
                             multiple
-                            accept="image/*"
+                            accept="image/*,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tiff,.tif,.jfif,.jiff,.heic,.heif,.svg,.avif,.dng,.raw"
                             className="hidden"
                         />
 
                         {/* Dropzone e Área de Upload de Roupas */}
-                        <div className="bg-slate-950/80 border-2 border-dashed border-slate-700/80 hover:border-amber-500/60 rounded-2xl p-4 sm:p-5 transition-all space-y-3">
+                        <div 
+                            onDragOver={handleWardrobeDragOver}
+                            onDragLeave={handleWardrobeDragLeave}
+                            onDrop={handleWardrobeDrop}
+                            className={`border-2 border-dashed rounded-2xl p-4 sm:p-5 transition-all space-y-3 ${
+                                isDragOverWardrobe
+                                    ? 'bg-amber-950/50 border-amber-400 ring-2 ring-amber-400/50 shadow-lg'
+                                    : 'bg-slate-950/80 border-slate-700/80 hover:border-amber-500/60'
+                            }`}
+                        >
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                                <div 
+                                    onClick={() => wardrobeInputRef.current?.click()}
+                                    className="flex items-center gap-3 cursor-pointer group"
+                                >
+                                    <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
                                         <Shirt size={22} />
                                     </div>
                                     <div>
-                                        <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                                        <h4 className="text-xs font-bold text-white flex items-center gap-1.5 group-hover:text-amber-300 transition-colors">
                                             <span>Carregar Fotos de Roupas / Peças de Referência</span>
-                                            <span className="text-[10px] text-amber-400 font-normal">(Multi-Upload)</span>
+                                            <span className="text-[10px] text-amber-400 font-normal">(Multi-Upload & Arraste)</span>
                                         </h4>
                                         <p className="text-[11px] text-slate-400">
-                                            Selecione imagens de vestidos, ternos, jaquetas ou estampas. A IA extrairá cortes, tecidos e cores exatas.
+                                            Clique ou arraste imagens de vestidos, jaquetas, camisas ou estampas (JPG, PNG, WEBP, JFIF, etc.).
                                         </p>
                                     </div>
                                 </div>
@@ -1223,13 +2083,46 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                                     <button
                                         type="button"
                                         onClick={() => wardrobeInputRef.current?.click()}
-                                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                                        className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-500 hover:to-red-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-amber-500/20 active:scale-95"
                                     >
                                         <Upload size={13} />
                                         <span>Procurar Imagens</span>
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Seletor Rápido de Fotos Já Carregadas no App para Figurino */}
+                            {availableImages && availableImages.length > 0 && (
+                                <div className="pt-2 border-t border-slate-800/80">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
+                                            <ImageIcon size={12} className="text-amber-400" />
+                                            <span>Ou escolha uma foto já enviada no app ({availableImages.length}):</span>
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                                        {availableImages.map(img => (
+                                            <button
+                                                key={img.id}
+                                                type="button"
+                                                onClick={() => handleAddAvailableImageAsWardrobe(img)}
+                                                className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-500/80 flex items-center gap-1.5 shrink-0 transition-all cursor-pointer text-left group"
+                                                title={`Adicionar "${img.name}" como foto de roupa`}
+                                            >
+                                                <img 
+                                                    src={img.previewUrl || `data:${img.mimeType};base64,${img.base64Data}`}
+                                                    alt={img.name}
+                                                    className="w-6 h-6 rounded object-cover bg-black"
+                                                />
+                                                <span className="text-[10px] text-slate-300 group-hover:text-amber-300 font-medium truncate max-w-[100px]">
+                                                    {img.name}
+                                                </span>
+                                                <span className="text-[9px] text-amber-400 font-black">+ Usar</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Galeria de Fotos de Vestuário Já Carregadas */}
                             {wardrobeImages.length > 0 && (

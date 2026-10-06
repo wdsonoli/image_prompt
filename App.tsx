@@ -44,7 +44,7 @@ import { VisualEffectsTab } from './components/VisualEffectsTab';
 import { ModelSheetStudio } from './components/ModelSheetStudio';
 import { ProductSheetStudio } from './components/ProductSheetStudio';
 import { loadHistory, saveHistory, deleteHistoryItem, clearHistory, compressBase64Image, loadActiveImages, saveActiveImages } from './utils/historyStorage';
-import { Zap, History, Sparkles, Sliders, Settings, Plus, Trash2, Image as ImageIcon, AlertCircle, X, ExternalLink, Layers, Package } from 'lucide-react';
+import { Zap, History, Sparkles, Sliders, Settings, Plus, Trash2, Image as ImageIcon, AlertCircle, X, ExternalLink, Layers, Package, Copy, Check, Terminal } from 'lucide-react';
 
 const COMPOSITION_KEYWORDS: Record<string, string> = {
     macro: "macro photography, extreme close-up, high detail texture",
@@ -169,6 +169,7 @@ const App: React.FC = () => {
     const [activeControlTab, setActiveControlTab] = useState<'architect' | 'effects' | 'modelsheet' | 'productsheet'>('architect');
     const [searchGroundingData, setSearchGroundingData] = useState<SearchGroundingData | null>(null);
     const [isGeneratingSearchGrounding, setIsGeneratingSearchGrounding] = useState(false);
+    const [mobileCopied, setMobileCopied] = useState(false);
     
     const [settings, setSettings] = useState<PromptSettings>(() => {
         const initialStyle = (typeof window !== 'undefined' ? localStorage.getItem('default_prompt_style') : null) || 'photorealistic';
@@ -349,6 +350,43 @@ const App: React.FC = () => {
 
     const activeImage = images.find(img => img.id === selectedImageId) || null;
 
+    const detectImageMimeType = (file: File): string => {
+        if (file.type && file.type.startsWith('image/')) return file.type;
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        switch (ext) {
+            case 'jpg':
+            case 'jpeg':
+            case 'jfif':
+            case 'jiff':
+            case 'pjpeg':
+            case 'pjp':
+                return 'image/jpeg';
+            case 'png':
+                return 'image/png';
+            case 'webp':
+                return 'image/webp';
+            case 'avif':
+                return 'image/avif';
+            case 'gif':
+                return 'image/gif';
+            case 'svg':
+                return 'image/svg+xml';
+            case 'bmp':
+                return 'image/bmp';
+            case 'tif':
+            case 'tiff':
+                return 'image/tiff';
+            case 'heic':
+                return 'image/heic';
+            case 'heif':
+                return 'image/heif';
+            case 'ico':
+                return 'image/x-icon';
+            default:
+                return 'image/jpeg';
+        }
+    };
+
     const handleFilesSelected = async (files: File[]) => {
         setError(null);
         if (!files || files.length === 0) return;
@@ -360,7 +398,7 @@ const App: React.FC = () => {
                 const originalFile = files[i];
                 const previewUrl = URL.createObjectURL(originalFile);
                 const base64Data = await fileToBase64(originalFile);
-                const mimeType = originalFile.type || 'image/png';
+                const mimeType = detectImageMimeType(originalFile);
                 const tempId = `img-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}`;
 
                 const newImage: UploadedImage = { 
@@ -1217,32 +1255,34 @@ const App: React.FC = () => {
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
             <header className="bg-slate-900/50 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+                <div className="max-w-[1600px] mx-auto px-3 sm:px-6 py-2.5 sm:py-3.5 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         <div className="bg-gradient-to-br from-blue-500 to-violet-600 p-1.5 sm:p-2 rounded-lg shadow-lg shadow-blue-500/20">
                             <Zap size={20} className="text-white sm:w-6 sm:h-6" />
                         </div>
                         <h1 className="text-lg sm:text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400 tracking-tight">VPA v2.5</h1>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5">
                         {prompt && (
-                            <button
+                            <a
+                                href="https://aitestkitchen.withgoogle.com/tools/image-fx"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 onClick={() => {
                                     navigator.clipboard.writeText(prompt);
-                                    window.open('https://aitestkitchen.withgoogle.com/tools/image-fx', '_blank');
                                 }}
-                                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-lg shadow-lg shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer min-h-[38px]"
+                                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-lg shadow-lg shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer min-h-[38px]"
                                 title="Copiar prompt e abrir o Google ImageFX (gerador de imagem 100% gratuito)"
                             >
                                 <ExternalLink size={14} className="shrink-0" />
                                 <span className="hidden sm:inline">Testar no ImageFX (Grátis)</span>
                                 <span className="sm:hidden font-bold">ImageFX</span>
-                            </button>
+                            </a>
                         )}
                         <button 
                             onClick={() => setIsHistoryOpen(true)}
-                            className="flex items-center justify-center gap-2 p-2 sm:px-3 sm:py-2 text-sm font-bold text-slate-300 bg-slate-800/80 border border-slate-700 rounded-lg hover:bg-slate-700 transition-all active:scale-95 min-h-[38px] min-w-[38px] cursor-pointer"
-                            title="Histórico"
+                            className="flex items-center justify-center gap-1.5 sm:gap-2 p-2 sm:px-3 sm:py-2 text-sm font-bold text-slate-300 bg-slate-800/80 border border-slate-700 rounded-lg hover:bg-slate-700 transition-all active:scale-95 min-h-[38px] min-w-[38px] cursor-pointer"
+                            title="Histórico de Gerações"
                         >
                             <History size={16} />
                             <span className="hidden md:inline text-xs">Histórico</span>
@@ -1259,9 +1299,9 @@ const App: React.FC = () => {
                 </div>
             </header>
 
-            <main className="flex-1 max-w-7xl w-full mx-auto px-2.5 sm:px-4 py-4 sm:py-8">
+            <main className="flex-1 max-w-[1600px] w-full mx-auto px-2.5 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6">
                 {error && (
-                    <div className="mb-4 sm:mb-6 bg-red-500/10 border border-red-500/30 text-red-300 p-4 rounded-xl flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300 text-xs shadow-lg">
+                    <div className="mb-4 sm:mb-6 bg-red-500/10 border border-red-500/30 text-red-300 p-3.5 sm:p-4 rounded-xl flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300 text-xs shadow-lg">
                         <div className="flex items-start gap-3 min-w-0">
                             <AlertCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
                             <div className="space-y-2 min-w-0">
@@ -1273,7 +1313,7 @@ const App: React.FC = () => {
                                             onClick={() => {
                                                 navigator.clipboard.writeText(prompt);
                                             }}
-                                            className="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-white font-bold text-[11px] transition-all"
+                                            className="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-white font-bold text-[11px] transition-all cursor-pointer"
                                         >
                                             Copiar Prompt Master
                                         </button>
@@ -1293,7 +1333,7 @@ const App: React.FC = () => {
                         <button
                             type="button"
                             onClick={() => setError(null)}
-                            className="text-red-400 hover:text-white p-1 rounded-lg hover:bg-red-500/20 transition-colors shrink-0"
+                            className="text-red-400 hover:text-white p-1 rounded-lg hover:bg-red-500/20 transition-colors shrink-0 cursor-pointer"
                             title="Fechar aviso"
                         >
                             <X size={16} />
@@ -1301,255 +1341,311 @@ const App: React.FC = () => {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
-                    <div className="lg:col-span-5 space-y-5 sm:space-y-6">
-                        {!activeImage ? (
-                            <DropZone 
-                                onFilesSelected={handleFilesSelected} 
-                                onError={setError}
-                            />
-                        ) : (
-                            <div className="space-y-4 animate-in fade-in duration-500">
-                                {/* Galeria e Seletor de Imagens de Referência */}
-                                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 backdrop-blur-md shadow-lg space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <ImageIcon size={15} className="text-blue-400" />
-                                            <span className="text-xs font-bold text-slate-200">
-                                                Imagens de Referência ({images.length})
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 sm:gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => extraFileInputRef.current?.click()}
-                                                className="px-2 py-1 text-[11px] font-bold text-blue-300 hover:text-white bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 rounded-lg flex items-center gap-1 transition-all active:scale-95"
-                                                title="Adicionar mais imagens de referência"
-                                            >
-                                                <Plus size={13} />
-                                                <span>Adicionar</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleClearAllImages}
-                                                className="px-2 py-1 text-[11px] font-medium text-slate-400 hover:text-red-300 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 rounded-lg flex items-center gap-1 transition-colors"
-                                                title="Remover todas as imagens de referência"
-                                            >
-                                                <Trash2 size={12} />
-                                                <span className="hidden sm:inline">Limpar</span>
-                                            </button>
-                                        </div>
-                                    </div>
+                {/* Seletor Master de Modos de Trabalho (Adaptativo para Smartphone, Tablet e PC) */}
+                <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl mb-4 sm:mb-6 backdrop-blur-md shadow-lg overflow-x-auto custom-scrollbar scroll-smooth">
+                    <button 
+                        onClick={() => setActiveControlTab('architect')}
+                        className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'architect' 
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25 ring-1 ring-blue-400' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                    >
+                        <Sliders size={15} className={activeControlTab === 'architect' ? 'text-white' : 'text-blue-400'} />
+                        <span className="hidden sm:inline">Arquiteto de Prompt</span>
+                        <span className="sm:hidden">Arquiteto</span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveControlTab('effects')}
+                        className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'effects' 
+                                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 ring-1 ring-violet-400' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                    >
+                        <Sparkles size={15} className={activeControlTab === 'effects' ? 'text-amber-300' : 'text-violet-400'} />
+                        <span className="hidden sm:inline">Efeitos Visuais</span>
+                        <span className="sm:hidden">Efeitos</span>
+                        <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-violet-400/20 text-violet-200 border border-violet-400/30">
+                            80+
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveControlTab('modelsheet')}
+                        className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'modelsheet' 
+                                ? 'bg-gradient-to-r from-red-600 via-pink-600 to-amber-600 text-white shadow-lg shadow-red-500/25 ring-1 ring-red-400' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                    >
+                        <Layers size={15} className={activeControlTab === 'modelsheet' ? 'text-white' : 'text-red-400'} />
+                        <span className="hidden sm:inline">Ficha de Modelo</span>
+                        <span className="sm:hidden">Modelo</span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveControlTab('productsheet')}
+                        className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'productsheet' 
+                                ? 'bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 text-white shadow-lg shadow-orange-500/25 ring-1 ring-amber-400' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                        title="Troca de Marca & Ficha de Produto (Envie garrafa, logo e rótulo)"
+                    >
+                        <Package size={15} className={activeControlTab === 'productsheet' ? 'text-white' : 'text-amber-400'} />
+                        <span className="hidden sm:inline">Troca de Marca</span>
+                        <span className="sm:hidden">Produto</span>
+                        <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30">
+                            NOVO
+                        </span>
+                    </button>
+                </div>
 
-                                    {/* Miniaturas de todas as imagens de referência carregadas */}
-                                    <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-                                        {images.map((img, idx) => {
-                                            const isSelected = img.id === selectedImageId;
-                                            const thumbSrc = img.previewUrl || (img.base64Data ? `data:${img.mimeType || 'image/png'};base64,${img.base64Data}` : '');
-                                            return (
-                                                <div
-                                                    key={img.id}
-                                                    className={`relative group shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border cursor-pointer transition-all ${
-                                                        isSelected 
-                                                            ? 'border-blue-500 ring-2 ring-blue-500/40 shadow-md shadow-blue-500/20' 
-                                                            : 'border-slate-800 hover:border-slate-600 opacity-70 hover:opacity-100'
-                                                    }`}
-                                                    onClick={() => setSelectedImageId(img.id)}
-                                                    title={`Ref #${idx + 1}: ${img.name}`}
-                                                >
-                                                    <img 
-                                                        src={thumbSrc} 
-                                                        alt={img.name} 
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e) => {
-                                                            if (img.base64Data) {
-                                                                (e.target as HTMLImageElement).src = `data:${img.mimeType || 'image/png'};base64,${img.base64Data}`;
-                                                            }
-                                                        }}
-                                                    />
-                                                    {isSelected && (
-                                                        <div className="absolute top-1 left-1 w-2 h-2 rounded-full bg-blue-400 shadow-sm" />
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleRemoveImage(img.id);
-                                                        }}
-                                                        className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-slate-950/80 text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        title="Remover esta imagem"
-                                                    >
-                                                        <Trash2 size={11} />
-                                                    </button>
-                                                    <div className="absolute bottom-0 inset-x-0 bg-slate-950/85 text-[8px] text-slate-300 px-0.5 truncate text-center font-mono">
-                                                        #{idx + 1}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Input oculto para upload de referências adicionais */}
-                                    <input 
-                                        type="file"
-                                        ref={extraFileInputRef}
-                                        className="hidden"
-                                        multiple
-                                        accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/svg+xml,.jiff,.jfif"
-                                        onChange={(e) => {
-                                            if (e.target.files && e.target.files.length > 0) {
-                                                handleFilesSelected(Array.from(e.target.files));
-                                                e.target.value = '';
-                                            }
-                                        }}
-                                    />
-                                </div>
-
-                                <ImagePreview 
-                                    src={activeImage.previewUrl} 
-                                    fallbackSrc={activeImage.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : undefined}
-                                    alt={activeImage.name} 
-                                    onRemove={() => handleRemoveImage(activeImage.id)} 
-                                    onRemoveBackground={() => setSettings(s => ({ ...s, removeBackground: !s.removeBackground }))}
-                                    isRemovingBackground={settings.removeBackground}
-                                    onCropSave={handleCropSave}
+                {/* CONTEÚDO PRINCIPAL: ADAPTATIVO POR MODO E TAMANHO DE TELA */}
+                {activeControlTab === 'architect' ? (
+                    /* MODO ARQUITETO: Layout 3 Colunas no PC/Notebook, 2 Colunas no Tablet, 1 Coluna no Smartphone */
+                    <div className="grid grid-cols-1 md:grid-cols-12 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+                        {/* Coluna 1: Imagem de Referência & DropZone (Mobile: 100%, Tablet: 5 cols, Desktop: 3 ou 4 cols) */}
+                        <div className="md:col-span-5 lg:col-span-4 xl:col-span-3 space-y-4">
+                            {!activeImage ? (
+                                <DropZone 
+                                    onFilesSelected={handleFilesSelected} 
+                                    onError={setError}
                                 />
-                                {activeImage.analysis && <AnalysisResultView analysis={activeImage.analysis} imageName={activeImage.name} />}
-                            </div>
-                        )}
-                    </div>
+                            ) : (
+                                <div className="space-y-4 animate-in fade-in duration-500">
+                                    {/* Galeria e Seletor de Imagens de Referência */}
+                                    <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 backdrop-blur-md shadow-lg space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <ImageIcon size={15} className="text-blue-400" />
+                                                <span className="text-xs font-bold text-slate-200">
+                                                    Imagens ({images.length})
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => extraFileInputRef.current?.click()}
+                                                    className="px-2 py-1 text-[11px] font-bold text-blue-300 hover:text-white bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 rounded-lg flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                                                    title="Adicionar mais imagens de referência"
+                                                >
+                                                    <Plus size={13} />
+                                                    <span>Adicionar</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleClearAllImages}
+                                                    className="px-2 py-1 text-[11px] font-medium text-slate-400 hover:text-red-300 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/30 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                                                    title="Remover todas as imagens de referência"
+                                                >
+                                                    <Trash2 size={12} />
+                                                    <span className="hidden sm:inline">Limpar</span>
+                                                </button>
+                                            </div>
+                                        </div>
 
-                    <div className="lg:col-span-7">
-                        {/* Tab Switcher: Arquiteto vs Galeria de Efeitos vs Ficha de Modelo */}
-                        <div className="flex items-center gap-1.5 sm:gap-2 p-1.5 bg-slate-900/90 border border-slate-800 rounded-xl mb-5 sm:mb-6 backdrop-blur-md shadow-lg">
-                            <button 
-                                onClick={() => setActiveControlTab('architect')}
-                                className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all min-h-[40px] ${
-                                    activeControlTab === 'architect' 
-                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25 ring-1 ring-blue-400' 
-                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                                }`}
-                            >
-                                <Sliders size={15} className={activeControlTab === 'architect' ? 'text-white' : 'text-blue-400'} />
-                                <span>Arquiteto de Prompt</span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveControlTab('effects')}
-                                className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[40px] ${
-                                    activeControlTab === 'effects' 
-                                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25 ring-1 ring-violet-400' 
-                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                                }`}
-                            >
-                                <Sparkles size={15} className={activeControlTab === 'effects' ? 'text-amber-300' : 'text-violet-400'} />
-                                <span>Efeitos Visuais</span>
-                                <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-black rounded-full bg-violet-400/20 text-violet-200 border border-violet-400/30">
-                                    80+
-                                </span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveControlTab('modelsheet')}
-                                className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[40px] ${
-                                    activeControlTab === 'modelsheet' 
-                                        ? 'bg-gradient-to-r from-red-600 via-pink-600 to-amber-600 text-white shadow-lg shadow-red-500/25 ring-1 ring-red-400' 
-                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                                }`}
-                            >
-                                <Layers size={15} className={activeControlTab === 'modelsheet' ? 'text-white' : 'text-red-400'} />
-                                <span>Ficha de Modelo</span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveControlTab('productsheet')}
-                                className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[40px] ${
-                                    activeControlTab === 'productsheet' 
-                                        ? 'bg-gradient-to-r from-amber-500 via-orange-600 to-red-600 text-white shadow-lg shadow-orange-500/25 ring-1 ring-amber-400' 
-                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                                }`}
-                                title="Troca de Marca & Ficha de Produto (Envie garrafa, logo e rótulo)"
-                            >
-                                <Package size={15} className={activeControlTab === 'productsheet' ? 'text-white' : 'text-amber-400'} />
-                                <span>Troca de Marca</span>
-                                <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30">
-                                    NOVO
-                                </span>
-                            </button>
+                                        {/* Miniaturas de todas as imagens de referência carregadas */}
+                                        <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                                            {images.map((img, idx) => {
+                                                const isSelected = img.id === selectedImageId;
+                                                const thumbSrc = img.previewUrl || (img.base64Data ? `data:${img.mimeType || 'image/png'};base64,${img.base64Data}` : '');
+                                                return (
+                                                    <div
+                                                        key={img.id}
+                                                        className={`relative group shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border cursor-pointer transition-all ${
+                                                            isSelected 
+                                                                ? 'border-blue-500 ring-2 ring-blue-500/40 shadow-md shadow-blue-500/20' 
+                                                                : 'border-slate-800 hover:border-slate-600 opacity-70 hover:opacity-100'
+                                                        }`}
+                                                        onClick={() => setSelectedImageId(img.id)}
+                                                        title={`Ref #${idx + 1}: ${img.name}`}
+                                                    >
+                                                        <img 
+                                                            src={thumbSrc} 
+                                                            alt={img.name} 
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                if (img.base64Data) {
+                                                                    (e.target as HTMLImageElement).src = `data:${img.mimeType || 'image/png'};base64,${img.base64Data}`;
+                                                                }
+                                                            }}
+                                                        />
+                                                        {isSelected && (
+                                                            <div className="absolute top-1 left-1 w-2 h-2 rounded-full bg-blue-400 shadow-sm" />
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleRemoveImage(img.id);
+                                                            }}
+                                                            className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-slate-950/80 text-slate-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                                            title="Remover esta imagem"
+                                                        >
+                                                            <Trash2 size={11} />
+                                                        </button>
+                                                        <div className="absolute bottom-0 inset-x-0 bg-slate-950/85 text-[8px] text-slate-300 px-0.5 truncate text-center font-mono">
+                                                            #{idx + 1}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Input oculto para upload de referências adicionais */}
+                                        <input 
+                                            type="file"
+                                            ref={extraFileInputRef}
+                                            className="hidden"
+                                            multiple
+                                            accept="image/*,.jpg,.jpeg,.png,.webp,.avif,.gif,.svg,.jfif,.jiff,.heic,.heif,.bmp,.tiff,.tif,.ico,.raw,.dng,.cr2,.nef"
+                                            onChange={(e) => {
+                                                if (e.target.files && e.target.files.length > 0) {
+                                                    handleFilesSelected(Array.from(e.target.files));
+                                                    e.target.value = '';
+                                                }
+                                            }}
+                                        />
+                                    </div>
+
+                                    <ImagePreview 
+                                        src={activeImage.previewUrl} 
+                                        fallbackSrc={activeImage.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : undefined}
+                                        alt={activeImage.name} 
+                                        onRemove={() => handleRemoveImage(activeImage.id)} 
+                                        onRemoveBackground={() => setSettings(s => ({ ...s, removeBackground: !s.removeBackground }))}
+                                        isRemovingBackground={settings.removeBackground}
+                                        onCropSave={handleCropSave}
+                                    />
+                                    {activeImage.analysis && <AnalysisResultView analysis={activeImage.analysis} imageName={activeImage.name} />}
+                                </div>
+                            )}
                         </div>
 
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                            {activeControlTab === 'architect' ? (
-                                <ControlPanel 
-                                    settings={settings} 
-                                    onSettingsChange={setSettings} 
-                                    onGenerate={handleGeneratePrompt}
-                                    onAnalyzeGemini={handleGeminiAnalysis}
-                                    onAnalyzeOpenAI={handleOpenAIAnalysis}
-                                    onAnalyzeDeepseek={handleDeepseekAnalysis}
-                                    onAnalyzeGoogleVision={handleGoogleVisionAnalysis}
-                                    onAnalyzeWhisk={handleWhiskAnalysis}
-                                    onAnalyzeImageFX={handleAnalyzeImageFX}
-                                    onAnalyzeClaude={handleClaudeAnalysis}
-                                    onAnalyzeMidjourney={handleMidjourneyAnalysis}
-                                    onAnalyzeFlux={handleFluxAnalysis}
-                                    onAnalyzeIdeogram={handleIdeogramAnalysis}
-                                    onAnalyzeHuggingFace={handleHuggingFaceAnalysis}
-                                    onAnalyzeConsensus={handleConsensusAnalysis}
-                                    onAnalyzeBehance={handleBehanceAnalysis}
-                                    onAnalyzeArtStation={handleArtStationAnalysis}
-                                    onAnalyzeProductDesign={handleProductDesignAnalysis}
-                                    onAnalyzeAwwwards={handleAwwwardsAnalysis}
-                                    onAnalyzeCinema={handleCinemaAnalysis}
-                                    onAnalyzeVogue={handleVogueAnalysis}
-                                    onAnalyzeNatGeo={handleNatGeoAnalysis}
-                                    onAnalyzeOctane={handleOctaneAnalysis}
-                                    onAnalyzeUnreal={handleUnrealAnalysis}
-                                    onAnalyzeLeonardo={handleLeonardoAnalysis}
-                                    onAnalyzeSD={handleSDAnalysis}
-                                    onAnalyzeRedshift={handleRedshiftAnalysis}
-                                    onAnalyzeVRay={handleVRayAnalysis}
-                                    onAnalyzeCorona={handleCoronaAnalysis}
-                                    onAnalyzeCycles={handleCyclesAnalysis}
-                                    onAnalyzeRecraft={handleRecraftAnalysis}
-                                    onAnalyzeMagnific={handleMagnificAnalysis}
-                                    onAnalyzeTF={handleTFAnalysis}
-                                    onOpenSettings={() => setIsSettingsOpen(true)}
-                                    isGeneratingGemini={isGeneratingGemini}
-                                    isGeneratingOpenAI={isGeneratingOpenAI}
-                                    isGeneratingDeepseek={isGeneratingDeepseek}
-                                    isGeneratingGoogleVision={isGeneratingGoogleVision}
-                                    isGeneratingWhisk={isGeneratingWhisk}
-                                    isGeneratingImageFX={isGeneratingImageFX}
-                                    isGeneratingClaude={isGeneratingClaude}
-                                    isGeneratingMidjourney={isGeneratingMidjourney}
-                                    isGeneratingFlux={isGeneratingFlux}
-                                    isGeneratingIdeogram={isGeneratingIdeogram}
-                                    isGeneratingHuggingFace={isGeneratingHuggingFace}
-                                    isGeneratingConsensus={isGeneratingConsensus}
-                                    isGeneratingBehance={isGeneratingBehance}
-                                    isGeneratingArtStation={isGeneratingArtStation}
-                                    isGeneratingProductDesign={isGeneratingProductDesign}
-                                    isGeneratingAwwwards={isGeneratingAwwwards}
-                                    isGeneratingCinema={isGeneratingCinema}
-                                    isGeneratingVogue={isGeneratingVogue}
-                                    isGeneratingNatGeo={isGeneratingNatGeo}
-                                    isGeneratingOctane={isGeneratingOctane}
-                                    isGeneratingUnreal={isGeneratingUnreal}
-                                    isGeneratingLeonardo={isGeneratingLeonardo}
-                                    isGeneratingSD={isGeneratingSD}
-                                    isGeneratingRedshift={isGeneratingRedshift}
-                                    isGeneratingVRay={isGeneratingVRay}
-                                    isGeneratingCorona={isGeneratingCorona}
-                                    isGeneratingCycles={isGeneratingCycles}
-                                    isGeneratingRecraft={isGeneratingRecraft}
-                                    isGeneratingMagnific={isGeneratingMagnific}
-                                    isGeneratingTF={isGeneratingTF}
-                                    hasImage={!!activeImage}
-                                    onSwitchToEffects={() => setActiveControlTab('effects')}
-                                    onSwitchToModelSheet={() => setActiveControlTab('modelsheet')}
-                                    onSwitchToProductSheet={() => setActiveControlTab('productsheet')}
-                                    onAnalyzeSearchGrounding={handleAnalyzeSearchGrounding}
-                                    isGeneratingSearchGrounding={isGeneratingSearchGrounding}
+                        {/* Coluna 2: Arquiteto de Prompt (Tablet: 7 cols, Desktop: 4 ou 5 cols) */}
+                        <div className="md:col-span-7 lg:col-span-4 xl:col-span-5">
+                            <ControlPanel 
+                                settings={settings} 
+                                onSettingsChange={setSettings} 
+                                onGenerate={handleGeneratePrompt}
+                                onAnalyzeGemini={handleGeminiAnalysis}
+                                onAnalyzeOpenAI={handleOpenAIAnalysis}
+                                onAnalyzeDeepseek={handleDeepseekAnalysis}
+                                onAnalyzeGoogleVision={handleGoogleVisionAnalysis}
+                                onAnalyzeWhisk={handleWhiskAnalysis}
+                                onAnalyzeImageFX={handleAnalyzeImageFX}
+                                onAnalyzeClaude={handleClaudeAnalysis}
+                                onAnalyzeMidjourney={handleMidjourneyAnalysis}
+                                onAnalyzeFlux={handleFluxAnalysis}
+                                onAnalyzeIdeogram={handleIdeogramAnalysis}
+                                onAnalyzeHuggingFace={handleHuggingFaceAnalysis}
+                                onAnalyzeConsensus={handleConsensusAnalysis}
+                                onAnalyzeBehance={handleBehanceAnalysis}
+                                onAnalyzeArtStation={handleArtStationAnalysis}
+                                onAnalyzeProductDesign={handleProductDesignAnalysis}
+                                onAnalyzeAwwwards={handleAwwwardsAnalysis}
+                                onAnalyzeCinema={handleCinemaAnalysis}
+                                onAnalyzeVogue={handleVogueAnalysis}
+                                onAnalyzeNatGeo={handleNatGeoAnalysis}
+                                onAnalyzeOctane={handleOctaneAnalysis}
+                                onAnalyzeUnreal={handleUnrealAnalysis}
+                                onAnalyzeLeonardo={handleLeonardoAnalysis}
+                                onAnalyzeSD={handleSDAnalysis}
+                                onAnalyzeRedshift={handleRedshiftAnalysis}
+                                onAnalyzeVRay={handleVRayAnalysis}
+                                onAnalyzeCorona={handleCoronaAnalysis}
+                                onAnalyzeCycles={handleCyclesAnalysis}
+                                onAnalyzeRecraft={handleRecraftAnalysis}
+                                onAnalyzeMagnific={handleMagnificAnalysis}
+                                onAnalyzeTF={handleTFAnalysis}
+                                onOpenSettings={() => setIsSettingsOpen(true)}
+                                isGeneratingGemini={isGeneratingGemini}
+                                isGeneratingOpenAI={isGeneratingOpenAI}
+                                isGeneratingDeepseek={isGeneratingDeepseek}
+                                isGeneratingGoogleVision={isGeneratingGoogleVision}
+                                isGeneratingWhisk={isGeneratingWhisk}
+                                isGeneratingImageFX={isGeneratingImageFX}
+                                isGeneratingClaude={isGeneratingClaude}
+                                isGeneratingMidjourney={isGeneratingMidjourney}
+                                isGeneratingFlux={isGeneratingFlux}
+                                isGeneratingIdeogram={isGeneratingIdeogram}
+                                isGeneratingHuggingFace={isGeneratingHuggingFace}
+                                isGeneratingConsensus={isGeneratingConsensus}
+                                isGeneratingBehance={isGeneratingBehance}
+                                isGeneratingArtStation={isGeneratingArtStation}
+                                isGeneratingProductDesign={isGeneratingProductDesign}
+                                isGeneratingAwwwards={isGeneratingAwwwards}
+                                isGeneratingCinema={isGeneratingCinema}
+                                isGeneratingVogue={isGeneratingVogue}
+                                isGeneratingNatGeo={isGeneratingNatGeo}
+                                isGeneratingOctane={isGeneratingOctane}
+                                isGeneratingUnreal={isGeneratingUnreal}
+                                isGeneratingLeonardo={isGeneratingLeonardo}
+                                isGeneratingSD={isGeneratingSD}
+                                isGeneratingRedshift={isGeneratingRedshift}
+                                isGeneratingVRay={isGeneratingVRay}
+                                isGeneratingCorona={isGeneratingCorona}
+                                isGeneratingCycles={isGeneratingCycles}
+                                isGeneratingRecraft={isGeneratingRecraft}
+                                isGeneratingMagnific={isGeneratingMagnific}
+                                isGeneratingTF={isGeneratingTF}
+                                hasImage={!!activeImage}
+                                onSwitchToEffects={() => setActiveControlTab('effects')}
+                                onSwitchToModelSheet={() => setActiveControlTab('modelsheet')}
+                                onSwitchToProductSheet={() => setActiveControlTab('productsheet')}
+                                onAnalyzeSearchGrounding={handleAnalyzeSearchGrounding}
+                                isGeneratingSearchGrounding={isGeneratingSearchGrounding}
+                            />
+                        </div>
+
+                        {/* Coluna 3: Prompt Master Gerado & Visualizações (Desktop: 4 cols sticky, Tablet/Mobile: 100%) */}
+                        <div className="md:col-span-12 lg:col-span-4 xl:col-span-4 flex flex-col gap-5 lg:sticky lg:top-20">
+                            <PromptDisplay 
+                                prompt={prompt} 
+                                onUpdatePrompt={setPrompt} 
+                                searchGroundingData={searchGroundingData}
+                                onEnrichWithSearch={handleEnrichWithSearch}
+                                isGeneratingSearchGrounding={isGeneratingSearchGrounding}
+                            />
+                            {personData && (
+                                <PersonExtractionView 
+                                    data={personData}
+                                    onApplyToPrompt={(newPrompt) => setPrompt(newPrompt)}
+                                    onCreateVisual={handleCreateVisual}
+                                    isGeneratingVisual={isGeneratingVisual}
                                 />
-                            ) : activeControlTab === 'effects' ? (
+                            )}
+                            {elementData && (
+                                <ElementExtractionView 
+                                    data={elementData}
+                                    onApplyToPrompt={(newPrompt) => setPrompt(newPrompt)}
+                                    onCreateVisual={handleCreateVisual}
+                                    isGeneratingVisual={isGeneratingVisual}
+                                />
+                            )}
+                            {backgroundData && (
+                                <BackgroundElementsView 
+                                    data={backgroundData}
+                                    onApplyToPrompt={(newPrompt) => setPrompt(newPrompt)}
+                                    onCreateVisual={handleCreateVisual}
+                                    isGeneratingVisual={isGeneratingVisual}
+                                />
+                            )}
+                            <GeneratedImageDisplay 
+                                imageUrl={generatedImageUrl} 
+                                originalImageUrl={activeImage?.previewUrl || null}
+                                originalImageName={activeImage?.name || null}
+                                isGenerating={isGeneratingVisual} 
+                                onClose={() => setGeneratedImageUrl(null)} 
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    /* MODOS AVANÇADOS: Ficha de Modelo, Troca de Marca & Efeitos Visuais (Desktop: 8 cols + 4 cols sticky, Mobile/Tablet: 100%) */
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+                        {/* Painel Principal do Estúdio (Desktop: 8 cols espaçoso, Mobile/Tablet: 100%) */}
+                        <div className="lg:col-span-8 xl:col-span-8">
+                            {activeControlTab === 'effects' ? (
                                 <VisualEffectsTab 
                                     onApplyPrompt={(newPrompt) => {
                                         setPrompt(newPrompt);
@@ -1568,6 +1664,7 @@ const App: React.FC = () => {
                                     activeImageBase64={activeImage?.base64Data}
                                     activeImageMimeType={activeImage?.mimeType}
                                     activeImageName={activeImage?.name}
+                                    availableImages={images}
                                     targetPlatform={settings.targetPlatform}
                                     onApplyPrompt={(newPrompt) => {
                                         setPrompt(newPrompt);
@@ -1582,6 +1679,7 @@ const App: React.FC = () => {
                                     activeImageBase64={activeImage?.base64Data}
                                     activeImageMimeType={activeImage?.mimeType}
                                     activeImageName={activeImage?.name}
+                                    availableImages={images}
                                     targetPlatform={settings.targetPlatform}
                                     onApplyPrompt={(newPrompt) => {
                                         setPrompt(newPrompt);
@@ -1592,50 +1690,99 @@ const App: React.FC = () => {
                                     onSwitchToArchitect={() => setActiveControlTab('architect')}
                                 />
                             )}
-                            <div className="flex flex-col gap-6">
-                                <PromptDisplay 
-                                    prompt={prompt} 
-                                    onUpdatePrompt={setPrompt} 
-                                    searchGroundingData={searchGroundingData}
-                                    onEnrichWithSearch={handleEnrichWithSearch}
-                                    isGeneratingSearchGrounding={isGeneratingSearchGrounding}
+                        </div>
+
+                        {/* Painel Lateral: Prompt Display ao Vivo & Resultados (Desktop: 4 cols sticky, Mobile/Tablet: 100%) */}
+                        <div className="lg:col-span-4 xl:col-span-4 flex flex-col gap-5 lg:sticky lg:top-20">
+                            <PromptDisplay 
+                                prompt={prompt} 
+                                onUpdatePrompt={setPrompt} 
+                                searchGroundingData={searchGroundingData}
+                                onEnrichWithSearch={handleEnrichWithSearch}
+                                isGeneratingSearchGrounding={isGeneratingSearchGrounding}
+                            />
+                            {personData && (
+                                <PersonExtractionView 
+                                    data={personData}
+                                    onApplyToPrompt={(newPrompt) => setPrompt(newPrompt)}
+                                    onCreateVisual={handleCreateVisual}
+                                    isGeneratingVisual={isGeneratingVisual}
                                 />
-                                {personData && (
-                                    <PersonExtractionView 
-                                        data={personData}
-                                        onApplyToPrompt={(newPrompt) => setPrompt(newPrompt)}
-                                        onCreateVisual={handleCreateVisual}
-                                        isGeneratingVisual={isGeneratingVisual}
-                                    />
-                                )}
-                                {elementData && (
-                                    <ElementExtractionView 
-                                        data={elementData}
-                                        onApplyToPrompt={(newPrompt) => setPrompt(newPrompt)}
-                                        onCreateVisual={handleCreateVisual}
-                                        isGeneratingVisual={isGeneratingVisual}
-                                    />
-                                )}
-                                {backgroundData && (
-                                    <BackgroundElementsView 
-                                        data={backgroundData}
-                                        onApplyToPrompt={(newPrompt) => setPrompt(newPrompt)}
-                                        onCreateVisual={handleCreateVisual}
-                                        isGeneratingVisual={isGeneratingVisual}
-                                    />
-                                )}
-                                <GeneratedImageDisplay 
-                                    imageUrl={generatedImageUrl} 
-                                    originalImageUrl={activeImage?.previewUrl || null}
-                                    originalImageName={activeImage?.name || null}
-                                    isGenerating={isGeneratingVisual} 
-                                    onClose={() => setGeneratedImageUrl(null)} 
+                            )}
+                            {elementData && (
+                                <ElementExtractionView 
+                                    data={elementData}
+                                    onApplyToPrompt={(newPrompt) => setPrompt(newPrompt)}
+                                    onCreateVisual={handleCreateVisual}
+                                    isGeneratingVisual={isGeneratingVisual}
                                 />
-                            </div>
+                            )}
+                            {backgroundData && (
+                                <BackgroundElementsView 
+                                    data={backgroundData}
+                                    onApplyToPrompt={(newPrompt) => setPrompt(newPrompt)}
+                                    onCreateVisual={handleCreateVisual}
+                                    isGeneratingVisual={isGeneratingVisual}
+                                />
+                            )}
+                            <GeneratedImageDisplay 
+                                imageUrl={generatedImageUrl} 
+                                originalImageUrl={activeImage?.previewUrl || null}
+                                originalImageName={activeImage?.name || null}
+                                isGenerating={isGeneratingVisual} 
+                                onClose={() => setGeneratedImageUrl(null)} 
+                            />
                         </div>
                     </div>
-                </div>
+                )}
             </main>
+
+            {/* BARRA FLUTUANTE DE PROMPT RÁPIDO PARA SMARTPHONES (Touch-Friendly & Instant-Copy) */}
+            {prompt && (
+                <div className="md:hidden fixed bottom-3 inset-x-3 z-40 bg-slate-900/95 border border-slate-700/80 backdrop-blur-xl p-2.5 rounded-2xl shadow-2xl flex items-center justify-between gap-2 animate-in slide-in-from-bottom-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                            <Terminal size={15} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-bold text-white truncate">
+                                Prompt Mestre Pronto
+                            </p>
+                            <p className="text-[9px] text-slate-400 font-mono truncate">
+                                {prompt.length} chars · {prompt.split(/\s+/).filter(Boolean).length} palavras
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                navigator.clipboard.writeText(prompt);
+                                setMobileCopied(true);
+                                setTimeout(() => setMobileCopied(false), 2000);
+                            }}
+                            className="px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 active:scale-95 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-500/25 min-h-[40px] cursor-pointer"
+                        >
+                            {mobileCopied ? <Check size={14} className="text-emerald-300" /> : <Copy size={14} />}
+                            <span>{mobileCopied ? 'Copiado!' : 'Copiar'}</span>
+                        </button>
+
+                        <a
+                            href="https://aitestkitchen.withgoogle.com/tools/image-fx"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => {
+                                navigator.clipboard.writeText(prompt);
+                            }}
+                            className="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl flex items-center justify-center min-h-[40px] min-w-[40px] shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
+                            title="Copiar prompt e abrir no ImageFX"
+                        >
+                            <ExternalLink size={15} />
+                        </a>
+                    </div>
+                </div>
+            )}
             
             <ApiSettingsModal 
                 isOpen={isSettingsOpen} 

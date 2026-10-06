@@ -804,6 +804,116 @@ Return ONLY a valid JSON object matching this schema:
     }
 });
 
+// 6.56 Combined Model + Wardrobe Extraction (Model Person + Clothing Reference)
+app.post('/api/gemini/extract-model-with-wardrobe', async (req: Request, res: Response) => {
+    try {
+        const { modelImage, wardrobeImage, characterGender, userInstructions } = req.body;
+        if (!modelImage?.data && !wardrobeImage?.data) {
+            return res.status(400).json({ error: 'Forneça ao menos uma imagem de modelo ou vestuário.' });
+        }
+
+        const parts: any[] = [];
+
+        if (modelImage?.data) {
+            parts.push({
+                inlineData: {
+                    data: modelImage.data,
+                    mimeType: modelImage.mimeType || 'image/jpeg'
+                }
+            });
+            parts.push({
+                text: `[IMAGE 1: CHARACTER / MODEL REFERENCE - Source of identity, facial features, facial structure, skin tone, eye color, hairstyle, and body proportions]`
+            });
+        }
+
+        if (wardrobeImage?.data) {
+            parts.push({
+                inlineData: {
+                    data: wardrobeImage.data,
+                    mimeType: wardrobeImage.mimeType || 'image/jpeg'
+                }
+            });
+            parts.push({
+                text: `[IMAGE 2: WARDROBE / CLOTHING REFERENCE - Source of the exact outfit, dress, suit, fabrics, cuts, footwear, accessories, and clothing color palette]`
+            });
+        }
+
+        const userNotes = userInstructions ? `\nUser Custom Directives: ${userInstructions}` : '';
+        const genderDirective = characterGender && characterGender !== 'auto' ? `\nGender Directive: ${characterGender}` : '';
+
+        parts.push({
+            text: `You are an elite Character Designer and Production Art Director.
+TASK: Synthesize a complete Model Sheet specification that pairs the human subject/model from Image 1 with the exact clothing/wardrobe from Image 2.
+${userNotes}
+${genderDirective}
+
+REQUIREMENTS:
+1. BIOMETRICS: Extract the human model's exact facial structure, eyes, eyebrows, nose, lips, skin tone (with hex), hair (with hex), and body physique from Image 1.
+2. COSTUME: Extract the exact outfit, cuts, neckline, sleeves, bottom piece, shoes, accessories, fabrics, and clothing colors (with hex) from Image 2.
+3. HARMONIZATION: Formulate directives for rendering this specific person wearing this specific clothing.
+
+Return ONLY a valid JSON object strictly matching this schema:
+{
+  "gender": "woman or man",
+  "characterName": "Suggested name",
+  "role": "Creator / Model or Lead Character",
+  "age": "e.g. 22-26",
+  "height": "e.g. 5'9\\" (175 cm)",
+  "bodyType": "e.g. Slim, Athletic, Fit",
+  "personality": "Descriptive traits",
+  "distinctiveTraits": "Prominent facial and styling traits",
+  "facialStructure": "Shape of face, cheekbones, jawline",
+  "eyes": "Color, shape, expression",
+  "eyebrows": "Arch, thickness",
+  "nose": "Bridge, tip shape",
+  "lips": "Fullness, shape, natural tint",
+  "skinTone": "Description with undertone",
+  "skinToneHex": "#HEX",
+  "hair": "Length, style, parting",
+  "hairColorHex": "#HEX",
+  "makeup": "Makeup description",
+  "facialHair": "Clean-shaven / stubble / beard if male, or none",
+  "scarsOrMarks": "None / beauty mark",
+  "outfitType": "Complete detailed description of the outfit from Image 2",
+  "topNeckline": "Neckline / collar / lapels from Image 2",
+  "sleevesOrStraps": "Sleeve design / straps from Image 2",
+  "bottomPiece": "Pants / skirt / hemline from Image 2",
+  "footwear": "Shoes / heels / sneakers from Image 2",
+  "accessories": "Jewelry / belt / accessories from Image 2",
+  "fabricTextures": ["Silk", "Cotton", "Wool", "Leather", "Chiffon"],
+  "colorSwatches": [
+    { "id": "c1", "label": "Cor Principal do Traje", "hex": "#HEX" },
+    { "id": "c2", "label": "Tom Secundário", "hex": "#HEX" },
+    { "id": "c3", "label": "Tom de Pele", "hex": "#HEX" },
+    { "id": "c4", "label": "Tom de Cabelo", "hex": "#HEX" }
+  ],
+  "materialReferences": ["Silk/Satin", "Fine Wool", "Matte Leather"],
+  "lighting": "Natural soft studio lighting with warm highlights",
+  "backgroundSetting": "Textured neutral beige wall or minimal studio backdrop",
+  "renderStyle": "Fotorealista 8K, Master Studio Character Sheet",
+  "outputType": "full_model_sheet",
+  "additionalNotes": "Exact biometric replication of Model (Image 1) wearing the exact outfit from Wardrobe (Image 2)."
+}`
+        });
+
+        const response = await generateContentWithFallback({
+            contents: { parts },
+            config: {
+                responseMimeType: 'application/json',
+                temperature: 0.2
+            }
+        });
+
+        const rawText = response.text ? response.text.trim() : '{}';
+        const cleaned = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleaned);
+        res.json(parsed);
+    } catch (err: any) {
+        console.error('Error in extract-model-with-wardrobe:', err);
+        res.status(500).json({ error: err.message || 'Falha ao processar modelo e vestuário' });
+    }
+});
+
 // 6.6 Product & Rebranding Sheet Extraction (Multi-Image: Base Product + Logo + Label)
 app.post('/api/gemini/extract-product-sheet', async (req: Request, res: Response) => {
     try {

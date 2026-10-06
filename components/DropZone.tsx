@@ -119,10 +119,10 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
         setIsDragOver(false);
         setInlineError(null);
 
-        // 1. Verifica se são arquivos soltos
+        // 1. Verifica se são arquivos soltos (qualquer formato de imagem reconhecido)
         const files = (Array.from(e.dataTransfer.files) as File[]).filter(file => {
             const name = file.name.toLowerCase();
-            return file.type.startsWith('image/') || name.endsWith('.jiff') || name.endsWith('.jfif');
+            return file.type.startsWith('image/') || /\.(jpe?g|png|webp|avif|gif|svg|jfif|jiff|heic|heif|bmp|tiff?|ico|raw|dng|cr2|nef|pjpeg|pjp)$/i.test(name);
         });
 
         if (files.length > 0) {
@@ -302,7 +302,35 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
     };
 
     return (
-        <div id="image-upload-container" className="rounded-2xl border border-slate-800 bg-slate-900/90 backdrop-blur-sm overflow-hidden shadow-xl transition-all">
+        <div 
+            id="image-upload-container" 
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`rounded-2xl border bg-slate-900/90 backdrop-blur-sm overflow-hidden shadow-xl transition-all relative ${
+                isDragOver ? 'border-blue-500 ring-2 ring-blue-500/50 bg-blue-950/20' : 'border-slate-800'
+            }`}
+        >
+            {/* Overlay quando arrasta qualquer arquivo de imagem sobre qualquer aba */}
+            {isDragOver && (
+                <div className="absolute inset-0 z-50 bg-blue-900/60 backdrop-blur-xs flex flex-col items-center justify-center pointer-events-none text-white animate-in fade-in">
+                    <Upload size={48} className="animate-bounce text-blue-300 mb-2" />
+                    <p className="text-base font-bold text-white">Solte a foto aqui para carregar</p>
+                    <p className="text-xs text-blue-200">Aceita qualquer formato de imagem reconhecido (JPG, PNG, WebP, AVIF, HEIC, JFIF, BMP, TIFF, GIF, SVG)</p>
+                </div>
+            )}
+
+            {/* Input global de arquivos aceitando todos os formatos reconhecidos */}
+            <input
+                id="file-input-element"
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*,.jpg,.jpeg,.png,.webp,.avif,.gif,.svg,.jfif,.jiff,.heic,.heif,.bmp,.tiff,.tif,.ico,.raw,.dng,.cr2,.nef"
+                multiple
+                onChange={handleFileChange}
+            />
+
             {/* Seletor de Modo (Abas) */}
             <div className="flex border-b border-slate-800 bg-slate-950/60 p-1.5 gap-1.5">
                 <button
@@ -356,15 +384,6 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
-                    <input
-                        id="file-input-element"
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/jpeg,image/png,image/webp,image/avif,image/gif,image/svg+xml,.jiff,.jfif"
-                        multiple
-                        onChange={handleFileChange}
-                    />
 
                     <div className="flex flex-col items-center justify-center space-y-3 sm:space-y-4">
                         <div
@@ -658,12 +677,15 @@ export const DropZone: React.FC<DropZoneProps> = ({ onFilesSelected, onError }) 
                             <button
                                 id="btn-back-to-file"
                                 type="button"
-                                onClick={() => setActiveTab('file')}
+                                onClick={() => {
+                                    fileInputRef.current?.click();
+                                }}
                                 disabled={isLoadingUrl}
-                                className="py-3 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 text-xs sm:text-sm font-medium transition-all border border-slate-700 flex items-center justify-center gap-2 min-h-[44px]"
+                                className="py-3 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 text-xs sm:text-sm font-medium transition-all border border-slate-700 flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+                                title="Selecionar qualquer foto do seu computador"
                             >
                                 <Upload size={15} />
-                                <span>Usar Arquivo</span>
+                                <span>Selecionar Arquivo de Foto</span>
                             </button>
                         </div>
                     </form>

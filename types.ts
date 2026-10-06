@@ -241,9 +241,25 @@ export interface CharacterColorSwatch {
     hex: string;
 }
 
+export type ModelGender = 'woman' | 'man' | 'girl' | 'boy' | 'teen_girl' | 'teen_boy';
+export type ModelAgeCategory = 'child' | 'teen' | 'young_adult' | 'adult' | 'senior';
+
+export interface ModelSectionToggles {
+    profile: boolean;
+    turnaround: boolean;
+    face: boolean;
+    expressions: boolean;
+    poses: boolean;
+    costume: boolean;
+    palette: boolean;
+    lighting: boolean;
+}
+
 export interface ModelSheetData {
     // 1. Character Profile
-    gender: 'woman' | 'man';
+    gender: ModelGender;
+    ageCategory?: ModelAgeCategory;
+    sectionToggles?: ModelSectionToggles;
     characterName: string;
     role: string;
     age: string;

@@ -50,17 +50,6 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
         }
     };
 
-    const handleTestImageFX = async () => {
-        if (!localPrompt) return;
-        try {
-            await navigator.clipboard.writeText(localPrompt);
-            setTestedImageFX(true);
-            setTimeout(() => setTestedImageFX(false), 2500);
-            window.open('https://aitestkitchen.withgoogle.com/tools/image-fx', '_blank');
-        } catch (err) {
-            console.error('Failed to copy and open ImageFX', err);
-        }
-    };
 
     const handleSave = () => {
         onUpdatePrompt(localPrompt);
@@ -331,14 +320,26 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                                      <span>{copied ? 'Prompt Copiado!' : 'Copiar Prompt Master'}</span>
                                  </button>
 
-                                 <button 
-                                     onClick={handleTestImageFX}
+                                 <a 
+                                     href="https://aitestkitchen.withgoogle.com/tools/image-fx"
+                                     target="_blank"
+                                     rel="noopener noreferrer"
+                                     onClick={async () => {
+                                         if (!localPrompt) return;
+                                         try {
+                                             await navigator.clipboard.writeText(localPrompt);
+                                             setTestedImageFX(true);
+                                             setTimeout(() => setTestedImageFX(false), 2500);
+                                         } catch (err) {
+                                             console.error('Failed to copy', err);
+                                         }
+                                     }}
                                      className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-4 py-2.5 rounded-full font-bold text-xs shadow-xl shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
                                      title="Copiar prompt e abrir o Google ImageFX (gerador gratuito da Google)"
                                  >
                                      <ExternalLink size={15} />
                                      <span>{testedImageFX ? 'Copiado! Abrindo ImageFX...' : 'Testar no Google ImageFX (Grátis)'}</span>
-                                 </button>
+                                 </a>
 
                                  {onEnrichWithSearch && !searchGroundingData && (
                                      <button

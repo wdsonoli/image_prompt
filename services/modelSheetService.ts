@@ -1,4 +1,15 @@
-import type { ModelSheetData, CharacterColorSwatch } from '../types.ts';
+import type { ModelSheetData, CharacterColorSwatch, ModelSectionToggles, ModelGender } from '../types.ts';
+
+export const DEFAULT_SECTION_TOGGLES: ModelSectionToggles = {
+    profile: true,
+    turnaround: true,
+    face: true,
+    expressions: true,
+    poses: true,
+    costume: true,
+    palette: true,
+    lighting: true,
+};
 
 export const SOAIMA_PRESET: ModelSheetData = {
     gender: 'woman',
@@ -338,7 +349,208 @@ export const DEFAULT_MODEL_SHEET: ModelSheetData = {
     backgroundSetting: 'Fundo neutro bege minimalista de estúdio',
     renderStyle: 'Fotorealista 8K, Master Studio Portrait',
     outputType: 'full_model_sheet',
-    additionalNotes: 'Manter rigorosa consistência de identidade facial, anatômica e de vestuário.'
+    additionalNotes: 'Manter rigorosa consistência de identidade facial, anatômica e de vestuário.',
+    sectionToggles: DEFAULT_SECTION_TOGGLES
+};
+
+export const KID_BOY_PRESET: ModelSheetData = {
+    gender: 'boy',
+    ageCategory: 'child',
+    characterName: 'Lucas (Criança)',
+    role: 'Aventureiro Infantil / Protagonista Kids',
+    age: '8 anos (8 years old)',
+    height: "4'2\" (128 cm)",
+    bodyType: 'Infantil Natural / Criança Saudável',
+    personality: 'Curioso, brincalhão, corajoso, enérgico, imaginativo e expressivo',
+    distinctiveTraits: 'Olhos grandes castanhos brilhantes, bochechas coradas, cabelo infantil despenteado com mechas suaves, sorriso genuíno',
+    turnaroundViews: ['front', 'three_quarter', 'profile', 'back'],
+    activeView: 'all_turnaround',
+    facialStructure: 'Rosto infantil arredondado com traços suaves, bochechas cheias naturais, queixo delicado de menino de 8 anos',
+    eyes: 'Olhos castanhos escuros grandes e expressivos (#3A271D), olhar curioso vívido',
+    eyebrows: 'Sobrancelhas infantis finas e suaves em arco natural',
+    nose: 'Nariz pequeno e levemente arrebitado característico de criança',
+    lips: 'Lábios infantis rosados suaves com formato natural relaxado (#E89B9B)',
+    skinTone: 'Tom de pele claro acetinado com bochechas suavemente rosadas e textura pura',
+    skinToneHex: '#F6CEB4',
+    hair: 'Cabelo curto castanho médio ligeiramente despenteado com franja infantil (#4A3326)',
+    hairColorHex: '#4A3326',
+    makeup: 'Sem maquiagem, pele infantil limpa e natural',
+    facialHair: 'Nenhum (criança)',
+    scarsOrMarks: 'Pequeno curativo colorido no cotovelo (detalhe lúdico de infância)',
+    activeExpression: 'all_8_emotions',
+    expressionDetails: '8 expressões infantis espontâneas: Curioso, Risada Alegre, Beicinho, Olhos Arregalados de Surpresa, Determinado Heróico, etc.',
+    activePose: 'all_6_poses',
+    poseDetails: '6 posturas infantis dinâmicas: Postura Curiosa, Correndo/Caminhando Alegre, Sentado de Pernas Cruzadas, Pulando de Alegria, etc.',
+    outfitType: 'Jaqueta corta-vento infantil azul e amarela com zíper, camiseta de algodão com estampa lúdica e bermuda jeans com elástico',
+    topNeckline: 'Gola alta com zíper macio de jaqueta infantil',
+    sleevesOrStraps: 'Mangas compridas com punhos de elástico canelado confortável',
+    bottomPiece: 'Bermuda jeans infantil confortável com bolsos e costuras reforçadas',
+    footwear: 'Tênis infantil esportivo com velcro e solado de borracha flexível',
+    accessories: 'Mochilinha infantil de aventuras e pulseirinha de cordão',
+    fabricTextures: ['Algodão Pima Suave', 'Nylon Corta-vento Leve', 'Jeans Denim Macio Infantil'],
+    colorSwatches: [
+        { id: 'c1', label: 'Azul Aventura', hex: '#1E88E5' },
+        { id: 'c2', label: 'Amarelo Sol', hex: '#FDD835' },
+        { id: 'c3', label: 'Jeans Índigo', hex: '#3949AB' },
+        { id: 'c4', label: 'Pele Infantil', hex: '#F6CEB4' }
+    ],
+    materialReferences: ['Algodão Hipoalergênico', 'Nylon Respirável', 'Borracha Macia'],
+    lighting: 'Luz natural diurna suave de estúdio com brilho solar quente e difuso',
+    backgroundSetting: 'Fundo neutro minimalista de estúdio fotográfico infantil',
+    renderStyle: 'Fotorealista 8K, Master Studio Kid Character Sheet, proporções anatômicas infantis perfeitas',
+    outputType: 'full_model_sheet',
+    additionalNotes: 'Proporções anatômicas rigorosamente infantis de 8 anos (cabeça proporcionalmente maior em relação ao tronco, membros ágeis). Manter identidade facial idêntica em todas as vistas.',
+    sectionToggles: DEFAULT_SECTION_TOGGLES
+};
+
+export const KID_GIRL_PRESET: ModelSheetData = {
+    gender: 'girl',
+    ageCategory: 'child',
+    characterName: 'Maya (Criança)',
+    role: 'Protagonista Infantil / Exploradora Criativa',
+    age: '7 anos (7 years old)',
+    height: "3'11\" (120 cm)",
+    bodyType: 'Infantil Delicada / Criança Saudável',
+    personality: 'Alegre, sonhadora, carinhosa, espontânea, criativa e expressiva',
+    distinctiveTraits: 'Olhos castanho-claros luminosos, maria-chiquinha com lacinhos coloridos, sorriso doce com covinhas',
+    turnaroundViews: ['front', 'three_quarter', 'profile', 'back'],
+    activeView: 'all_turnaround',
+    facialStructure: 'Rosto infantil suavemente arredondado, bochechas maçãs rosadas, feições doces e delicadas de menina de 7 anos',
+    eyes: 'Olhos amendoados castanho-claros mel (#795548) com brilho cintilante',
+    eyebrows: 'Sobrancelhas infantis finas e suaves',
+    nose: 'Nariz delicado e pequeno de criança',
+    lips: 'Lábios naturalmente rosados (#F48FB1)',
+    skinTone: 'Tom de pele acetinado suave com textura aveludada e bochechas coradas',
+    skinToneHex: '#FAD4C0',
+    hair: 'Cabelo castanho com duas marias-chiquinhas onduladas e lacinhos de fita (#5D4037)',
+    hairColorHex: '#5D4037',
+    makeup: 'Sem maquiagem, pele de criança 100% natural',
+    facialHair: 'Nenhum',
+    scarsOrMarks: 'Nenhuma marca visível',
+    activeExpression: 'all_8_emotions',
+    expressionDetails: '8 emoções infantis doces: Sorriso Radiante, Olhar Curioso, Gargalhada, Beicinho Engraçado, Pensativa, etc.',
+    activePose: 'all_6_poses',
+    poseDetails: '6 posturas infantis espontâneas: Em Pé Sorrindo, Girando o Vestido, Sentada Abraçando os Joelhos, Dando Passinho Leve, etc.',
+    outfitType: 'Vestido infantil evasê de algodão estampado com flores delicadas sobre camiseta básica e meia-calça suave',
+    topNeckline: 'Decote redondo infantil suave com acabamento de viés',
+    sleevesOrStraps: 'Mangas curtas bufantes delicadas',
+    bottomPiece: 'Saia rodada infantil confortável na altura do joelho',
+    footwear: 'Sapatilhas infantis vermelhas ou tênis cano médio macio',
+    accessories: 'Lacinhos de cabelo de fita de gorgurão e bolsinha tiracolo lúdica',
+    fabricTextures: ['Algodão Percal Macio', 'Tule Suave', 'Lona Macia de Calçado'],
+    colorSwatches: [
+        { id: 'c1', label: 'Rosa Primavera', hex: '#F06292' },
+        { id: 'c2', label: 'Vermelho Lacinho', hex: '#E53935' },
+        { id: 'c3', label: 'Creme Baunilha', hex: '#FFF9C4' },
+        { id: 'c4', label: 'Pele Delicada', hex: '#FAD4C0' }
+    ],
+    materialReferences: ['Algodão 100% Orgânico', 'Fita de Cetim', 'Couro Macio Infantil'],
+    lighting: 'Luz de estúdio quente, difusa e acolhedora com iluminação suave nos olhos',
+    backgroundSetting: 'Fundo neutro suave pastel ou cinza claro minimalista',
+    renderStyle: 'Fotorealista 8K, Master Studio Child Character Sheet, proporções anatômicas infantis perfeitas',
+    outputType: 'full_model_sheet',
+    additionalNotes: 'Proporções infantis genuínas de 7 anos. Preservar rigorosamente a inocência, espontaneidade e traços faciais consistentes.',
+    sectionToggles: DEFAULT_SECTION_TOGGLES
+};
+
+export const TEEN_BOY_PRESET: ModelSheetData = {
+    gender: 'teen_boy',
+    ageCategory: 'teen',
+    characterName: 'Theo (Adolescente)',
+    role: 'Estudante / Creator Jovem / Teen Protagonista',
+    age: '15 anos (15 years old)',
+    height: "5'8\" (173 cm)",
+    bodyType: 'Adolescente Longilíneo / Slim Teen',
+    personality: 'Esperto, criativo, conectado, descolado, perspicaz e autêntico',
+    distinctiveTraits: 'Cabelo moderno texturizado com franja desfiada, postura descontraída de adolescente, olhar confiante e antenado',
+    turnaroundViews: ['front', 'three_quarter', 'profile', 'back'],
+    activeView: 'all_turnaround',
+    facialStructure: 'Rosto jovem em transição para a maturidade, mandíbula levemente definida, maçãs do rosto suaves',
+    eyes: 'Olhos castanhos escuros expressivos (#2D1E16) com olhar inteligente',
+    eyebrows: 'Sobrancelhas naturais juvenis bem delineadas',
+    nose: 'Nariz reto juvenil bem proporcionado',
+    lips: 'Lábios naturais juvenis com desenho definido',
+    skinTone: 'Tom de pele jovem saudável com textura natural e poros autênticos',
+    skinToneHex: '#E5B99A',
+    hair: 'Corte moderno juvenil texturizado com camadas e leve franja messy (#221814)',
+    hairColorHex: '#221814',
+    makeup: 'Sem maquiagem, pele jovem limpa e natural',
+    facialHair: 'Nenhum (penugem imperceptível natural de adolescente)',
+    scarsOrMarks: 'Nenhuma marca visível',
+    activeExpression: 'all_8_emotions',
+    expressionDetails: '8 expressões de adolescente: Descolado, Sorriso Espontâneo, Concentrado no Celular/Game, Pensativo, Determinado, etc.',
+    activePose: 'all_6_poses',
+    poseDetails: '6 posturas de jovem contemporâneo: Postura Relaxada com Mãos nos Bolsos, Caminhada Dinâmica, Sentado com Perfil Casual, etc.',
+    outfitType: 'Moletom oversized streetwear com capuz cinza-mescla e jaqueta bomber aberta sobre calça cargo utilitária preta',
+    topNeckline: 'Capuz estruturado e gola redonda de camiseta por baixo',
+    sleevesOrStraps: 'Mangas compridas com punhos canelados caídos sobre o pulso',
+    bottomPiece: 'Calça cargo juvenil preta com bolsos utilitários nas laterais',
+    footwear: 'Sneakers modernos de cano alto estilo skate / basquete com cadarços brancos',
+    accessories: 'Fones de ouvido bluetooth no pescoço e relógio digital moderno',
+    fabricTextures: ['Moletom Algodão Pesado', 'Ripstop Sarja', 'Couro e Borracha Sneaker'],
+    colorSwatches: [
+        { id: 'c1', label: 'Cinza Mescla Moletom', hex: '#6B7280' },
+        { id: 'c2', label: 'Preto Grafite Cargo', hex: '#111827' },
+        { id: 'c3', label: 'Branco Sneaker', hex: '#F9FAFB' },
+        { id: 'c4', label: 'Pele Jovem', hex: '#E5B99A' }
+    ],
+    materialReferences: ['French Terry Algodão', 'Nylon Cargo', 'Camurça Sintética'],
+    lighting: 'Luz de estúdio contemporânea com leve contraste cinematográfico urbano',
+    backgroundSetting: 'Fundo cinza urbano minimalista de estúdio fotográfico',
+    renderStyle: 'Fotorealista 8K, Master Studio Teen Character Sheet, estética realista de 15 anos',
+    outputType: 'full_model_sheet',
+    additionalNotes: 'Proporções corporais autênticas de adolescente de 15 anos (estrutura esguia, mãos e pés ligeiramente maiores, transição juvenil).',
+    sectionToggles: DEFAULT_SECTION_TOGGLES
+};
+
+export const TEEN_GIRL_PRESET: ModelSheetData = {
+    gender: 'teen_girl',
+    ageCategory: 'teen',
+    characterName: 'Clara (Adolescente)',
+    role: 'Estudante de Artes / Influencer Jovem / Teen Heroína',
+    age: '16 anos (16 years old)',
+    height: "5'5\" (165 cm)",
+    bodyType: 'Jovem Delicada / Slim Teen Feminina',
+    personality: 'Carismática, artística, antenada, expressiva, empática e estilosa',
+    distinctiveTraits: 'Cabelo longo em camadas com franja cortina (curtain bangs), olhar brilhante e expressivo, estilo estético contemporâneo (aesthetic Gen-Z)',
+    turnaroundViews: ['front', 'three_quarter', 'profile', 'back'],
+    activeView: 'all_turnaround',
+    facialStructure: 'Contorno oval suave juvenil, mandíbula delicada, traços harmoniosos e expressivos de adolescente de 16 anos',
+    eyes: 'Olhos amendoados castanho-esverdeados ou avelã com brilho cintilante (#5D4037)',
+    eyebrows: 'Sobrancelhas naturais bem penteadas e definidas',
+    nose: 'Nariz pequeno e proporcional juvenil',
+    lips: 'Lábios naturais rosados com leve brilho hidratante (#D8829D)',
+    skinTone: 'Tom de pele claro iluminado natural com textura pura de jovem',
+    skinToneHex: '#F3C5B0',
+    hair: 'Cabelo longo castanho com mechas suaves em corte butterfly/camadas e franja cortina (#3E2723)',
+    hairColorHex: '#3E2723',
+    makeup: 'Maquiagem juvenil minimalista e natural (lip tint suave e máscara de cílios leve)',
+    facialHair: 'Nenhum',
+    scarsOrMarks: 'Sardas sutis sobre o dorso do nariz',
+    activeExpression: 'all_8_emotions',
+    expressionDetails: '8 emoções juvenis autênticas: Sorriso Encantador, Pensativa, Confiante, Gargalhada Espontânea, Determinada, etc.',
+    activePose: 'all_6_poses',
+    poseDetails: '6 posturas dinâmicas de jovem: Em Pé com Postura Fashion Casual, Caminhada Leve, Sentada com Perna Dobrada, etc.',
+    outfitType: 'Cardigan de tricô cropped macio lilás/pastel sobre top básico branco, calça jeans wide-leg de cintura alta e cinto fino',
+    topNeckline: 'Decote em V suave com botões vintage no cardigan',
+    sleevesOrStraps: 'Mangas longas macias levemente caídas sobre as mãos',
+    bottomPiece: 'Calça jeans wide-leg azul clara de corte reto contemporâneo',
+    footwear: 'Tênis casual branco estilo retrô com solado plataforma baixo',
+    accessories: 'Colarzinho de corrente fina com pingente delicado e anéis finos de prata',
+    fabricTextures: ['Tricô de Algodão Macio', 'Denim Jeans Claro Vintage', 'Couro Branco Limpo'],
+    colorSwatches: [
+        { id: 'c1', label: 'Lilás Pastel Cardigan', hex: '#CE93D8' },
+        { id: 'c2', label: 'Jeans Azul Vintage', hex: '#64B5F6' },
+        { id: 'c3', label: 'Branco Puro Top', hex: '#FFFFFF' },
+        { id: 'c4', label: 'Pele Jovem Clara', hex: '#F3C5B0' }
+    ],
+    materialReferences: ['Tricô Penteado', 'Jeans 100% Algodão', 'Prata 925'],
+    lighting: 'Luz suave de estúdio com golden hour suave e iluminação natural de beleza',
+    backgroundSetting: 'Fundo estúdio minimalista em tons neutros claros',
+    renderStyle: 'Fotorealista 8K, Master Studio Teen Character Sheet, estética contemporânea realista de 16 anos',
+    outputType: 'full_model_sheet',
+    additionalNotes: 'Proporções anatômicas exatas de jovem de 16 anos. Manter continuidade perfeita dos traços faciais, cabelo e figurino.',
+    sectionToggles: DEFAULT_SECTION_TOGGLES
 };
 
 /**
@@ -397,6 +609,34 @@ export async function extractWardrobeFromImage(
 
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Falha na análise do vestuário' }));
+        throw new Error(err.error || `Erro HTTP ${res.status}`);
+    }
+
+    return await res.json();
+}
+
+/**
+ * Análise Combinada: Extrai biometria e traços do Modelo (Imagem 1) e corte/tecidos/cores do Vestuário (Imagem 2)
+ */
+export async function extractModelWithWardrobe(
+    modelImage?: { base64: string; mimeType: string },
+    wardrobeImage?: { base64: string; mimeType: string },
+    characterGender?: 'woman' | 'man',
+    userInstructions?: string
+): Promise<Partial<ModelSheetData>> {
+    const res = await fetch('/api/gemini/extract-model-with-wardrobe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            modelImage: modelImage ? { data: modelImage.base64, mimeType: modelImage.mimeType } : undefined,
+            wardrobeImage: wardrobeImage ? { data: wardrobeImage.base64, mimeType: wardrobeImage.mimeType } : undefined,
+            characterGender,
+            userInstructions
+        })
+    });
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Falha ao processar modelo e vestuário' }));
         throw new Error(err.error || `Erro HTTP ${res.status}`);
     }
 
@@ -565,9 +805,15 @@ export const WARDROBE_PRESETS: WardrobePresetItem[] = [
 ];
 
 /**
- * Compiles a master production prompt from the model sheet data.
+ * Compiles a master production prompt from the model sheet data respecting section toggles.
  */
-export function compileModelSheetPrompt(data: ModelSheetData, targetPlatform: string = 'midjourney'): string {
+export function compileModelSheetPrompt(
+    data: ModelSheetData, 
+    targetPlatform: string = 'midjourney',
+    toggles?: ModelSectionToggles
+): string {
+    const effectiveToggles: ModelSectionToggles = toggles || data.sectionToggles || DEFAULT_SECTION_TOGGLES;
+
     const colorString = data.colorSwatches && data.colorSwatches.length > 0
         ? data.colorSwatches.map(c => `${c.label}: ${c.hex}`).join(', ')
         : '#B31217, #E63946, #F6CCC8, #3B2A1F';
@@ -580,9 +826,27 @@ export function compileModelSheetPrompt(data: ModelSheetData, targetPlatform: st
         ? data.fabricTextures.join(', ')
         : 'Silk, Chiffon, Crepe';
 
-    const isMale = data.gender === 'man';
-    const genderRole = isMale ? 'Male Model / Character' : 'Female Model / Character';
-    const facialHairClause = isMale && data.facialHair ? `, Facial Hair: ${data.facialHair}` : '';
+    const isBoy = data.gender === 'boy';
+    const isGirl = data.gender === 'girl';
+    const isTeenBoy = data.gender === 'teen_boy';
+    const isTeenGirl = data.gender === 'teen_girl';
+    const isChild = isBoy || isGirl;
+    const isTeen = isTeenBoy || isTeenGirl;
+    const isMale = data.gender === 'man' || isBoy || isTeenBoy;
+
+    const genderRole = isBoy
+        ? 'Young Boy Character (Child 7-9y, natural child proportions)'
+        : isGirl
+        ? 'Young Girl Character (Child 6-8y, natural child proportions)'
+        : isTeenBoy
+        ? 'Teenage Boy Character (Adolescent 14-16y, authentic teen proportions)'
+        : isTeenGirl
+        ? 'Teenage Girl Character (Adolescent 15-17y, authentic teen proportions)'
+        : isMale
+        ? 'Male Model / Character'
+        : 'Female Model / Character';
+
+    const facialHairClause = (isMale && !isChild && !isTeen && data.facialHair) ? `, Facial Hair: ${data.facialHair}` : '';
 
     // Diretivas explícitas de referências de vestuário enviadas pelo usuário
     const hasWardrobeRefs = data.wardrobeReferences && data.wardrobeReferences.length > 0;
@@ -595,29 +859,59 @@ export function compileModelSheetPrompt(data: ModelSheetData, targetPlatform: st
 
     // 1. Full Production Model Sheet Grid (Matching user references)
     if (data.outputType === 'full_model_sheet') {
-        let prompt = `Complete ${isMale ? 'male' : 'female'} character turnaround model sheet and identity reference board, photographic ultra-high-definition presentation grid.
-Character: ${data.characterName || (isMale ? 'Male Hero' : 'Female Hero')}, Gender: ${genderRole}, Role: ${data.role || 'Creator / Model'}, Age: ${data.age || (isMale ? 'Mid 20s' : 'Mid 20s')}, Height: ${data.height || (isMale ? "6'0\\\"" : "5'8\\\"")}, Body Type: ${data.bodyType || (isMale ? 'Athletic Masculine' : 'Slim')}.
-Distinctive Traits: ${data.distinctiveTraits}. Personality: ${data.personality}.
+        const sections: string[] = [];
 
-[SECTION 1: FULL-BODY TURNAROUND (4 VIEWS)]
-Four aligned full-body angles side-by-side: Front View, 3/4 View, Side Profile View, and Back View. Wearing identical ${data.outfitType}, ${data.footwear}. Perfect proportional scale, identical head height, seamless visual continuity across all 4 angles.
+        // Intro / Profile
+        if (effectiveToggles.profile) {
+            sections.push(`Complete ${genderRole.toLowerCase()} turnaround model sheet and identity reference board, photographic ultra-high-definition presentation grid.
+Character: ${data.characterName || 'Hero Character'}, Gender: ${genderRole}, Role: ${data.role || 'Protagonist'}, Age: ${data.age || (isChild ? '8 years old' : isTeen ? '15 years old' : 'Mid 20s')}, Height: ${data.height || (isChild ? "4'2\\\"" : isTeen ? "5'8\\\"" : isMale ? "6'0\\\"" : "5'8\\\"")}, Body Type: ${data.bodyType || (isChild ? 'Natural Child' : isTeen ? 'Slim Teen' : isMale ? 'Athletic Masculine' : 'Slim')}.
+Distinctive Traits: ${data.distinctiveTraits}. Personality: ${data.personality}.`);
+        } else {
+            sections.push(`Complete ${genderRole.toLowerCase()} character presentation grid. Character: ${data.characterName || 'Hero Character'}.`);
+        }
 
-[SECTION 2: FACE AND IDENTITY BIOMETRICS]
-Close-up triple view (Front, Profile, 3/4 View). Facial Structure: ${data.facialStructure}. Eyes: ${data.eyes}. Eyebrows: ${data.eyebrows}. Nose: ${data.nose}. Lips: ${data.lips}. Skin: ${data.skinTone} (Hex ${data.skinToneHex || '#F6CCC8'}). Hair: ${data.hair} (Hex ${data.hairColorHex || '#3B2A1F'}). Makeup: ${data.makeup}${facialHairClause}. Marks: ${data.scarsOrMarks}.
+        // Section 1: Turnaround
+        if (effectiveToggles.turnaround) {
+            sections.push(`[SECTION: FULL-BODY TURNAROUND (4 VIEWS)]
+Four aligned full-body angles side-by-side: Front View, 3/4 View, Side Profile View, and Back View. Wearing identical ${data.outfitType}, ${data.footwear}. Perfect proportional scale, identical head height, seamless visual continuity across all 4 angles.`);
+        }
 
-[SECTION 3: 8-EMOTION EXPRESSION SHEET]
-Neat 2x4 photographic expression grid of the identical face: 1. Neutral, 2. Happy, 3. Angry, 4. Sad, 5. Surprised, 6. Worried, 7. Confident, 8. Determined. Perfect facial biometric continuity.
+        // Section 2: Face & Identity Biometrics
+        if (effectiveToggles.face) {
+            sections.push(`[SECTION: FACE AND IDENTITY BIOMETRICS]
+Close-up triple view (Front, Profile, 3/4 View). Facial Structure: ${data.facialStructure}. Eyes: ${data.eyes}. Eyebrows: ${data.eyebrows}. Nose: ${data.nose}. Lips: ${data.lips}. Skin: ${data.skinTone} (Hex ${data.skinToneHex || '#F6CCC8'}). Hair: ${data.hair} (Hex ${data.hairColorHex || '#3B2A1F'}). Makeup: ${data.makeup}${facialHairClause}. Marks: ${data.scarsOrMarks}.`);
+        }
 
-[SECTION 4: 6-POSE BODY LANGUAGE SHEET]
-Character shown in 6 dynamic full-body postures: 1. Neutral Stand, 2. Walking, 3. Sitting, 4. Relaxed, 5. Tense, 6. Action-Ready. Consistent costume, footwear (${data.footwear}), and physique.
+        // Section 3: 8-Emotion Expression Sheet
+        if (effectiveToggles.expressions) {
+            sections.push(`[SECTION: 8-EMOTION EXPRESSION SHEET]
+Neat 2x4 photographic expression grid of the identical face: 1. Neutral, 2. Happy, 3. Angry, 4. Sad, 5. Surprised, 6. Worried, 7. Confident, 8. Determined. Perfect facial biometric continuity.`);
+        }
 
-[SECTION 5: COSTUME & CLOSE-UP SWATCHES]
-Detailed costume swatches: Neckline (${data.topNeckline}), Sleeves/Straps (${data.sleevesOrStraps}), Silhouette (${data.bottomPiece}), Footwear (${data.footwear}), Accessories (${data.accessories}), Fabrics (${fabricsString}).${wardrobeRefClause}
+        // Section 4: 6-Pose Body Language Sheet
+        if (effectiveToggles.poses) {
+            sections.push(`[SECTION: 6-POSE BODY LANGUAGE SHEET]
+Character shown in 6 dynamic full-body postures: 1. Neutral Stand, 2. Walking, 3. Sitting, 4. Relaxed, 5. Tense, 6. Action-Ready. Consistent costume, footwear (${data.footwear}), and physique.`);
+        }
 
-[SECTION 6: COLOR PALETTE & MATERIAL SAMPLES]
-Key color swatches with exact hex codes: ${colorString}. Material finishes: ${materialsString}.
+        // Section 5: Costume & Close-up Swatches
+        if (effectiveToggles.costume) {
+            sections.push(`[SECTION: COSTUME & CLOSE-UP SWATCHES]
+Detailed costume swatches: Neckline (${data.topNeckline}), Sleeves/Straps (${data.sleevesOrStraps}), Silhouette (${data.bottomPiece}), Footwear (${data.footwear}), Accessories (${data.accessories}), Fabrics (${fabricsString}).${wardrobeRefClause}`);
+        }
 
-Lighting: ${data.lighting}. Setting: ${data.backgroundSetting}. Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, clean layout, white borders between panels, 8k resolution, photorealistic master character reference sheet.`;
+        // Section 6: Color Palette & Material Samples
+        if (effectiveToggles.palette) {
+            sections.push(`[SECTION: COLOR PALETTE & MATERIAL SAMPLES]
+Key color swatches with exact hex codes: ${colorString}. Material finishes: ${materialsString}.`);
+        }
+
+        // Section 7: Lighting & Environment Directives
+        if (effectiveToggles.lighting) {
+            sections.push(`Lighting: ${data.lighting}. Setting: ${data.backgroundSetting}. Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, clean layout, white borders between panels, 8k resolution, photorealistic master character reference sheet.`);
+        }
+
+        let prompt = sections.join('\n\n');
 
         if (targetPlatform === 'midjourney') {
             prompt += ` --ar 2:3 --v 6.1 --style raw`;
@@ -627,13 +921,25 @@ Lighting: ${data.lighting}. Setting: ${data.backgroundSetting}. Directives: ${da
 
     // 2. 4-View Turnaround Grid
     if (data.outputType === 'turnaround_4_views') {
-        let prompt = `Full-body ${isMale ? 'male' : 'female'} character turnaround sheet, 4 distinct sequential angles side-by-side on a clean line: Front View, 3/4 View, Side Profile View, Back View.
-Subject: ${data.characterName}, ${genderRole}, ${data.age}, ${data.height}, ${data.bodyType} body type.
-Facial Identity: ${data.facialStructure}, ${data.eyes}, ${data.hair} (Hex ${data.hairColorHex})${facialHairClause}.
-Costume: Wearing identical ${data.outfitType}, neckline ${data.topNeckline}, ${data.bottomPiece}, footwear ${data.footwear}.${wardrobeRefClause}
-Colors: ${colorString}. Materials: ${materialsString}.
-Identical anatomical proportions, precise alignment, studio lighting on neutral ${data.backgroundSetting}, 8k photorealistic character turnaround render.`;
+        const parts: string[] = [];
+        parts.push(`Full-body ${genderRole.toLowerCase()} turnaround sheet, 4 distinct sequential angles side-by-side on a clean line: Front View, 3/4 View, Side Profile View, Back View.`);
+        if (effectiveToggles.profile) {
+            parts.push(`Subject: ${data.characterName}, ${genderRole}, ${data.age}, ${data.height}, ${data.bodyType} body type.`);
+        }
+        if (effectiveToggles.face) {
+            parts.push(`Facial Identity: ${data.facialStructure}, ${data.eyes}, ${data.hair} (Hex ${data.hairColorHex})${facialHairClause}.`);
+        }
+        if (effectiveToggles.costume) {
+            parts.push(`Costume: Wearing identical ${data.outfitType}, neckline ${data.topNeckline}, ${data.bottomPiece}, footwear ${data.footwear}.${wardrobeRefClause}`);
+        }
+        if (effectiveToggles.palette) {
+            parts.push(`Colors: ${colorString}. Materials: ${materialsString}.`);
+        }
+        if (effectiveToggles.lighting) {
+            parts.push(`Identical anatomical proportions, precise alignment, studio lighting on neutral ${data.backgroundSetting}, 8k photorealistic character turnaround render.`);
+        }
 
+        let prompt = parts.join('\n');
         if (targetPlatform === 'midjourney') {
             prompt += ` --ar 16:9 --v 6.1 --style raw`;
         }
@@ -642,11 +948,19 @@ Identical anatomical proportions, precise alignment, studio lighting on neutral 
 
     // 3. 8-Emotion Expression Grid
     if (data.outputType === 'expression_grid') {
-        let prompt = `${isMale ? 'Male' : 'Female'} character facial expression sheet, 8 emotional expressions in neat 2x4 photographic portrait grid: Neutral, Happy, Angry, Sad, Surprised, Worried, Confident, Determined.
-Subject: ${data.characterName}, ${data.age}, identical facial biometrics across all 8 panels.
-Features: ${data.facialStructure}, ${data.eyes}, ${data.lips}, skin ${data.skinTone} (Hex ${data.skinToneHex}), hair ${data.hair}${facialHairClause}.
-Soft studio portrait lighting, sharp focus on eyes, clean background, consistent identity across all emotional states, 8k master sheet.`;
+        const parts: string[] = [];
+        parts.push(`${genderRole} facial expression sheet, 8 emotional expressions in neat 2x4 photographic portrait grid: Neutral, Happy, Angry, Sad, Surprised, Worried, Confident, Determined.`);
+        if (effectiveToggles.profile) {
+            parts.push(`Subject: ${data.characterName}, ${data.age}, identical facial biometrics across all 8 panels.`);
+        }
+        if (effectiveToggles.face) {
+            parts.push(`Features: ${data.facialStructure}, ${data.eyes}, ${data.lips}, skin ${data.skinTone} (Hex ${data.skinToneHex}), hair ${data.hair}${facialHairClause}.`);
+        }
+        if (effectiveToggles.lighting) {
+            parts.push(`Soft studio portrait lighting, sharp focus on eyes, clean background, consistent identity across all emotional states, 8k master sheet.`);
+        }
 
+        let prompt = parts.join('\n');
         if (targetPlatform === 'midjourney') {
             prompt += ` --ar 16:9 --v 6.1 --style raw`;
         }
@@ -655,10 +969,19 @@ Soft studio portrait lighting, sharp focus on eyes, clean background, consistent
 
     // 4. 6-Pose Turnaround Sheet
     if (data.outputType === 'pose_grid') {
-        let prompt = `${isMale ? 'Male' : 'Female'} character pose study and action turnaround grid, 6 sequential full-body poses side-by-side: 1. Neutral Stand, 2. Walking, 3. Sitting, 4. Relaxed, 5. Tense, 6. Action-Ready.
-Subject: ${data.characterName}, ${data.age}, ${data.bodyType}, wearing identical ${data.outfitType}, ${data.footwear}.${wardrobeRefClause}
-Flawless costume and physical consistency, dynamic body language, neutral studio backdrop, 8k resolution master render.`;
+        const parts: string[] = [];
+        parts.push(`${genderRole} character pose study and action turnaround grid, 6 sequential full-body poses side-by-side: 1. Neutral Stand, 2. Walking, 3. Sitting, 4. Relaxed, 5. Tense, 6. Action-Ready.`);
+        if (effectiveToggles.profile) {
+            parts.push(`Subject: ${data.characterName}, ${data.age}, ${data.bodyType}.`);
+        }
+        if (effectiveToggles.costume) {
+            parts.push(`Wearing identical ${data.outfitType}, ${data.footwear}.${wardrobeRefClause}`);
+        }
+        if (effectiveToggles.lighting) {
+            parts.push(`Flawless costume and physical consistency, dynamic body language, neutral studio backdrop, 8k resolution master render.`);
+        }
 
+        let prompt = parts.join('\n');
         if (targetPlatform === 'midjourney') {
             prompt += ` --ar 16:9 --v 6.1 --style raw`;
         }
@@ -670,16 +993,31 @@ Flawless costume and physical consistency, dynamic body language, neutral studio
     const emotionLabel = data.activeExpression === 'all_8_emotions' ? 'confident with warm gentle smile' : data.activeExpression.replace(/_/g, ' ');
     const poseLabel = data.activePose === 'all_6_poses' ? 'natural standing posture' : data.activePose.replace(/_/g, ' ');
 
-    let prompt = `Master photographic studio portrait of ${data.characterName}, ${genderRole}, ${data.age}, ${data.height}, ${data.bodyType} body.
-Pose: Full-body ${poseLabel}, ${data.poseDetails}.
-Expression: ${emotionLabel}, ${data.expressionDetails}.
-Camera Angle: ${viewLabel}.
-Biometrics: ${data.facialStructure}, expressive ${data.eyes}, natural ${data.lips}, ${data.skinTone} (Hex ${data.skinToneHex}), ${data.hair} (Hex ${data.hairColorHex}), ${data.makeup}${facialHairClause}.
-Costume: Wearing ${data.outfitType}, neckline ${data.topNeckline}, ${data.bottomPiece}, ${data.footwear}, accessories ${data.accessories}.${wardrobeRefClause}
-Color palette: ${colorString}. Materials: ${materialsString}.
-Lighting: ${data.lighting}. Setting: ${data.backgroundSetting}.
-Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, Hasselblad 100MP RAW quality, 8k resolution, authentic skin pore textures, photorealistic.`;
+    const parts: string[] = [];
+    parts.push(`Master photographic studio portrait of ${data.characterName}, ${genderRole}.`);
+    if (effectiveToggles.profile) {
+        parts.push(`Age: ${data.age}, Height: ${data.height}, Body: ${data.bodyType}.`);
+    }
+    if (effectiveToggles.poses) {
+        parts.push(`Pose: Full-body ${poseLabel}, ${data.poseDetails}. Camera Angle: ${viewLabel}.`);
+    }
+    if (effectiveToggles.expressions) {
+        parts.push(`Expression: ${emotionLabel}, ${data.expressionDetails}.`);
+    }
+    if (effectiveToggles.face) {
+        parts.push(`Biometrics: ${data.facialStructure}, expressive ${data.eyes}, natural ${data.lips}, ${data.skinTone} (Hex ${data.skinToneHex}), ${data.hair} (Hex ${data.hairColorHex}), ${data.makeup}${facialHairClause}.`);
+    }
+    if (effectiveToggles.costume) {
+        parts.push(`Costume: Wearing ${data.outfitType}, neckline ${data.topNeckline}, ${data.bottomPiece}, ${data.footwear}, accessories ${data.accessories}.${wardrobeRefClause}`);
+    }
+    if (effectiveToggles.palette) {
+        parts.push(`Color palette: ${colorString}. Materials: ${materialsString}.`);
+    }
+    if (effectiveToggles.lighting) {
+        parts.push(`Lighting: ${data.lighting}. Setting: ${data.backgroundSetting}. Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, Hasselblad 100MP RAW quality, 8k resolution, authentic skin pore textures, photorealistic.`);
+    }
 
+    let prompt = parts.join('\n');
     if (targetPlatform === 'midjourney') {
         prompt += ` --ar 2:3 --v 6.1 --style raw`;
     }
