@@ -56,6 +56,8 @@ export const SOAIMA_PRESET: ModelSheetData = {
     lighting: 'Natural soft studio lighting with warm diffused rim highlight',
     backgroundSetting: 'Clean minimal textured beige wall and light studio floor',
     renderStyle: 'Photorealistic 8K, Master Studio Character Sheet',
+    photographyFraming: 'full_body',
+    posePhotoCount: 1,
     outputType: 'full_model_sheet',
     additionalNotes: 'Maintain identical face biometrics, wardrobe continuity, and hair texture across all views and expressions.'
 };
@@ -348,6 +350,8 @@ export const DEFAULT_MODEL_SHEET: ModelSheetData = {
     lighting: 'Iluminação suave de estúdio com preenchimento quente',
     backgroundSetting: 'Fundo neutro bege minimalista de estúdio',
     renderStyle: 'Fotorealista 8K, Master Studio Portrait',
+    photographyFraming: 'full_body',
+    posePhotoCount: 1,
     outputType: 'full_model_sheet',
     additionalNotes: 'Manter rigorosa consistência de identidade facial, anatômica e de vestuário.',
     sectionToggles: DEFAULT_SECTION_TOGGLES
@@ -804,6 +808,135 @@ export const WARDROBE_PRESETS: WardrobePresetItem[] = [
     }
 ];
 
+export interface PoseInfo {
+    id: string;
+    label: string;
+    desc: string;
+    enName: string;
+    enPrompt: string;
+}
+
+export const POSE_DEFINITIONS: Record<string, PoseInfo> = {
+    neutral_stand: {
+        id: 'neutral_stand',
+        label: 'Em Pé Neutro',
+        desc: 'Postura ereta natural, braços ao lado do corpo, peso balanceado',
+        enName: 'Neutral Standing',
+        enPrompt: 'Natural upright standing posture, arms gently at sides, balanced weight, professional full-body stance'
+    },
+    walking: {
+        id: 'walking',
+        label: 'Caminhando',
+        desc: 'Passo elegante para a frente, movimento fluido do tecido',
+        enName: 'Dynamic Walking',
+        enPrompt: 'Dynamic elegant walking stride forward, natural mid-motion step, fluid garment movement, graceful forward motion'
+    },
+    sitting: {
+        id: 'sitting',
+        label: 'Sentada / Sentado',
+        desc: 'Sentado em assento minimalista, pernas elegantes',
+        enName: 'Seated Posture',
+        enPrompt: 'Poised seated posture on a minimalist studio stool, elegant posture, relaxed crossed or angled legs, sophisticated silhouette'
+    },
+    relaxed: {
+        id: 'relaxed',
+        label: 'Relaxada / Relaxado',
+        desc: 'Peso apoiado em uma perna (contrapposto), ombros descontraídos',
+        enName: 'Relaxed Contrapposto',
+        enPrompt: 'Relaxed contrapposto stance, subtle weight shift to one hip, natural shoulders, effortless casual elegance'
+    },
+    tense: {
+        id: 'tense',
+        label: 'Tensa / Alerta',
+        desc: 'Postura firme, cabeça em leve giro, olhar focado e presencial',
+        enName: 'Alert & Focused',
+        enPrompt: 'Poised alert stance, subtle head turn with focused intense gaze, sharp silhouette tension, commanding presence'
+    },
+    action_ready: {
+        id: 'action_ready',
+        label: 'Pronta / Pronto para Ação',
+        desc: 'Base corporal dinâmica, olhar concentrado, energia expressiva',
+        enName: 'Action-Ready Dynamic',
+        enPrompt: 'Dynamic action-ready stance, athletic grounded footing, expressive body language with potential kinetic motion'
+    }
+};
+
+/**
+ * Returns the resolved list of poses based on selectedPoses, activePose, and posePhotoCount (1 min, 4 max).
+ */
+export function getResolvedPoses(data: ModelSheetData): { count: number; poses: PoseInfo[] } {
+    const rawCount = data.posePhotoCount ?? (data.activePose === 'all_6_poses' ? 4 : 1);
+    const count = Math.min(4, Math.max(1, rawCount));
+
+    const defaultSequence = ['neutral_stand', 'walking', 'sitting', 'action_ready', 'relaxed', 'tense'];
+
+    let keys: string[] = [];
+
+    if (data.selectedPoses && data.selectedPoses.length > 0) {
+        keys = [...data.selectedPoses.slice(0, count)];
+    } else if (data.activePose && data.activePose !== 'all_6_poses' && POSE_DEFINITIONS[data.activePose]) {
+        keys = [data.activePose];
+        for (const k of defaultSequence) {
+            if (keys.length >= count) break;
+            if (!keys.includes(k)) keys.push(k);
+        }
+    } else {
+        keys = defaultSequence.slice(0, count);
+    }
+
+    // Ensure we have exactly `count` items
+    for (const k of defaultSequence) {
+        if (keys.length >= count) break;
+        if (!keys.includes(k)) keys.push(k);
+    }
+
+    const poses = keys.map(k => POSE_DEFINITIONS[k] || {
+        id: k,
+        label: k.replace(/_/g, ' '),
+        desc: k.replace(/_/g, ' '),
+        enName: k.replace(/_/g, ' '),
+        enPrompt: k.replace(/_/g, ' ')
+    });
+
+    return { count, poses };
+}
+
+export interface PhotographyFramingOption {
+    id: 'waist_up' | 'full_body' | 'chest_up';
+    label: string;
+    labelShort: string;
+    desc: string;
+    enPrompt: string;
+    cameraInstruction: string;
+}
+
+export const PHOTOGRAPHY_FRAMING_OPTIONS: Record<'waist_up' | 'full_body' | 'chest_up', PhotographyFramingOption> = {
+    waist_up: {
+        id: 'waist_up',
+        label: 'Foto até meio da barriga',
+        labelShort: 'Meio da barriga',
+        desc: 'Plano Médio: enquadramento da cintura / meio da barriga para cima, destacando tronco, braços e expressão facial no cenário',
+        enPrompt: 'Waist-up medium shot framing (meio da barriga)',
+        cameraInstruction: 'Medium shot framing captured strictly from the waist/midriff up (meio da barriga para cima), centered torso-up composition showing the mid-torso, arms, hands, shoulders, neck, and face in razor-sharp focus against the background environment'
+    },
+    full_body: {
+        id: 'full_body',
+        label: 'Foto completa',
+        labelShort: 'Foto completa',
+        desc: 'Corpo Inteiro: enquadramento total da cabeça aos pés, mostrando calçados, silhueta e proporções completas no cenário',
+        enPrompt: 'Full-body complete shot (foto completa)',
+        cameraInstruction: 'Full-length complete photographic framing from head to toe (foto completa), full anatomical silhouette, footwear clearly visible on the studio floor, framed perfectly within the scenic background setting'
+    },
+    chest_up: {
+        id: 'chest_up',
+        label: 'Foto peito pra cima',
+        labelShort: 'Peito pra cima',
+        desc: 'Plano Busto (Medium Close-up): do peito para cima, realçando decote, ombros, pescoço e biometria facial detalhada',
+        enPrompt: 'Chest-up bust portrait (peito pra cima)',
+        cameraInstruction: 'Medium close-up bust shot framing captured from the chest up (peito pra cima), highlighting the collarbone, chest line, neckline, shoulders, neck, and intimate facial biometrics with cinematic shallow depth of field against the backdrop'
+    }
+};
+
 /**
  * Compiles a master production prompt from the model sheet data respecting section toggles.
  */
@@ -813,6 +946,9 @@ export function compileModelSheetPrompt(
     toggles?: ModelSectionToggles
 ): string {
     const effectiveToggles: ModelSectionToggles = toggles || data.sectionToggles || DEFAULT_SECTION_TOGGLES;
+
+    const framingKey = (data.photographyFraming as 'waist_up' | 'full_body' | 'chest_up') || 'full_body';
+    const framingOption = PHOTOGRAPHY_FRAMING_OPTIONS[framingKey] || PHOTOGRAPHY_FRAMING_OPTIONS.full_body;
 
     const colorString = data.colorSwatches && data.colorSwatches.length > 0
         ? data.colorSwatches.map(c => `${c.label}: ${c.hex}`).join(', ')
@@ -888,10 +1024,18 @@ Close-up triple view (Front, Profile, 3/4 View). Facial Structure: ${data.facial
 Neat 2x4 photographic expression grid of the identical face: 1. Neutral, 2. Happy, 3. Angry, 4. Sad, 5. Surprised, 6. Worried, 7. Confident, 8. Determined. Perfect facial biometric continuity.`);
         }
 
-        // Section 4: 6-Pose Body Language Sheet
+        // Section 4: Pose Body Language Sheet (Adaptado ao contador de fotos e pose escolhida)
         if (effectiveToggles.poses) {
-            sections.push(`[SECTION: 6-POSE BODY LANGUAGE SHEET]
-Character shown in 6 dynamic full-body postures: 1. Neutral Stand, 2. Walking, 3. Sitting, 4. Relaxed, 5. Tense, 6. Action-Ready. Consistent costume, footwear (${data.footwear}), and physique.`);
+            const { count, poses } = getResolvedPoses(data);
+            if (count === 1) {
+                const singlePose = poses[0] || POSE_DEFINITIONS.neutral_stand;
+                sections.push(`[SECTION: 1-POSE MASTER BODY LANGUAGE (1 SHOT)]
+Character shown in 1 focused full-body posture: ${singlePose.enName} (${singlePose.enPrompt}). Consistent costume, footwear (${data.footwear}), and physique.`);
+            } else {
+                const poseDescriptions = poses.map((p, idx) => `${idx + 1}. ${p.enName} (${p.enPrompt})`).join(', ');
+                sections.push(`[SECTION: ${count}-POSE BODY LANGUAGE SHEET (${count} SHOTS)]
+Character shown in ${count} dynamic full-body postures side-by-side: ${poseDescriptions}. Consistent costume, footwear (${data.footwear}), and physique.`);
+            }
         }
 
         // Section 5: Costume & Close-up Swatches
@@ -906,15 +1050,20 @@ Detailed costume swatches: Neckline (${data.topNeckline}), Sleeves/Straps (${dat
 Key color swatches with exact hex codes: ${colorString}. Material finishes: ${materialsString}.`);
         }
 
-        // Section 7: Lighting & Environment Directives
+        // Section 7: Lighting, Environment & Photography Framing
         if (effectiveToggles.lighting) {
-            sections.push(`Lighting: ${data.lighting}. Setting: ${data.backgroundSetting}. Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, clean layout, white borders between panels, 8k resolution, photorealistic master character reference sheet.`);
+            sections.push(`[SECTION: ENVIRONMENT, LIGHTING & PHOTOGRAPHY FRAMING]
+Photography Framing Mode: ${framingOption.cameraInstruction}.
+Background / Setting: ${data.backgroundSetting}.
+Lighting Scheme: ${data.lighting}.
+Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, clean layout, white borders between panels, 8k resolution, photorealistic master character reference sheet.`);
         }
 
         let prompt = sections.join('\n\n');
 
         if (targetPlatform === 'midjourney') {
-            prompt += ` --ar 2:3 --v 6.1 --style raw`;
+            const ar = framingKey === 'waist_up' || framingKey === 'chest_up' ? '--ar 4:5' : '--ar 2:3';
+            prompt += ` ${ar} --v 6.1 --style raw`;
         }
         return prompt;
     }
@@ -936,6 +1085,7 @@ Key color swatches with exact hex codes: ${colorString}. Material finishes: ${ma
             parts.push(`Colors: ${colorString}. Materials: ${materialsString}.`);
         }
         if (effectiveToggles.lighting) {
+            parts.push(`Framing Mode: ${framingOption.cameraInstruction}.`);
             parts.push(`Identical anatomical proportions, precise alignment, studio lighting on neutral ${data.backgroundSetting}, 8k photorealistic character turnaround render.`);
         }
 
@@ -967,23 +1117,69 @@ Key color swatches with exact hex codes: ${colorString}. Material finishes: ${ma
         return prompt;
     }
 
-    // 4. 6-Pose Turnaround Sheet
+    // 4. Pose Mode: Ensaio de Poses (1 a 4 Fotos com a pose ou sequência escolhida)
     if (data.outputType === 'pose_grid') {
+        const { count, poses } = getResolvedPoses(data);
         const parts: string[] = [];
-        parts.push(`${genderRole} character pose study and action turnaround grid, 6 sequential full-body poses side-by-side: 1. Neutral Stand, 2. Walking, 3. Sitting, 4. Relaxed, 5. Tense, 6. Action-Ready.`);
+
+        if (count === 1) {
+            const singlePose = poses[0] || POSE_DEFINITIONS.neutral_stand;
+            parts.push(`[MODE: SINGLE MASTER POSE PHOTOGRAPH - 1 SHOT (${framingOption.labelShort.toUpperCase()})]
+1 single high-resolution master photograph of ${data.characterName}, ${genderRole}.
+Framing & Scale: ${framingOption.cameraInstruction}.
+Focused Stance & Pose: ${singlePose.enName} — ${singlePose.enPrompt}.${data.poseDetails && data.poseDetails !== singlePose.desc ? ` Specific Pose Nuance: ${data.poseDetails}.` : ''}
+Background & Environment: ${data.backgroundSetting}.`);
+        } else if (count === 2) {
+            parts.push(`[MODE: 2-POSE SEQUENTIAL DIPTYCH - 2 SHOTS SIDE-BY-SIDE (${framingOption.labelShort.toUpperCase()})]
+Sequential photographic diptych featuring 2 distinct poses side-by-side in a 1x2 panel layout:
+Framing per Shot: ${framingOption.cameraInstruction}.
+Photo 1 (Left): ${poses[0]?.enName} — ${poses[0]?.enPrompt}.
+Photo 2 (Right): ${poses[1]?.enName} — ${poses[1]?.enPrompt}.
+Background & Environment: ${data.backgroundSetting}.
+Both photos maintain 100% exact facial likeness, costume continuity, and lighting.`);
+        } else if (count === 3) {
+            parts.push(`[MODE: 3-POSE SEQUENTIAL TRIPTYCH - 3 SHOTS SIDE-BY-SIDE (${framingOption.labelShort.toUpperCase()})]
+Sequential photographic triptych featuring 3 distinct poses side-by-side in a 1x3 panel progression:
+Framing per Shot: ${framingOption.cameraInstruction}.
+Photo 1 (Left): ${poses[0]?.enName} — ${poses[0]?.enPrompt}.
+Photo 2 (Center): ${poses[1]?.enName} — ${poses[1]?.enPrompt}.
+Photo 3 (Right): ${poses[2]?.enName} — ${poses[2]?.enPrompt}.
+Background & Environment: ${data.backgroundSetting}.
+Continuous character identity, physique, and styling across all 3 poses.`);
+        } else {
+            // count === 4
+            parts.push(`[MODE: 4-POSE MASTER GRID - 4 SEQUENTIAL SHOTS (${framingOption.labelShort.toUpperCase()})]
+Professional 2x2 photographic grid sheet displaying 4 distinct dynamic poses:
+Framing per Panel: ${framingOption.cameraInstruction}.
+Panel 1 (Top-Left): ${poses[0]?.enName} — ${poses[0]?.enPrompt}.
+Panel 2 (Top-Right): ${poses[1]?.enName} — ${poses[1]?.enPrompt}.
+Panel 3 (Bottom-Left): ${poses[2]?.enName} — ${poses[2]?.enPrompt}.
+Panel 4 (Bottom-Right): ${poses[3]?.enName} — ${poses[3]?.enPrompt}.
+Background & Environment: ${data.backgroundSetting}.
+Flawless wardrobe, facial identity, and studio backdrop consistency across all 4 panels.`);
+        }
+
         if (effectiveToggles.profile) {
-            parts.push(`Subject: ${data.characterName}, ${data.age}, ${data.bodyType}.`);
+            parts.push(`Subject: ${data.characterName}, ${genderRole}, ${data.age}, ${data.height}, ${data.bodyType}.`);
+        }
+        if (effectiveToggles.face) {
+            parts.push(`Facial Biometrics: ${data.facialStructure}, ${data.eyes}, ${data.hair} (Hex ${data.hairColorHex})${facialHairClause}.`);
         }
         if (effectiveToggles.costume) {
-            parts.push(`Wearing identical ${data.outfitType}, ${data.footwear}.${wardrobeRefClause}`);
+            parts.push(`Costume: Wearing identical ${data.outfitType}, neckline ${data.topNeckline}, ${data.bottomPiece}, footwear ${data.footwear}.${wardrobeRefClause}`);
+        }
+        if (effectiveToggles.palette) {
+            parts.push(`Colors: ${colorString}. Materials: ${materialsString}.`);
         }
         if (effectiveToggles.lighting) {
-            parts.push(`Flawless costume and physical consistency, dynamic body language, neutral studio backdrop, 8k resolution master render.`);
+            parts.push(`Photography Framing Mode: ${framingOption.cameraInstruction}.`);
+            parts.push(`Lighting: ${data.lighting}. Setting: ${data.backgroundSetting}. Directives: ${data.additionalNotes}. Hasselblad 100MP RAW, 8k resolution, authentic textures, photorealistic.`);
         }
 
         let prompt = parts.join('\n');
         if (targetPlatform === 'midjourney') {
-            prompt += ` --ar 16:9 --v 6.1 --style raw`;
+            const ar = count === 1 ? (framingKey === 'waist_up' || framingKey === 'chest_up' ? '--ar 4:5' : '--ar 2:3') : count === 4 ? '--ar 1:1' : '--ar 16:9';
+            prompt += ` ${ar} --v 6.1 --style raw`;
         }
         return prompt;
     }
@@ -991,15 +1187,18 @@ Key color swatches with exact hex codes: ${colorString}. Material finishes: ${ma
     // 5. Single Photographic Master Shot
     const viewLabel = data.activeView === 'all_turnaround' ? 'front 3/4 view' : data.activeView.replace(/_/g, ' ');
     const emotionLabel = data.activeExpression === 'all_8_emotions' ? 'confident with warm gentle smile' : data.activeExpression.replace(/_/g, ' ');
-    const poseLabel = data.activePose === 'all_6_poses' ? 'natural standing posture' : data.activePose.replace(/_/g, ' ');
+    const { poses } = getResolvedPoses(data);
+    const chosenPose = poses[0] || POSE_DEFINITIONS.neutral_stand;
+    const poseLabel = `${chosenPose.enName} (${chosenPose.enPrompt})`;
 
     const parts: string[] = [];
     parts.push(`Master photographic studio portrait of ${data.characterName}, ${genderRole}.`);
+    parts.push(`Framing & Shot Scale: ${framingOption.cameraInstruction}.`);
     if (effectiveToggles.profile) {
         parts.push(`Age: ${data.age}, Height: ${data.height}, Body: ${data.bodyType}.`);
     }
     if (effectiveToggles.poses) {
-        parts.push(`Pose: Full-body ${poseLabel}, ${data.poseDetails}. Camera Angle: ${viewLabel}.`);
+        parts.push(`Pose: ${poseLabel}. ${data.poseDetails && data.poseDetails !== chosenPose.desc ? `Nuance: ${data.poseDetails}.` : ''} Camera Angle: ${viewLabel}.`);
     }
     if (effectiveToggles.expressions) {
         parts.push(`Expression: ${emotionLabel}, ${data.expressionDetails}.`);
@@ -1014,12 +1213,13 @@ Key color swatches with exact hex codes: ${colorString}. Material finishes: ${ma
         parts.push(`Color palette: ${colorString}. Materials: ${materialsString}.`);
     }
     if (effectiveToggles.lighting) {
-        parts.push(`Lighting: ${data.lighting}. Setting: ${data.backgroundSetting}. Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, Hasselblad 100MP RAW quality, 8k resolution, authentic skin pore textures, photorealistic.`);
+        parts.push(`Lighting: ${data.lighting}. Setting / Environment: ${data.backgroundSetting}. Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, Hasselblad 100MP RAW quality, 8k resolution, authentic skin pore textures, photorealistic.`);
     }
 
     let prompt = parts.join('\n');
     if (targetPlatform === 'midjourney') {
-        prompt += ` --ar 2:3 --v 6.1 --style raw`;
+        const ar = framingKey === 'waist_up' || framingKey === 'chest_up' ? '--ar 4:5' : '--ar 2:3';
+        prompt += ` ${ar} --v 6.1 --style raw`;
     }
     return prompt;
 }

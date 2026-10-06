@@ -114,6 +114,9 @@ const ASPECT_RATIOS = [
 
 const CAMERA_ANGLES = [
     { id: 'eye_level', label: 'Nível do Olho (Frontal)', icon: Eye },
+    { id: 'waist_up', label: 'Foto até meio da barriga', icon: User },
+    { id: 'full_body', label: 'Foto completa', icon: Maximize },
+    { id: 'chest_up', label: 'Foto peito pra cima', icon: Camera },
     { id: '45_deg', label: 'Ângulo de 45° (Perspectiva)', icon: MoveDiagonal },
     { id: 'zenith', label: 'Zenital (Top-Down)', icon: ArrowDownCircle },
     { id: 'flat_lay', label: 'Composição Flat Lay', icon: Layout },

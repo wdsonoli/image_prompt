@@ -290,9 +290,12 @@ export interface ModelSheetData {
     activeExpression: 'all_8_emotions' | 'neutral' | 'happy' | 'angry' | 'sad' | 'surprised' | 'worried' | 'confident' | 'determined';
     expressionDetails: string;
 
-    // 5. Pose & Body Language (6 Poses)
-    activePose: 'all_6_poses' | 'neutral_stand' | 'walking' | 'sitting' | 'relaxed' | 'tense' | 'action_ready';
+    // 5. Pose & Body Language (1 a 4 Fotos / Poses)
+    activePose: 'all_6_poses' | 'neutral_stand' | 'walking' | 'sitting' | 'relaxed' | 'tense' | 'action_ready' | string;
     poseDetails: string;
+    posePhotoCount?: number; // Contador de fotos a serem geradas: 1 min e 4 max
+    selectedPoses?: string[]; // IDs das poses selecionadas na sequência (1 a 4)
+    poseMode?: 'single_pose' | 'pose_grid' | 'all_poses';
 
     // 6. Costume Details & Wardrobe References
     outfitType: string;
@@ -314,9 +317,12 @@ export interface ModelSheetData {
     lighting: string;
     backgroundSetting: string;
     renderStyle: string;
+    photographyFraming?: 'waist_up' | 'full_body' | 'chest_up' | string; // Modo Fotografia: Meio da barriga, Completa ou Peito pra cima
     outputType: 'full_model_sheet' | 'turnaround_4_views' | 'expression_grid' | 'pose_grid' | 'single_shot';
     additionalNotes: string;
 }
+
+export type PhotographyFraming = 'waist_up' | 'full_body' | 'chest_up';
 
 export interface WardrobeReferenceItem {
     id: string;

@@ -33,7 +33,11 @@ import {
     extractModelWithWardrobe,
     compileModelSheetPrompt,
     WARDROBE_PRESETS,
-    WardrobePresetItem
+    WardrobePresetItem,
+    POSE_DEFINITIONS,
+    getResolvedPoses,
+    PHOTOGRAPHY_FRAMING_OPTIONS,
+    PhotographyFramingOption
 } from '../services/modelSheetService.ts';
 
 interface ModelSheetStudioProps {
@@ -128,6 +132,70 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
     // Atualizador de campo genérico
     const updateField = <K extends keyof ModelSheetData>(field: K, value: ModelSheetData[K]) => {
         setData(prev => ({ ...prev, [field]: value }));
+    };
+
+    // Contador de Fotos a Gerar na aba de Poses (Mínimo: 1 | Máximo: 4)
+    const posePhotoCount = Math.min(4, Math.max(1, data.posePhotoCount ?? (data.activePose === 'all_6_poses' ? 4 : 1)));
+
+    const handleSetPhotoCount = (count: number) => {
+        const clamped = Math.min(4, Math.max(1, count));
+        setData(prev => {
+            const allKeys = ['neutral_stand', 'walking', 'sitting', 'action_ready', 'relaxed', 'tense'];
+            let nextSelected = prev.selectedPoses ? [...prev.selectedPoses] : [];
+            if (nextSelected.length > clamped) {
+                nextSelected = nextSelected.slice(0, clamped);
+            } else if (nextSelected.length < clamped) {
+                if (nextSelected.length === 0 && prev.activePose && prev.activePose !== 'all_6_poses') {
+                    nextSelected.push(prev.activePose);
+                }
+                for (const k of allKeys) {
+                    if (nextSelected.length >= clamped) break;
+                    if (!nextSelected.includes(k)) nextSelected.push(k);
+                }
+            }
+            return {
+                ...prev,
+                posePhotoCount: clamped,
+                selectedPoses: nextSelected,
+                outputType: 'pose_grid',
+                activePose: clamped === 1 ? (nextSelected[0] || prev.activePose || 'neutral_stand') : prev.activePose
+            };
+        });
+    };
+
+    const handleSelectPose = (poseId: string, setAsPromptMode: boolean = true) => {
+        const currentCount = posePhotoCount;
+        if (currentCount === 1) {
+            setData(prev => ({
+                ...prev,
+                activePose: poseId,
+                selectedPoses: [poseId],
+                outputType: setAsPromptMode ? 'pose_grid' : prev.outputType,
+                poseDetails: POSE_DEFINITIONS[poseId]?.desc || prev.poseDetails,
+            }));
+        } else {
+            setData(prev => {
+                let currentSelected = prev.selectedPoses ? [...prev.selectedPoses] : [];
+                if (currentSelected.includes(poseId)) {
+                    if (currentSelected.length > 1) {
+                        currentSelected = currentSelected.filter(id => id !== poseId);
+                    }
+                } else {
+                    if (currentSelected.length >= currentCount) {
+                        currentSelected = [...currentSelected.slice(0, currentCount - 1), poseId];
+                    } else {
+                        currentSelected.push(poseId);
+                    }
+                }
+                return {
+                    ...prev,
+                    activePose: poseId,
+                    selectedPoses: currentSelected,
+                    outputType: setAsPromptMode ? 'pose_grid' : prev.outputType,
+                    poseDetails: POSE_DEFINITIONS[poseId]?.desc || prev.poseDetails
+                };
+            });
+        }
     };
 
     // Auto-preencher com IA a partir da imagem ativa
@@ -1308,10 +1376,16 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                         { id: 'turnaround', number: '2', label: '2. 4 Vistas', desc: 'Turnaround 360°', icon: Compass },
                         { id: 'face', number: '3', label: '3. Rosto', desc: 'Biometria Facial', icon: Eye },
                         { id: 'expressions', number: '4', label: '4. Expressões', desc: '8 Emoções', icon: Heart },
-                        { id: 'poses', number: '5', label: '5. Poses', desc: '6 Poses Corporais', icon: Zap },
+                        { id: 'poses', number: '5', label: '5. Poses', desc: `${posePhotoCount} ${posePhotoCount === 1 ? 'Foto' : 'Fotos'}`, icon: Zap },
                         { id: 'costume', number: '6', label: '6. Figurino', desc: 'Roupas & Fotos', icon: Shirt },
                         { id: 'palette', number: '7', label: '7. Cores Hex', desc: 'Amostras de Cores', icon: Palette },
-                        { id: 'lighting', number: '8', label: '8. Estúdio/Luz', desc: 'Iluminação & Fundo', icon: Sun },
+                        { 
+                            id: 'lighting', 
+                            number: '8', 
+                            label: '8. Cenário & Luz', 
+                            desc: data.photographyFraming === 'waist_up' ? 'Meio da barriga' : data.photographyFraming === 'chest_up' ? 'Peito pra cima' : 'Foto completa', 
+                            icon: Sun 
+                        },
                     ].map(item => {
                         const isEnabled = sectionToggles[item.id as StudioSection];
                         const Icon = item.icon;
@@ -1344,6 +1418,7 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                                     <Icon size={12} className={isEnabled ? 'text-red-400' : 'text-slate-500'} />
                                     <span className={isEnabled ? 'text-slate-200' : 'text-slate-500'}>{item.label}</span>
                                 </div>
+                                <div className="text-[9px] text-slate-500 truncate mt-0.5">{item.desc}</div>
                             </button>
                         );
                     })}
@@ -1358,10 +1433,20 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5">
                     {[
-                        { id: 'full_model_sheet', label: 'Ficha Completa (Grid)', desc: 'Turnaround + Rosto + 8 Expressões + 6 Poses' },
+                        { id: 'full_model_sheet', label: 'Ficha Completa (Grid)', desc: 'Turnaround + Rosto + 8 Expressões + Poses' },
                         { id: 'turnaround_4_views', label: 'Turnaround 4 Vistas', desc: 'Frontal, 3/4, Perfil e Costas alinhados' },
                         { id: 'expression_grid', label: 'Grade 8 Emoções', desc: 'Tabela 2x4 com expressões faciais' },
-                        { id: 'pose_grid', label: 'Grade 6 Poses', desc: 'Tabela com posturas corporais' },
+                        { 
+                            id: 'pose_grid', 
+                            label: `Ensaio de Poses (${posePhotoCount} ${posePhotoCount === 1 ? 'Foto' : 'Fotos'})`, 
+                            desc: posePhotoCount === 1 
+                                ? '1 foto individual com a pose escolhida' 
+                                : posePhotoCount === 2 
+                                ? 'Díptico: 2 fotos lado a lado' 
+                                : posePhotoCount === 3 
+                                ? 'Tríptico: 3 fotos sequenciais' 
+                                : 'Grade 2x2 com 4 fotos sequenciais' 
+                        },
                         { id: 'single_shot', label: 'Ensaio Individual', desc: 'Render fotográfico único personalizado' },
                     ].map(opt => (
                         <button
@@ -1387,10 +1472,22 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                     { id: 'turnaround', number: '2', label: '2. 4 Vistas', icon: Compass },
                     { id: 'face', number: '3', label: '3. Rosto', icon: Eye },
                     { id: 'expressions', number: '4', label: '4. Expressões (8)', icon: Heart },
-                    { id: 'poses', number: '5', label: '5. Poses (6)', icon: Zap },
+                    { 
+                        id: 'poses', 
+                        number: '5', 
+                        label: `5. Poses (${posePhotoCount} ${posePhotoCount === 1 ? 'Foto' : 'Fotos'})`, 
+                        icon: Zap, 
+                        isPoseTab: true
+                    },
                     { id: 'costume', number: '6', label: '6. Figurino & Roupas', icon: Shirt, badge: 'Fotos & IA' },
                     { id: 'palette', number: '7', label: '7. Cores Hex', icon: Palette },
-                    { id: 'lighting', number: '8', label: '8. Estúdio & Luz', icon: Sun },
+                    { 
+                        id: 'lighting', 
+                        number: '8', 
+                        label: '8. Cenário & Luz', 
+                        icon: Sun,
+                        badge: data.photographyFraming === 'waist_up' ? 'Meio da barriga' : data.photographyFraming === 'chest_up' ? 'Peito pra cima' : 'Foto completa'
+                    },
                 ].map(sec => {
                     const Icon = sec.icon;
                     const isActive = activeSection === sec.id;
@@ -1419,15 +1516,46 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                             >
                                 <Icon size={13} className={isActive ? 'text-white' : isEnabled ? 'text-amber-400' : 'text-slate-500'} />
                                 <span>{sec.label}</span>
-                                {sec.badge && (
-                                    <span className={`px-1.5 py-0.2 text-[9px] font-black rounded-full uppercase border ${
+                                {sec.isPoseTab ? (
+                                    /* Contador Interativo Diretamente na Aba de Poses (Mín 1 e Máx 4) */
+                                    <div className="flex items-center gap-0.5 ml-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-700/80" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSetPhotoCount(posePhotoCount - 1);
+                                            }}
+                                            disabled={posePhotoCount <= 1}
+                                            className="w-4 h-4 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-20 text-slate-200 text-[9px] font-black flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
+                                            title="Diminuir fotos a gerar (Mínimo: 1)"
+                                        >
+                                            -
+                                        </button>
+                                        <span className="px-1 text-[9px] font-mono font-black text-amber-300" title="Quantidade de fotos a gerar">
+                                            {posePhotoCount}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSetPhotoCount(posePhotoCount + 1);
+                                            }}
+                                            disabled={posePhotoCount >= 4}
+                                            className="w-4 h-4 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-20 text-slate-200 text-[9px] font-black flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
+                                            title="Aumentar fotos a gerar (Máximo: 4)"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                ) : sec.badge ? (
+                                    <span className={`px-1.5 py-0.2 text-[8px] font-black rounded-full uppercase border ${
                                         isActive 
                                             ? 'bg-amber-400 text-slate-950 border-amber-300' 
                                             : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                                     }`}>
                                         {sec.badge}
                                     </span>
-                                )}
+                                ) : null}
                             </button>
 
                             {/* Mini Toggle ON/OFF individual por Aba */}
@@ -1932,51 +2060,249 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                     </div>
                 )}
 
-                {/* 5. TABELA DE 6 POSES */}
+                {/* 5. TABELA DE POSES & CONTADOR DE FOTOS (1 MÍN E 4 MÁX) */}
                 {activeSection === 'poses' && (
                     <div className="space-y-4 animate-in fade-in">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                            <span className="text-xs font-black uppercase text-red-400 tracking-wider">
-                                5. Pose & Body Language (Grade de 6 Poses)
-                            </span>
-                            <span className="text-[10px] text-slate-500">Linguagem corporal e anatomia dinâmica</span>
-                        </div>
+                        {/* Header da Seção 5 com Status do Modo */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black uppercase text-red-400 tracking-wider flex items-center gap-1.5">
+                                        <Zap size={14} className="text-amber-400" />
+                                        <span>5. Pose & Body Language (Linguagem Corporal & Ensaio)</span>
+                                    </span>
+                                    <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-red-500/20 text-red-300 border border-red-500/30 font-mono">
+                                        {posePhotoCount} {posePhotoCount === 1 ? 'Foto' : 'Fotos'} (Mín: 1 | Máx: 4)
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                    Defina quantas fotos serão geradas e escolha as posturas corporais. O prompt master gerado reflete com precisão o modo e a pose escolhida!
+                                </p>
+                            </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                            {POSES_LIST.map(pose => {
-                                const isSelected = data.activePose === pose.id;
-                                return (
-                                    <button
-                                        key={pose.id}
-                                        type="button"
-                                        onClick={() => updateField('activePose', pose.id as any)}
-                                        className={`p-2.5 rounded-xl border text-left transition-all ${
-                                            isSelected 
-                                                ? 'bg-red-600/30 border-red-500 text-white shadow-md shadow-red-500/20' 
-                                                : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
-                                        }`}
-                                    >
-                                        <div className="text-xs font-bold flex items-center justify-between">
-                                            <span>{pose.label}</span>
-                                            {isSelected && <span className="w-2 h-2 rounded-full bg-red-400" />}
-                                        </div>
-                                        <p className="text-[9px] text-slate-500 leading-snug mt-1">{pose.desc}</p>
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2">
+                            {/* Botão de Atalho para Ativar o Modo Pose no Layout de Saída */}
                             <button
-                                onClick={() => updateField('activePose', 'all_6_poses')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                                    data.activePose === 'all_6_poses'
-                                        ? 'bg-red-600 text-white border-red-500'
-                                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:text-white'
+                                type="button"
+                                onClick={() => updateField('outputType', 'pose_grid')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shrink-0 border ${
+                                    data.outputType === 'pose_grid'
+                                        ? 'bg-gradient-to-r from-red-600 to-amber-600 text-white border-red-500 shadow-md shadow-red-500/25 ring-1 ring-red-400'
+                                        : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700 hover:text-white'
                                 }`}
+                                title="Configurar o Prompt Master para focar exclusivamente no ensaio das poses selecionadas"
                             >
-                                ✓ Incluir Todas as 6 Poses na Folha de Corpo Inteiro
+                                <Sparkles size={13} className={data.outputType === 'pose_grid' ? 'text-amber-300' : 'text-slate-400'} />
+                                <span>{data.outputType === 'pose_grid' ? '✓ Modo Pose Ativo no Prompt' : 'Ativar Modo Pose no Prompt'}</span>
                             </button>
+                        </div>
+
+                        {/* CONTADOR DE QUANTAS FOTOS SERÃO GERADAS: 1 MÍN E 4 MÁX */}
+                        <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5 space-y-3 shadow-lg">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                        <Camera size={15} className="text-amber-400" />
+                                        <span className="text-xs font-black uppercase text-slate-200">
+                                            Contador de Fotos a Gerar:
+                                        </span>
+                                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-[11px] font-black">
+                                            {posePhotoCount} {posePhotoCount === 1 ? 'Foto' : 'Fotos'} (Mín 1 · Máx 4)
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400">
+                                        Escolha quantas fotos/variações de pose o motor de IA irá renderizar:
+                                    </p>
+                                </div>
+
+                                {/* Stepper e Botões 1 a 4 */}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetPhotoCount(posePhotoCount - 1)}
+                                        disabled={posePhotoCount <= 1}
+                                        className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed border border-slate-700 text-slate-200 font-black text-sm flex items-center justify-center transition-all cursor-pointer"
+                                        title="Diminuir quantidade de fotos (Mínimo: 1)"
+                                    >
+                                        -
+                                    </button>
+
+                                    <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-700/80">
+                                        {[1, 2, 3, 4].map(num => {
+                                            const isCurrent = posePhotoCount === num;
+                                            return (
+                                                <button
+                                                    key={num}
+                                                    type="button"
+                                                    onClick={() => handleSetPhotoCount(num)}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                                                        isCurrent
+                                                            ? 'bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white shadow-md shadow-red-500/30 ring-1 ring-red-400'
+                                                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                                                    }`}
+                                                    title={`Gerar exatamente ${num} ${num === 1 ? 'foto' : 'fotos'}`}
+                                                >
+                                                    {num} {num === 1 ? 'Foto' : 'Fotos'}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetPhotoCount(posePhotoCount + 1)}
+                                        disabled={posePhotoCount >= 4}
+                                        className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed border border-slate-700 text-slate-200 font-black text-sm flex items-center justify-center transition-all cursor-pointer"
+                                        title="Aumentar quantidade de fotos (Máximo: 4)"
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Cards Informativos do Modo Escolhido pelo Contador */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1 border-t border-slate-800/80 text-[10px]">
+                                {[
+                                    { count: 1, title: '1 Foto (Master Individual)', desc: 'Render vertical de corpo inteiro com foco exclusivo na pose escolhida' },
+                                    { count: 2, title: '2 Fotos (Díptico Lado a Lado)', desc: '2 fotos sequenciais ou 2 poses complementares na mesma folha' },
+                                    { count: 3, title: '3 Fotos (Tríptico Dinâmico)', desc: '3 poses sequenciais em progressão de movimento elegante' },
+                                    { count: 4, title: '4 Fotos (Grade 2x2 Master)', desc: '4 poses completas em grade simétrica com perfeita continuidade' },
+                                ].map(card => {
+                                    const isCurrent = posePhotoCount === card.count;
+                                    return (
+                                        <div
+                                            key={card.count}
+                                            onClick={() => handleSetPhotoCount(card.count)}
+                                            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                                                isCurrent
+                                                    ? 'bg-red-950/40 border-red-500/60 text-red-200 shadow-sm'
+                                                    : 'bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between font-black mb-0.5">
+                                                <span className={isCurrent ? 'text-amber-300' : 'text-slate-300'}>{card.title}</span>
+                                                {isCurrent && <Check size={11} className="text-amber-400" />}
+                                            </div>
+                                            <p className="text-[9px] text-slate-500 leading-tight">{card.desc}</p>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Grade Interativa das 6 Poses */}
+                        <div className="space-y-1.5">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
+                                <label className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1.5">
+                                    <span>Poses Disponíveis no Estúdio:</span>
+                                    <span className="text-slate-500 font-normal">
+                                        {posePhotoCount === 1 
+                                            ? '(Clique na pose que deseja gerar na foto)' 
+                                            : `(Selecione até ${posePhotoCount} poses para compor as ${posePhotoCount} fotos)`}
+                                    </span>
+                                </label>
+                                <span className="text-[10px] font-mono text-amber-400">
+                                    Pose Principal: {POSE_DEFINITIONS[data.activePose]?.label || data.activePose}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                {POSES_LIST.map(pose => {
+                                    const isCurrentActive = data.activePose === pose.id;
+                                    const resolvedPoses = getResolvedPoses(data).poses;
+                                    const selectedIndex = resolvedPoses.findIndex(p => p.id === pose.id);
+                                    const isIncludedInBatch = selectedIndex >= 0;
+
+                                    // Adaptação de gênero na etiqueta
+                                    let displayLabel = pose.label;
+                                    if (data.gender === 'man' || data.gender === 'teen_boy' || data.gender === 'boy') {
+                                        displayLabel = displayLabel.replace('Sentada', 'Sentado').replace('Relaxada', 'Relaxado').replace('Tensa', 'Tenso').replace('Pronta', 'Pronto');
+                                    }
+
+                                    return (
+                                        <button
+                                            key={pose.id}
+                                            type="button"
+                                            onClick={() => handleSelectPose(pose.id)}
+                                            className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer group ${
+                                                isCurrentActive
+                                                    ? 'bg-gradient-to-br from-red-950/60 via-slate-900 to-amber-950/40 border-red-500 text-white shadow-md shadow-red-500/20 ring-1 ring-red-400'
+                                                    : isIncludedInBatch
+                                                    ? 'bg-slate-900 border-amber-500/50 text-slate-200'
+                                                    : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
+                                            }`}
+                                        >
+                                            <div className="flex items-start justify-between gap-1 mb-1">
+                                                <span className="text-xs font-bold text-white group-hover:text-red-300 transition-colors">
+                                                    {displayLabel}
+                                                </span>
+                                                {isIncludedInBatch && (
+                                                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-black border ${
+                                                        isCurrentActive 
+                                                            ? 'bg-red-500 text-white border-red-400' 
+                                                            : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                                    }`}>
+                                                        #{selectedIndex + 1}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 leading-snug">{pose.desc}</p>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Detalhes / Nuances Adicionais da Pose */}
+                        <div className="space-y-1 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
+                                <span>Nuances & Ajustes Específicos da Pose</span>
+                                <span className="text-[9px] text-slate-500 font-mono">Aplicado ao Prompt Master</span>
+                            </label>
+                            <input 
+                                type="text"
+                                value={data.poseDetails || ''}
+                                onChange={e => updateField('poseDetails', e.target.value)}
+                                placeholder="Ex: Mãos no bolso com leve inclinação, olhar seguro direcionado para a câmera"
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                            />
+                        </div>
+
+                        {/* Botões de Ação Imediata da Aba de Poses */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    updateField('outputType', 'pose_grid');
+                                    handleSetPhotoCount(posePhotoCount);
+                                }}
+                                className="px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700 hover:text-white"
+                                title="Aplicar as poses configuradas ao layout do prompt"
+                            >
+                                <Check size={14} className="text-emerald-400" />
+                                <span>Aplicar Pose ({posePhotoCount} {posePhotoCount === 1 ? 'Foto' : 'Fotos'}) ao Modo de Saída</span>
+                            </button>
+
+                            {onCreateVisual && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        updateField('outputType', 'pose_grid');
+                                        const promptToGenerate = compileModelSheetPrompt(
+                                            { ...data, outputType: 'pose_grid', posePhotoCount },
+                                            targetPlatform,
+                                            sectionToggles
+                                        );
+                                        onApplyPrompt(promptToGenerate);
+                                        onCreateVisual(promptToGenerate);
+                                    }}
+                                    disabled={isGeneratingVisual}
+                                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 via-pink-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-xs shadow-md shadow-red-500/25 flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                                    title="Gerar as fotos da pose agora com o Motor Neural"
+                                >
+                                    <Zap size={14} className="text-amber-300" />
+                                    <span>{isGeneratingVisual ? "Gerando Fotos..." : `Gerar ${posePhotoCount} ${posePhotoCount === 1 ? 'Foto' : 'Fotos'} de Pose Agora (Grátis)`}</span>
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}
@@ -2505,37 +2831,212 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                     </div>
                 )}
 
-                {/* 8. ESTÚDIO, ILUMINAÇÃO & DIRETIVAS */}
+                {/* 8. ESTÚDIO, ILUMINAÇÃO & DIRETIVAS (CENÁRIO) */}
                 {activeSection === 'lighting' && (
                     <div className="space-y-4 animate-in fade-in">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                            <span className="text-xs font-black uppercase text-red-400 tracking-wider">
-                                8. Lighting, Setting & Directives (Iluminação & Cenário)
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black uppercase text-red-400 tracking-wider flex items-center gap-1.5">
+                                        <Sun size={14} className="text-amber-400" />
+                                        <span>8. Lighting, Setting & Directives (Iluminação & Cenário)</span>
+                                    </span>
+                                    <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
+                                        {PHOTOGRAPHY_FRAMING_OPTIONS[data.photographyFraming as 'waist_up' | 'full_body' | 'chest_up' || 'full_body']?.labelShort || 'Foto completa'}
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                    Defina o enquadramento do modo fotografia no cenário, atmosfera de luz e ambiente de fundo.
+                                </p>
+                            </div>
+
+                            <span className="text-[10px] text-slate-400 font-mono self-start sm:self-auto bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                                Enquadramento: <strong className="text-amber-400">{PHOTOGRAPHY_FRAMING_OPTIONS[data.photographyFraming as 'waist_up' | 'full_body' | 'chest_up' || 'full_body']?.label || 'Foto completa'}</strong>
                             </span>
-                            <span className="text-[10px] text-slate-500">Atmosfera fotográfica</span>
                         </div>
 
+                        {/* MODO FOTOGRAFIA NO CENÁRIO (1-CLIQUE): Foto até meio da barriga, Foto completa ou Foto peito pra cima */}
+                        <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5 space-y-3 shadow-lg">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+                                <div className="space-y-0.5">
+                                    <div className="flex items-center gap-2">
+                                        <Camera size={15} className="text-amber-400" />
+                                        <span className="text-xs font-black uppercase text-slate-200">
+                                            Modo Fotografia & Enquadramento da Câmera no Cenário
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400">
+                                        Selecione como a câmera irá enquadrar o personagem inserido no cenário de fundo:
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                                    <span className="text-[9px] font-bold uppercase text-slate-500">Modo Ativo:</span>
+                                    <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-[10px] font-black">
+                                        {data.photographyFraming === 'waist_up' ? 'Meio da barriga' : data.photographyFraming === 'chest_up' ? 'Peito pra cima' : 'Foto completa'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* 3 Opções do Modo Fotografia */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                {[
+                                    {
+                                        id: 'waist_up',
+                                        title: 'Foto até meio da barriga',
+                                        badge: 'Plano Médio (Waist-Up)',
+                                        desc: 'Enquadramento da cintura / meio da barriga para cima, destacando tronco, braços, postura e expressão facial com o cenário de fundo perfeitamente ambientado.',
+                                        icon: User,
+                                        aspectRatio: 'Retrato 4:5 / 2:3',
+                                        highlight: 'Foco no tronco e olhar'
+                                    },
+                                    {
+                                        id: 'full_body',
+                                        title: 'Foto completa',
+                                        badge: 'Corpo Inteiro (Full-Body)',
+                                        desc: 'Enquadramento total da cabeça aos pés, mostrando calçados, silhueta anatômica, caimento do figurino e o chão/superfície do cenário.',
+                                        icon: Maximize2,
+                                        aspectRatio: 'Corpo Todo 2:3 / 16:9',
+                                        highlight: 'Visão total cabeça aos pés'
+                                    },
+                                    {
+                                        id: 'chest_up',
+                                        title: 'Foto peito pra cima',
+                                        badge: 'Plano Busto (Chest-Up Portrait)',
+                                        desc: 'Enquadramento do peito para cima, realçando decote, ombros, pescoço e biometria facial detalhada com profundidade de campo cinematográfica.',
+                                        icon: Camera,
+                                        aspectRatio: 'Close-Up 4:5 / 1:1',
+                                        highlight: 'Foco na face e ombros'
+                                    }
+                                ].map(opt => {
+                                    const isSelected = (data.photographyFraming || 'full_body') === opt.id;
+                                    const Icon = opt.icon;
+                                    return (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            onClick={() => updateField('photographyFraming', opt.id as any)}
+                                            className={`p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer group ${
+                                                isSelected
+                                                    ? 'bg-gradient-to-br from-red-950/70 via-slate-900 to-amber-950/50 border-red-500 text-white shadow-md shadow-red-500/25 ring-1 ring-red-400'
+                                                    : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+                                            }`}
+                                        >
+                                            <div>
+                                                <div className="flex items-center justify-between gap-1 mb-1.5">
+                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
+                                                        isSelected 
+                                                            ? 'bg-red-500/20 text-red-300 border-red-500/40' 
+                                                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                                                    }`}>
+                                                        {opt.badge}
+                                                    </span>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-[8px] font-mono text-slate-500">{opt.aspectRatio}</span>
+                                                        {isSelected && (
+                                                            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse" />
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <div className={`p-1.5 rounded-lg border ${
+                                                        isSelected ? 'bg-red-500/20 border-red-500/40 text-amber-300' : 'bg-slate-800 border-slate-700 text-slate-400'
+                                                    }`}>
+                                                        <Icon size={14} />
+                                                    </div>
+                                                    <span className={`text-xs font-black leading-tight ${isSelected ? 'text-white' : 'text-slate-200'}`}>
+                                                        {opt.title}
+                                                    </span>
+                                                </div>
+
+                                                <p className="text-[10px] text-slate-400 leading-snug mt-2">
+                                                    {opt.desc}
+                                                </p>
+                                            </div>
+
+                                            <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[9px]">
+                                                <span className={`font-bold flex items-center gap-1 ${isSelected ? 'text-amber-400' : 'text-slate-500'}`}>
+                                                    {isSelected ? '✓ Modo Selecionado' : 'Clique para Escolher'}
+                                                </span>
+                                                <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${
+                                                    isSelected 
+                                                        ? 'text-emerald-400 bg-emerald-950/60 border-emerald-500/40 font-black' 
+                                                        : 'text-slate-500 bg-slate-900 border-slate-800'
+                                                }`}>
+                                                    {opt.highlight}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Campos de Iluminação e Cenário com Presets Rápidos */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Esquema de Iluminação</label>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
+                                    <span>Esquema de Iluminação</span>
+                                    <span className="text-[9px] text-slate-500">Luz suave, quente ou estúdio</span>
+                                </label>
                                 <input 
                                     type="text"
                                     value={data.lighting}
                                     onChange={e => updateField('lighting', e.target.value)}
                                     placeholder="Ex: Luz natural suave de estúdio com preenchimento quente"
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-red-500"
                                 />
+                                <div className="flex flex-wrap gap-1 pt-1">
+                                    {[
+                                        'Luz suave de estúdio',
+                                        'Golden Hour quente',
+                                        'Luz difusa de janela',
+                                        'Rim Light de contorno',
+                                        'High-Key comercial'
+                                    ].map(lPreset => (
+                                        <button
+                                            key={lPreset}
+                                            type="button"
+                                            onClick={() => updateField('lighting', lPreset)}
+                                            className="px-2 py-0.5 text-[9px] rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                                        >
+                                            + {lPreset}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase">Fundo / Cenário (Setting)</label>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
+                                    <span>Fundo / Cenário (Setting)</span>
+                                    <span className="text-[9px] text-slate-500">Ambiente de fundo</span>
+                                </label>
                                 <input 
                                     type="text"
                                     value={data.backgroundSetting}
                                     onChange={e => updateField('backgroundSetting', e.target.value)}
                                     placeholder="Ex: Parede bege minimalista com textura suave"
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white outline-none focus:border-red-500"
                                 />
+                                <div className="flex flex-wrap gap-1 pt-1">
+                                    {[
+                                        'Parede bege minimalista',
+                                        'Fundo branco estúdio',
+                                        'Loft urbano moderno',
+                                        'Cinza ardósia editorial',
+                                        'Piso de madeira clara'
+                                    ].map(sPreset => (
+                                        <button
+                                            key={sPreset}
+                                            type="button"
+                                            onClick={() => updateField('backgroundSetting', sPreset)}
+                                            className="px-2 py-0.5 text-[9px] rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                                        >
+                                            + {sPreset}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
