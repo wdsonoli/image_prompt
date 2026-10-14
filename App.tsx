@@ -8,7 +8,7 @@ import { ImagePreview } from './components/ImagePreview';
 import { ApiSettingsModal } from './components/ApiSettingsModal';
 import { GeneratedImageDisplay } from './components/GeneratedImageDisplay';
 import { HistoryPanel } from './components/HistoryPanel';
-import { UploadedImage, PromptSettings, STYLE_TEMPLATES, DETAIL_LEVEL_MAP, HistoryItem, TargetPlatform, BackgroundDecomposition, ElementDecomposition, PersonDecomposition, SearchGroundingData } from './types';
+import { UploadedImage, PromptSettings, STYLE_TEMPLATES, DETAIL_LEVEL_MAP, HistoryItem, TargetPlatform, BackgroundDecomposition, ElementDecomposition, PersonDecomposition, SearchGroundingData, VISION_MODELS_DATA } from './types';
 import { analyzeImage } from './utils/analysis';
 import { generateGeminiPrompt, extractBackgroundDecomposition, extractElementDecomposition, extractPersonDecomposition, generateGroundedGeminiPrompt, enrichPromptWithSearchGrounding } from './services/geminiService';
 import { generateOpenAIPrompt } from './services/openaiService';
@@ -43,8 +43,12 @@ import { PersonExtractionView } from './components/PersonExtractionView';
 import { VisualEffectsTab } from './components/VisualEffectsTab';
 import { ModelSheetStudio } from './components/ModelSheetStudio';
 import { ProductSheetStudio } from './components/ProductSheetStudio';
+import { ImageUpscaleStudio } from './components/ImageUpscaleStudio';
+import { BackgroundRemoverStudio } from './components/BackgroundRemoverStudio';
+import { BirthdayBackdropStudio } from './components/BirthdayBackdropStudio';
+import { PanelSplitterStudio } from './components/PanelSplitterStudio';
 import { loadHistory, saveHistory, deleteHistoryItem, clearHistory, compressBase64Image, loadActiveImages, saveActiveImages } from './utils/historyStorage';
-import { Zap, History, Sparkles, Sliders, Settings, Plus, Trash2, Image as ImageIcon, AlertCircle, X, ExternalLink, Layers, Package, Copy, Check, Terminal } from 'lucide-react';
+import { Zap, History, Sparkles, Sliders, Settings, Plus, Trash2, Image as ImageIcon, AlertCircle, X, ExternalLink, Layers, Package, Copy, Check, Terminal, Maximize2, Scissors, PartyPopper, Cake, Grid } from 'lucide-react';
 
 const COMPOSITION_KEYWORDS: Record<string, string> = {
     macro: "macro photography, extreme close-up, high detail texture",
@@ -166,7 +170,9 @@ const App: React.FC = () => {
     const [isGeneratingCycles, setIsGeneratingCycles] = useState(false);
     const [isGeneratingRecraft, setIsGeneratingRecraft] = useState(false);
     const [isGeneratingMagnific, setIsGeneratingMagnific] = useState(false);
-    const [activeControlTab, setActiveControlTab] = useState<'architect' | 'effects' | 'modelsheet' | 'productsheet'>('architect');
+    const [activeControlTab, setActiveControlTab] = useState<'architect' | 'effects' | 'modelsheet' | 'productsheet' | 'upscale' | 'bgremover' | 'birthdayBackdrop' | 'panelSplitter'>('architect');
+    const [upscaleSourceImage, setUpscaleSourceImage] = useState<{ url: string; name: string } | null>(null);
+    const [panelSplitterSourceImage, setPanelSplitterSourceImage] = useState<{ url: string; name: string } | null>(null);
     const [searchGroundingData, setSearchGroundingData] = useState<SearchGroundingData | null>(null);
     const [isGeneratingSearchGrounding, setIsGeneratingSearchGrounding] = useState(false);
     const [mobileCopied, setMobileCopied] = useState(false);
@@ -192,7 +198,9 @@ const App: React.FC = () => {
             material: 'none',
             environment: 'studio',
             keepColors: false,
-            is3dLogo: initialStyle === '3d_render'
+            is3dLogo: initialStyle === '3d_render',
+            selectedVisionModel: 'none',
+            photographyFraming: 'none'
         };
     });
 
@@ -498,7 +506,7 @@ const App: React.FC = () => {
             setPersonData(null);
             setError(null);
             // Re-gera o prompt base com a nova análise se houver
-            handleGeneratePrompt();
+            compileStandardPrompt();
         } catch (err: any) {
             setError(`Erro ao salvar recorte: ${err.message}`);
         }
@@ -1108,7 +1116,31 @@ const App: React.FC = () => {
         }
     };
 
-    const handleGeneratePrompt = () => {
+    const handleOpenUpscale = (url?: string, name?: string) => {
+        if (url) {
+            setUpscaleSourceImage({ url, name: name || 'imagem' });
+        } else if (activeImage) {
+            const imgUrl = activeImage.previewUrl || (activeImage.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : '');
+            setUpscaleSourceImage({ url: imgUrl, name: activeImage.name });
+        } else if (generatedImageUrl) {
+            setUpscaleSourceImage({ url: generatedImageUrl, name: 'imagem-gerada' });
+        }
+        setActiveControlTab('upscale');
+    };
+
+    const handleOpenPanelSplitter = (url?: string, name?: string) => {
+        if (url) {
+            setPanelSplitterSourceImage({ url, name: name || 'painel' });
+        } else if (activeImage) {
+            const imgUrl = activeImage.previewUrl || (activeImage.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : '');
+            setPanelSplitterSourceImage({ url: imgUrl, name: activeImage.name });
+        } else if (generatedImageUrl) {
+            setPanelSplitterSourceImage({ url: generatedImageUrl, name: 'painel-gerado' });
+        }
+        setActiveControlTab('panelSplitter');
+    };
+
+    const compileStandardPrompt = () => {
         let promptParts: string[] = [];
         const analysis = activeImage?.analysis;
         const isMockup = settings.mode === 'mockup';
@@ -1224,6 +1256,17 @@ const App: React.FC = () => {
             }
         }
 
+        if (settings.photographyFraming && settings.photographyFraming !== 'none') {
+            const framingMap: Record<string, string> = {
+                chest_up: "medium close-up portrait framing, shot from the chest up, bust shot portrait framing, shallow depth of field, detailed face and upper torso",
+                waist_up: "medium shot, shot from the waist up to the head, half-body portrait framing, upper body and posture focus, editorial fashion composition",
+                full_body: "full body shot, complete head-to-toe framing, entire figure visible with feet on the floor, full length portrait perspective"
+            };
+            if (framingMap[settings.photographyFraming]) {
+                promptParts.push(framingMap[settings.photographyFraming]);
+            }
+        }
+
         const socialContext = SOCIAL_FORMAT_KEYWORDS[settings.aspectRatio];
         if (socialContext) {
             promptParts.push(socialContext);
@@ -1250,6 +1293,121 @@ const App: React.FC = () => {
         }
         
         setPrompt(finalPrompt);
+    };
+
+    const handleGeneratePrompt = async () => {
+        const selectedVision = settings.selectedVisionModel;
+
+        // Se um modo de visão estiver selecionado, aciona a IA escolhida ao clicar em Compilar Prompt
+        if (selectedVision && selectedVision !== 'none' && selectedVision !== 'standard') {
+            if (!activeImage) {
+                const modelName = VISION_MODELS_DATA[selectedVision]?.label || selectedVision;
+                setError(`Modo de Visão [${modelName}] selecionado: carregue uma imagem de referência na coluna à esquerda para que a IA analise a foto e compile o prompt!`);
+                return;
+            }
+
+            setError(null);
+
+            switch (selectedVision) {
+                case 'gemini':
+                    await handleGeminiAnalysis();
+                    break;
+                case 'openai':
+                    await handleOpenAIAnalysis();
+                    break;
+                case 'claude':
+                    await handleClaudeAnalysis();
+                    break;
+                case 'deepseek':
+                    await handleDeepseekAnalysis();
+                    break;
+                case 'consensus':
+                    await handleConsensusAnalysis();
+                    break;
+                case 'midjourney':
+                    await handleMidjourneyAnalysis();
+                    break;
+                case 'flux':
+                    await handleFluxAnalysis();
+                    break;
+                case 'redshift':
+                    await handleRedshiftAnalysis();
+                    break;
+                case 'octane':
+                    await handleOctaneAnalysis();
+                    break;
+                case 'unreal':
+                    await handleUnrealAnalysis();
+                    break;
+                case 'vray':
+                    await handleVRayAnalysis();
+                    break;
+                case 'corona':
+                    await handleCoronaAnalysis();
+                    break;
+                case 'cycles':
+                    await handleCyclesAnalysis();
+                    break;
+                case 'leonardo':
+                    await handleLeonardoAnalysis();
+                    break;
+                case 'sd':
+                    await handleSDAnalysis();
+                    break;
+                case 'recraft':
+                    await handleRecraftAnalysis();
+                    break;
+                case 'magnific':
+                    await handleMagnificAnalysis();
+                    break;
+                case 'ideogram':
+                    await handleIdeogramAnalysis();
+                    break;
+                case 'behance':
+                    await handleBehanceAnalysis();
+                    break;
+                case 'artstation':
+                    await handleArtStationAnalysis();
+                    break;
+                case 'product_design':
+                    await handleProductDesignAnalysis();
+                    break;
+                case 'awwwards':
+                    await handleAwwwardsAnalysis();
+                    break;
+                case 'cinema':
+                    await handleCinemaAnalysis();
+                    break;
+                case 'vogue':
+                    await handleVogueAnalysis();
+                    break;
+                case 'natgeo':
+                    await handleNatGeoAnalysis();
+                    break;
+                case 'google_vision':
+                    await handleGoogleVisionAnalysis();
+                    break;
+                case 'whisk':
+                    await handleWhiskAnalysis();
+                    break;
+                case 'huggingface':
+                    await handleHuggingFaceAnalysis();
+                    break;
+                case 'imagefx':
+                    await handleAnalyzeImageFX();
+                    break;
+                case 'tf':
+                    await handleTFAnalysis();
+                    break;
+                default:
+                    compileStandardPrompt();
+                    break;
+            }
+            return;
+        }
+
+        // Modo padrão compilador
+        compileStandardPrompt();
     };
 
     return (
@@ -1395,7 +1553,71 @@ const App: React.FC = () => {
                         <span className="hidden sm:inline">Troca de Marca</span>
                         <span className="sm:hidden">Produto</span>
                         <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30">
-                            NOVO
+                            PRO
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => handleOpenUpscale()}
+                        className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'upscale' 
+                                ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                        title="Modo Upscale Image (Super Resolução 2x até 4x, Aprimoramento ON/OFF e Exportação)"
+                    >
+                        <Maximize2 size={15} className={activeControlTab === 'upscale' ? 'text-white' : 'text-emerald-400'} />
+                        <span className="hidden sm:inline">Upscale Image</span>
+                        <span className="sm:hidden">Upscale</span>
+                        <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                            2x-4x
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveControlTab('bgremover')}
+                        className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'bgremover' 
+                                ? 'bg-gradient-to-r from-teal-500 via-emerald-600 to-green-600 text-white shadow-lg shadow-teal-500/25 ring-1 ring-teal-400' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                        title="Modo Removedor de Fundo, Pincel Restaurador, Refino de Cabelos e Modo Figurinha"
+                    >
+                        <Scissors size={15} className={activeControlTab === 'bgremover' ? 'text-white' : 'text-teal-400'} />
+                        <span className="hidden sm:inline">Remover Fundo</span>
+                        <span className="sm:hidden">Recorte</span>
+                        <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-teal-400/20 text-teal-200 border border-teal-400/30">
+                            Figurinha
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveControlTab('birthdayBackdrop')}
+                        className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'birthdayBackdrop' 
+                                ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-slate-950 shadow-lg shadow-pink-500/25 ring-1 ring-pink-400 font-black' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                        title="Criador de Painel de Aniversário (Painel Redondo 1.5m, Arco Romano, Cilindros) e Topo de Bolo"
+                    >
+                        <PartyPopper size={15} className={activeControlTab === 'birthdayBackdrop' ? 'text-slate-950' : 'text-pink-400'} />
+                        <span className="hidden sm:inline">Painel & Bolo</span>
+                        <span className="sm:hidden">Painel</span>
+                        <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-pink-400/20 text-pink-200 border border-pink-400/30">
+                            Festa
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => handleOpenPanelSplitter()}
+                        className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'panelSplitter' 
+                                ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 ring-1 ring-cyan-400 font-black' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                        title="Modo Fatiador & Cortador de Painéis (FatiArt, SplitImage, Encantiva) - Fatiamento para Impressão A4/A3 com Sangria e PDF"
+                    >
+                        <Scissors size={15} className={activeControlTab === 'panelSplitter' ? 'text-white' : 'text-cyan-400'} />
+                        <span className="hidden sm:inline">Fatiador de Painéis</span>
+                        <span className="sm:hidden">Fatiador</span>
+                        <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
+                            FatiArt
                         </span>
                     </button>
                 </div>
@@ -1516,6 +1738,7 @@ const App: React.FC = () => {
                                         onRemoveBackground={() => setSettings(s => ({ ...s, removeBackground: !s.removeBackground }))}
                                         isRemovingBackground={settings.removeBackground}
                                         onCropSave={handleCropSave}
+                                        onOpenUpscale={() => handleOpenUpscale()}
                                     />
                                     {activeImage.analysis && <AnalysisResultView analysis={activeImage.analysis} imageName={activeImage.name} />}
                                 </div>
@@ -1593,6 +1816,8 @@ const App: React.FC = () => {
                                 onSwitchToEffects={() => setActiveControlTab('effects')}
                                 onSwitchToModelSheet={() => setActiveControlTab('modelsheet')}
                                 onSwitchToProductSheet={() => setActiveControlTab('productsheet')}
+                                onSwitchToBgRemover={() => setActiveControlTab('bgremover')}
+                                onSwitchToUpscale={() => setActiveControlTab('upscale')}
                                 onAnalyzeSearchGrounding={handleAnalyzeSearchGrounding}
                                 isGeneratingSearchGrounding={isGeneratingSearchGrounding}
                             />
@@ -1637,9 +1862,45 @@ const App: React.FC = () => {
                                 originalImageName={activeImage?.name || null}
                                 isGenerating={isGeneratingVisual} 
                                 onClose={() => setGeneratedImageUrl(null)} 
+                                onOpenUpscale={(url) => handleOpenUpscale(url, 'imagem-gerada')}
                             />
                         </div>
                     </div>
+                ) : activeControlTab === 'upscale' ? (
+                    /* MODO UPSCALE IMAGE & SUPER RESOLUÇÃO */
+                    <ImageUpscaleStudio 
+                        initialImageUrl={upscaleSourceImage?.url || activeImage?.previewUrl || (activeImage?.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : (generatedImageUrl || null))}
+                        initialImageName={upscaleSourceImage?.name || activeImage?.name || (generatedImageUrl ? 'imagem-gerada' : 'imagem')}
+                        availableImages={images}
+                        onBackToArchitect={() => setActiveControlTab('architect')}
+                    />
+                ) : activeControlTab === 'bgremover' ? (
+                    /* MODO REMOVEDOR DE FUNDO, PINCEL & FIGURINHA */
+                    <BackgroundRemoverStudio 
+                        initialImageUrl={activeImage?.previewUrl || (activeImage?.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : (generatedImageUrl || null))}
+                        initialImageName={activeImage?.name || (generatedImageUrl ? 'imagem-gerada' : 'imagem')}
+                        availableImages={images}
+                        onBackToArchitect={() => setActiveControlTab('architect')}
+                        onOpenUpscale={(url, name) => handleOpenUpscale(url, name)}
+                    />
+                ) : activeControlTab === 'birthdayBackdrop' ? (
+                    /* MODO CRIADOR DE PAINEL DE ANIVERSÁRIO & TOPO DE BOLO */
+                    <BirthdayBackdropStudio 
+                        availableImages={images}
+                        onBackToArchitect={() => setActiveControlTab('architect')}
+                        onOpenBgRemover={() => setActiveControlTab('bgremover')}
+                        onOpenPanelSplitter={handleOpenPanelSplitter}
+                        initialImportedImage={activeImage?.previewUrl || (activeImage?.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : (generatedImageUrl || null))}
+                    />
+                ) : activeControlTab === 'panelSplitter' ? (
+                    /* MODO FATIADOR & CORTADOR DE PAINÉIS (FATIART, SPLITIMAGE, ENCANTIVA PRO) */
+                    <PanelSplitterStudio 
+                        availableImages={images}
+                        initialImageUrl={panelSplitterSourceImage?.url || activeImage?.previewUrl || (activeImage?.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : (generatedImageUrl || null))}
+                        initialImageName={panelSplitterSourceImage?.name || activeImage?.name || (generatedImageUrl ? 'imagem-gerada' : 'painel')}
+                        onBackToArchitect={() => setActiveControlTab('architect')}
+                        onOpenBirthdayStudio={() => setActiveControlTab('birthdayBackdrop')}
+                    />
                 ) : (
                     /* MODOS AVANÇADOS: Ficha de Modelo, Troca de Marca & Efeitos Visuais (Desktop: 8 cols + 4 cols sticky, Mobile/Tablet: 100%) */
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">

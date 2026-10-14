@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, X, Scissors, Crop as CropIcon, Check, Ban, Circle, Square, Wand2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, X, Scissors, Crop as CropIcon, Check, Ban, Circle, Square, Wand2, Maximize2, Download } from 'lucide-react';
 
 interface ImagePreviewProps {
     src: string;
@@ -11,6 +11,7 @@ interface ImagePreviewProps {
     isRemovingBackground: boolean;
     onCropSave?: (croppedFile: File) => void;
     onOpenImageEditor?: () => void;
+    onOpenUpscale?: () => void;
 }
 
 type CropShape = 'rect' | 'circle';
@@ -23,7 +24,8 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     onRemoveBackground, 
     isRemovingBackground,
     onCropSave,
-    onOpenImageEditor
+    onOpenImageEditor,
+    onOpenUpscale
 }) => {
     const [scale, setScale] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -132,6 +134,62 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                 setIsCropping(false);
             }
         }, 'image/png');
+    };
+
+    const downloadCrop = () => {
+        if (!imgRef.current) return;
+
+        const img = imgRef.current;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const startX = (cropRect.x / 100) * img.naturalWidth;
+        const startY = (cropRect.y / 100) * img.naturalHeight;
+        const width = (cropRect.width / 100) * img.naturalWidth;
+        const height = (cropRect.height / 100) * img.naturalHeight;
+
+        canvas.width = Math.max(1, Math.round(width));
+        canvas.height = Math.max(1, Math.round(height));
+
+        if (cropShape === 'circle') {
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) / 2, 0, Math.PI * 2);
+            ctx.clip();
+        }
+
+        ctx.drawImage(img, startX, startY, width, height, 0, 0, canvas.width, canvas.height);
+
+        try {
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = `recorte-${Date.now()}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        try { document.body.removeChild(a); } catch (_) {}
+                        URL.revokeObjectURL(url);
+                    }, 1000);
+                } else {
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = dataUrl;
+                    a.download = `recorte-${Date.now()}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        try { document.body.removeChild(a); } catch (_) {}
+                    }, 1000);
+                }
+            }, 'image/png');
+        } catch (err) {
+            console.error("Erro ao baixar recorte:", err);
+        }
     };
 
     const handleCropInteraction = (e: React.MouseEvent | React.TouchEvent) => {
@@ -253,6 +311,16 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
 
             {/* Sidebar Controls - Visible by default on mobile touch screens */}
             <div className="absolute top-3 left-3 flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-40">
+                {onOpenUpscale && (
+                    <button 
+                        onClick={onOpenUpscale}
+                        className="p-2 sm:p-2.5 rounded-xl flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold backdrop-blur-md border bg-emerald-950/90 hover:bg-emerald-900/90 border-emerald-500/60 text-emerald-300 transition-all shadow-lg cursor-pointer"
+                        title="Modo Upscale Image: Ampliar em 2x, 3x ou 4x com Aprimoramento e Download em Qualquer Formato"
+                    >
+                        <Maximize2 size={15} className="text-emerald-400" />
+                        <span className="hidden sm:inline">Upscale 2x-4x</span>
+                    </button>
+                )}
 
                 <button 
                     onClick={onRemoveBackground}
@@ -298,14 +366,24 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
                     
                     <div className="flex items-center gap-2 sm:gap-3 bg-slate-900/95 backdrop-blur-xl px-3 sm:px-4 py-2 sm:py-3 rounded-2xl border border-slate-700 shadow-2xl">
                         <button 
+                            type="button"
                             onClick={applyCrop}
-                            className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm font-black text-white bg-blue-600 hover:bg-blue-500 py-2.5 sm:py-3 rounded-xl transition-all uppercase tracking-widest active:scale-95"
+                            className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm font-black text-white bg-blue-600 hover:bg-blue-500 py-2.5 sm:py-3 rounded-xl transition-all uppercase tracking-widest active:scale-95 cursor-pointer shadow-md"
                         >
                             <Check size={16} /> Confirmar
                         </button>
                         <button 
+                            type="button"
+                            onClick={downloadCrop}
+                            className="flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all active:scale-95 cursor-pointer shadow-md"
+                            title="Baixar recorte diretamente"
+                        >
+                            <Download size={16} /> <span>Baixar</span>
+                        </button>
+                        <button 
+                            type="button"
                             onClick={() => setIsCropping(false)}
-                            className="p-2.5 sm:p-3 bg-slate-800 text-slate-300 rounded-xl hover:text-white transition-all active:scale-95"
+                            className="p-2.5 sm:p-3 bg-slate-800 text-slate-300 rounded-xl hover:text-white transition-all active:scale-95 cursor-pointer"
                         >
                             <X size={18} />
                         </button>

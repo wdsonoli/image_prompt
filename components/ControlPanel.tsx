@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { PromptSettings, TargetPlatform, STYLE_TEMPLATES, DETAIL_LEVEL_MAP } from '../types';
+import { PromptSettings, TargetPlatform, STYLE_TEMPLATES, DETAIL_LEVEL_MAP, VISION_MODELS_DATA, PHOTOGRAPHY_FRAMING_OPTIONS } from '../types';
 import { 
     Settings, Zap, Cog, Type, 
     Mountain, Hexagon, Cpu, 
@@ -11,7 +11,7 @@ import {
     Palette, Slash, Moon, Wand2, Flashlight, Lightbulb, Brain, Layers as LayersIcon,
     Activity, AlignCenter, AlignLeft, AlignRight, Move, Layers as Layers3d, LayoutGrid,
     Wind, Layers, Boxes, Target, Image as ImageIcon, Flame, Compass, Scan, PenTool, Award, Package,
-    Film, Crown, Laptop, Building2, Feather, Orbit, Shapes, Gem, Wand, UserCheck, User
+    Film, Crown, Laptop, Building2, Feather, Orbit, Shapes, Gem, Wand, UserCheck, User, Scissors
 } from 'lucide-react';
 import { Tooltip } from './Tooltip';
 import { ULTRA_PREMIUM_16K_PROMPT } from '../utils/visualEffectsData';
@@ -87,6 +87,8 @@ interface ControlPanelProps {
     onSwitchToEffects?: () => void;
     onSwitchToModelSheet?: () => void;
     onSwitchToProductSheet?: () => void;
+    onSwitchToBgRemover?: () => void;
+    onSwitchToUpscale?: () => void;
     onOpenGemini3ProGenerator?: () => void;
     onOpenImageEditor?: () => void;
 }
@@ -213,6 +215,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     onSwitchToEffects,
     onSwitchToModelSheet,
     onSwitchToProductSheet,
+    onSwitchToBgRemover,
+    onSwitchToUpscale,
     onOpenGemini3ProGenerator,
     onOpenImageEditor
 }) => {
@@ -220,6 +224,67 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     const handleChange = (key: keyof PromptSettings, value: any) => {
         onSettingsChange({ ...settings, [key]: value });
     };
+
+    const selectedVision = settings.selectedVisionModel || 'none';
+
+    const handleSelectVision = (modelId: string) => {
+        if (selectedVision === modelId) {
+            handleChange('selectedVisionModel', 'none');
+        } else {
+            handleChange('selectedVisionModel', modelId);
+        }
+    };
+
+    const activeVisionInfo = selectedVision !== 'none' ? VISION_MODELS_DATA[selectedVision] : null;
+    const activeVisionName = activeVisionInfo?.label || selectedVision;
+
+    const isCurrentVisionLoading = (() => {
+        if (selectedVision === 'none') return false;
+        switch (selectedVision) {
+            case 'gemini': return Boolean(isGeneratingGemini || isGeneratingSearchGrounding);
+            case 'openai': return Boolean(isGeneratingOpenAI);
+            case 'claude': return Boolean(isGeneratingClaude);
+            case 'deepseek': return Boolean(isGeneratingDeepseek);
+            case 'consensus': return Boolean(isGeneratingConsensus);
+            case 'behance': return Boolean(isGeneratingBehance);
+            case 'artstation': return Boolean(isGeneratingArtStation);
+            case 'product_design': return Boolean(isGeneratingProductDesign);
+            case 'awwwards': return Boolean(isGeneratingAwwwards);
+            case 'cinema': return Boolean(isGeneratingCinema);
+            case 'vogue': return Boolean(isGeneratingVogue);
+            case 'natgeo': return Boolean(isGeneratingNatGeo);
+            case 'octane': return Boolean(isGeneratingOctane);
+            case 'unreal': return Boolean(isGeneratingUnreal);
+            case 'leonardo': return Boolean(isGeneratingLeonardo);
+            case 'sd': return Boolean(isGeneratingSD);
+            case 'redshift': return Boolean(isGeneratingRedshift);
+            case 'vray': return Boolean(isGeneratingVRay);
+            case 'corona': return Boolean(isGeneratingCorona);
+            case 'cycles': return Boolean(isGeneratingCycles);
+            case 'recraft': return Boolean(isGeneratingRecraft);
+            case 'magnific': return Boolean(isGeneratingMagnific);
+            case 'midjourney': return Boolean(isGeneratingMidjourney);
+            case 'flux': return Boolean(isGeneratingFlux);
+            case 'ideogram': return Boolean(isGeneratingIdeogram);
+            case 'google_vision': return Boolean(isGeneratingGoogleVision);
+            case 'whisk': return Boolean(isGeneratingWhisk);
+            case 'huggingface': return Boolean(isGeneratingHuggingFace);
+            case 'imagefx': return Boolean(isGeneratingImageFX);
+            case 'tf': return Boolean(isGeneratingTF);
+            default: return false;
+        }
+    })();
+
+    const isAnyVisionGenerating = Boolean(
+        isGeneratingGemini || isGeneratingSearchGrounding || isGeneratingOpenAI || isGeneratingDeepseek ||
+        isGeneratingConsensus || isGeneratingBehance || isGeneratingArtStation || isGeneratingProductDesign ||
+        isGeneratingAwwwards || isGeneratingCinema || isGeneratingVogue || isGeneratingNatGeo ||
+        isGeneratingOctane || isGeneratingUnreal || isGeneratingLeonardo || isGeneratingSD ||
+        isGeneratingRedshift || isGeneratingVRay || isGeneratingCorona || isGeneratingCycles ||
+        isGeneratingRecraft || isGeneratingMagnific || isGeneratingMidjourney || isGeneratingFlux ||
+        isGeneratingIdeogram || isGeneratingGoogleVision || isGeneratingWhisk || isGeneratingHuggingFace ||
+        isGeneratingImageFX || isGeneratingTF
+    );
 
     const handleQuickMode = (modeType: 'general' | 'mockup' | 'selo3d' | 'keepcolor' | 'extract_bg' | 'extract_element' | 'extract_person' | 'remove_branding') => {
         switch(modeType) {
@@ -389,7 +454,34 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     </div>
                 )}
 
-                {/* Hub de Modos Unificado */}
+                {/* Banner do Modo: Removedor de Fundo & Figurinhas */}
+                {onSwitchToBgRemover && (
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-teal-950/40 border border-emerald-500/50 flex items-center justify-between gap-3 shadow-lg">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                                <Scissors size={17} />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-black text-white">Removedor de Fundo & Figurinhas</span>
+                                    <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 text-[8px] font-black uppercase border border-emerald-500/30">
+                                        Novo Estúdio
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 leading-tight mt-0.5">
+                                    Recorte automático, troca de fundo, pincel restaurador, refino de cabelos e bordas brancas die-cut
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onSwitchToBgRemover}
+                            className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shrink-0 shadow-md transition-all active:scale-95 cursor-pointer"
+                        >
+                            Abrir Modo
+                        </button>
+                    </div>
+                )}
                 <div className="space-y-2">
                     <div className="flex items-center justify-between text-slate-400 font-bold text-[9px] uppercase tracking-widest">
                         <div className="flex items-center gap-2">
@@ -587,27 +679,128 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     </div>
                 </div>
 
-                {/* Reconhecimento IA - Suíte Expandida de Visão */}
+                {/* Modo Fotografia: Enquadramento de Cenário (Meio da barriga, Foto completa, Peito pra cima) */}
+                <div className="space-y-2 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                            <Camera size={12} className="text-cyan-400" />
+                            <span>Modo Fotografia (Enquadramento)</span>
+                        </label>
+                        <span className="text-[9px] font-mono text-cyan-300 font-bold">
+                            {settings.photographyFraming === 'chest_up'
+                                ? '👤 Peito pra Cima'
+                                : settings.photographyFraming === 'waist_up'
+                                ? '🧍 Meio da Barriga'
+                                : settings.photographyFraming === 'full_body'
+                                ? '🚶 Foto Completa'
+                                : '✦ Automático'}
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {PHOTOGRAPHY_FRAMING_OPTIONS.map((opt) => {
+                            const isSelected = (!settings.photographyFraming && opt.id === 'none') || settings.photographyFraming === opt.id;
+                            return (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => onSettingsChange({ ...settings, photographyFraming: opt.id })}
+                                    className={`p-2 rounded-lg text-left transition-all border flex flex-col justify-between min-h-[50px] cursor-pointer ${
+                                        isSelected
+                                            ? 'bg-cyan-950/60 border-cyan-400 text-white shadow-[0_0_12px_rgba(6,182,212,0.25)] ring-1 ring-cyan-400'
+                                            : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                                    }`}
+                                    title={opt.description}
+                                >
+                                    <div className="flex items-center justify-between w-full">
+                                        <span className={`text-[10px] font-black ${isSelected ? 'text-cyan-200' : 'text-slate-300'}`}>
+                                            {opt.label}
+                                        </span>
+                                        {isSelected && <span className="text-[8px] text-cyan-300 font-bold">✓</span>}
+                                    </div>
+                                    <span className="text-[8px] text-slate-400 font-medium leading-tight">
+                                        {opt.sub}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {settings.photographyFraming && settings.photographyFraming !== 'none' && (
+                        <div className="text-[9.5px] text-cyan-300/80 bg-cyan-950/30 p-2 rounded-lg border border-cyan-500/20 leading-relaxed">
+                            📷 <strong className="text-cyan-200">Enquadramento Ativo:</strong> {PHOTOGRAPHY_FRAMING_OPTIONS.find(o => o.id === settings.photographyFraming)?.description}
+                        </div>
+                    )}
+                </div>
+
+                {/* Reconhecimento IA - Suíte Expandida de Visão (Modo Seleção de Modelo para Compilação) */}
                 <div className="space-y-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800/80">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-slate-300 font-bold text-[10px] uppercase tracking-widest">
                             <Sparkles size={13} className="text-violet-400"/>
-                            <span>Visão de Inteligências</span>
+                            <span>Modo de Visão IA</span>
                         </div>
-                        <span className="text-[9px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700">
-                            28 Motores IA de Elite
-                        </span>
+                        {selectedVision !== 'none' ? (
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[8.5px] font-bold text-violet-300 bg-violet-500/20 px-2 py-0.5 rounded-full border border-violet-500/40 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    Ativo: {activeVisionName}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSelectVision('none')}
+                                    className="text-[8.5px] text-slate-400 hover:text-rose-300 px-1.5 py-0.5 rounded hover:bg-slate-800 transition-colors"
+                                    title="Desmarcar modo de visão e voltar ao compilador padrão"
+                                >
+                                    ✕ Desmarcar
+                                </button>
+                            </div>
+                        ) : (
+                            <span className="text-[8.5px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700">
+                                28 Motores IA (Clique para Selecionar)
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Banner explicativo do modo de visão */}
+                    <div className={`p-2 rounded-lg border text-[9px] transition-all flex items-start gap-2 ${
+                        selectedVision !== 'none'
+                            ? 'bg-violet-950/40 border-violet-500/40 text-violet-200'
+                            : 'bg-slate-950/60 border-slate-800/80 text-slate-400'
+                    }`}>
+                        <Eye size={13} className={selectedVision !== 'none' ? 'text-violet-400 shrink-0 mt-0.5 animate-pulse' : 'text-slate-500 shrink-0 mt-0.5'} />
+                        <div className="leading-snug">
+                            {selectedVision !== 'none' ? (
+                                <span>
+                                    Motor selecionado: <strong className="text-white font-bold">{activeVisionName}</strong>. Quando você clicar no botão <strong className="text-cyan-300 font-bold">"Compilar Prompt"</strong>, este modelo analisará sua foto e gerará o prompt especialista!
+                                </span>
+                            ) : (
+                                <span>
+                                    <strong className="text-slate-300 font-bold">Modo de Visão</strong>: Clique em um dos modelos abaixo para <strong className="text-violet-300">selecioná-lo</strong>. Ao clicar em <strong className="text-cyan-300">"Compilar Prompt"</strong>, o prompt será gerado pelo modelo escolhido.
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Consenso Multi-Visão Super Ensemble */}
                     <button
-                        disabled={!hasImage || isGeneratingConsensus}
-                        onClick={onAnalyzeConsensus}
-                        className="w-full relative group overflow-hidden p-2.5 rounded-lg border border-violet-500/40 bg-gradient-to-r from-violet-950/60 via-purple-900/40 to-indigo-950/60 hover:border-violet-400 transition-all shadow-[0_0_15px_rgba(139,92,246,0.15)] disabled:opacity-50 text-left"
+                        type="button"
+                        onClick={() => handleSelectVision('consensus')}
+                        className={`w-full relative group overflow-hidden p-2.5 rounded-lg border transition-all text-left ${
+                            selectedVision === 'consensus'
+                                ? 'border-violet-400 ring-2 ring-violet-400 bg-gradient-to-r from-violet-900/90 via-purple-900/80 to-indigo-900/90 shadow-[0_0_20px_rgba(139,92,246,0.35)] scale-[1.01]'
+                                : 'border-violet-500/40 bg-gradient-to-r from-violet-950/60 via-purple-900/40 to-indigo-950/60 hover:border-violet-400'
+                        }`}
+                        title="Selecionar Consenso Multi-Visão Super Ensemble para a compilação do prompt"
                     >
+                        {selectedVision === 'consensus' && (
+                            <span className="absolute top-1.5 right-2 text-[8px] bg-violet-500 text-white font-black px-1.5 py-0.2 rounded-full flex items-center gap-1 shadow">
+                                ✓ SELECIONADO
+                            </span>
+                        )}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <div className="p-1 rounded bg-violet-500/20 text-violet-300">
+                                <div className={`p-1 rounded ${selectedVision === 'consensus' ? 'bg-violet-400 text-slate-950 font-bold' : 'bg-violet-500/20 text-violet-300'}`}>
                                     {isGeneratingConsensus ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
                                 </div>
                                 <div>
@@ -620,7 +813,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                                     </div>
                                 </div>
                             </div>
-                            <Zap size={14} className="text-violet-400 group-hover:scale-110 transition-transform shrink-0" />
+                            <Zap size={14} className={`${selectedVision === 'consensus' ? 'text-yellow-300 scale-110' : 'text-violet-400'} group-hover:scale-110 transition-transform shrink-0`} />
                         </div>
                     </button>
 
@@ -635,44 +828,64 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                             <button
-                                disabled={!hasImage || isGeneratingBehance}
-                                onClick={onAnalyzeBehance}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-pink-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-pink-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Designer Gráfico & Branding de Elite (Behance / Dribbble Top Shot)"
+                                type="button"
+                                onClick={() => handleSelectVision('behance')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'behance'
+                                        ? 'ring-2 ring-pink-400 bg-pink-950/80 border border-pink-400 text-white shadow-[0_0_12px_rgba(244,114,182,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-pink-500/50 text-pink-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Designer Gráfico & Branding de Elite (Behance / Dribbble)"
                             >
+                                {selectedVision === 'behance' && <span className="absolute top-1 right-1 text-[7px] bg-pink-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingBehance ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <PenTool size={13} className="mb-0.5 text-pink-400" />}
                                 <span className="leading-tight">BEHANCE / DRIBBBLE</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Brand & Layout</span>
                             </button>
 
                             <button
-                                disabled={!hasImage || isGeneratingArtStation}
-                                onClick={onAnalyzeArtStation}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-indigo-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-indigo-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Art Director 3D & Concept Artist (ArtStation Trending #1)"
+                                type="button"
+                                onClick={() => handleSelectVision('artstation')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'artstation'
+                                        ? 'ring-2 ring-indigo-400 bg-indigo-950/80 border border-indigo-400 text-white shadow-[0_0_12px_rgba(129,140,248,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-indigo-500/50 text-indigo-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Art Director 3D & Concept Artist (ArtStation Trending #1)"
                             >
+                                {selectedVision === 'artstation' && <span className="absolute top-1 right-1 text-[7px] bg-indigo-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingArtStation ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Layers3d size={13} className="mb-0.5 text-indigo-400" />}
                                 <span className="leading-tight">ARTSTATION 3D</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Concept & CGI</span>
                             </button>
 
                             <button
-                                disabled={!hasImage || isGeneratingProductDesign}
-                                onClick={onAnalyzeProductDesign}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-emerald-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-emerald-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Design Industrial & Embalagens CMF (Dieter Rams / Apple Studio)"
+                                type="button"
+                                onClick={() => handleSelectVision('product_design')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'product_design'
+                                        ? 'ring-2 ring-emerald-400 bg-emerald-950/80 border border-emerald-400 text-white shadow-[0_0_12px_rgba(52,211,153,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-emerald-500/50 text-emerald-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Design Industrial & Embalagens CMF"
                             >
+                                {selectedVision === 'product_design' && <span className="absolute top-1 right-1 text-[7px] bg-emerald-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingProductDesign ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Package size={13} className="mb-0.5 text-emerald-400" />}
                                 <span className="leading-tight">DESIGN PRODUTO</span>
                                 <span className="text-[7px] text-slate-400 font-normal">CMF & Packaging</span>
                             </button>
 
                             <button
-                                disabled={!hasImage || isGeneratingAwwwards}
-                                onClick={onAnalyzeAwwwards}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-cyan-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Digital Product & UI/UX Designer (Awwwards Site of the Year / Bento Grids)"
+                                type="button"
+                                onClick={() => handleSelectVision('awwwards')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'awwwards'
+                                        ? 'ring-2 ring-cyan-400 bg-cyan-950/80 border border-cyan-400 text-white shadow-[0_0_12px_rgba(34,211,238,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 text-cyan-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Digital Product & UI/UX Designer (Awwwards)"
                             >
+                                {selectedVision === 'awwwards' && <span className="absolute top-1 right-1 text-[7px] bg-cyan-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingAwwwards ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Laptop size={13} className="mb-0.5 text-cyan-400" />}
                                 <span className="leading-tight">AWWWARDS UI/UX</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Bento & Digital</span>
@@ -691,33 +904,48 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         </div>
                         <div className="grid grid-cols-3 gap-1.5">
                             <button
-                                disabled={!hasImage || isGeneratingCinema}
-                                onClick={onAnalyzeCinema}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-amber-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Diretor de Fotografia de Hollywood (ARRI / IMAX 70mm / Roger Deakins)"
+                                type="button"
+                                onClick={() => handleSelectVision('cinema')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'cinema'
+                                        ? 'ring-2 ring-amber-400 bg-amber-950/80 border border-amber-400 text-white shadow-[0_0_12px_rgba(251,191,36,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 text-amber-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Diretor de Fotografia de Hollywood (ARRI / IMAX 70mm)"
                             >
+                                {selectedVision === 'cinema' && <span className="absolute top-1 right-1 text-[7px] bg-amber-500 text-slate-950 font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingCinema ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Film size={13} className="mb-0.5 text-amber-400" />}
                                 <span className="leading-tight">HOLLYWOOD CINEMA</span>
                                 <span className="text-[7px] text-slate-400 font-normal">ARRI / 70mm IMAX</span>
                             </button>
 
                             <button
-                                disabled={!hasImage || isGeneratingVogue}
-                                onClick={onAnalyzeVogue}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-fuchsia-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-fuchsia-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Direção de Moda & Estilo Vogue (Alta Costura & Iluminação de Luxo)"
+                                type="button"
+                                onClick={() => handleSelectVision('vogue')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'vogue'
+                                        ? 'ring-2 ring-fuchsia-400 bg-fuchsia-950/80 border border-fuchsia-400 text-white shadow-[0_0_12px_rgba(232,121,249,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-fuchsia-500/50 text-fuchsia-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Direção de Moda & Estilo Vogue (Alta Costura)"
                             >
+                                {selectedVision === 'vogue' && <span className="absolute top-1 right-1 text-[7px] bg-fuchsia-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingVogue ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Crown size={13} className="mb-0.5 text-fuchsia-400" />}
                                 <span className="leading-tight">VOGUE EDITORIAL</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Moda & Alta Costura</span>
                             </button>
 
                             <button
-                                disabled={!hasImage || isGeneratingNatGeo}
-                                onClick={onAnalyzeNatGeo}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-emerald-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-emerald-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Fotógrafo Fellow National Geographic (Hasselblad H6D 100MP RAW)"
+                                type="button"
+                                onClick={() => handleSelectVision('natgeo')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'natgeo'
+                                        ? 'ring-2 ring-emerald-400 bg-emerald-950/80 border border-emerald-400 text-white shadow-[0_0_12px_rgba(52,211,153,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-emerald-500/50 text-emerald-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Fotógrafo Fellow National Geographic (Hasselblad 100MP RAW)"
                             >
+                                {selectedVision === 'natgeo' && <span className="absolute top-1 right-1 text-[7px] bg-emerald-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingNatGeo ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Camera size={13} className="mb-0.5 text-emerald-400" />}
                                 <span className="leading-tight">NATGEO RAW</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Hasselblad 100MP</span>
@@ -750,26 +978,35 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                                     label: settings.enableSearchGrounding ? 'GEMINI SEARCH' : 'GEMINI 3.0', 
                                     sub: settings.enableSearchGrounding ? 'gemini-3.8-flash' : 'Google', 
                                     icon: settings.enableSearchGrounding ? Globe : Bot, 
-                                    action: settings.enableSearchGrounding && onAnalyzeSearchGrounding ? onAnalyzeSearchGrounding : onAnalyzeGemini, 
                                     loading: isGeneratingGemini || Boolean(isGeneratingSearchGrounding), 
                                     color: settings.enableSearchGrounding ? 'text-cyan-300' : 'text-violet-300', 
-                                    border: settings.enableSearchGrounding ? 'border-cyan-500/50 bg-cyan-950/20 hover:border-cyan-400' : 'hover:border-violet-500/50' 
+                                    border: settings.enableSearchGrounding ? 'hover:border-cyan-400' : 'hover:border-violet-500/50',
+                                    ringColor: 'ring-cyan-400 border-cyan-400 bg-cyan-950/80'
                                 },
-                                { id: 'openai', label: 'CHATGPT (GRÁTIS)', sub: 'GPT-4o Mini', icon: Bot, action: onAnalyzeOpenAI, loading: isGeneratingOpenAI, color: 'text-emerald-300', border: 'hover:border-emerald-500/50' },
-                                { id: 'claude', label: 'CLAUDE 3.7', sub: 'Anthropic', icon: Compass, action: onAnalyzeClaude, loading: isGeneratingClaude, color: 'text-amber-300', border: 'hover:border-amber-500/50' },
-                                { id: 'deepseek', label: 'DEEPSEEK (GRÁTIS)', sub: 'R1 Visual', icon: Brain, action: onAnalyzeDeepseek, loading: isGeneratingDeepseek, color: 'text-blue-300', border: 'hover:border-blue-500/50' }
-                            ].map(ai => (
-                                <button 
-                                    key={ai.id}
-                                    disabled={!hasImage || ai.loading}
-                                    onClick={ai.action}
-                                    className={`flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 rounded-lg text-[9px] sm:text-[8px] font-black ${ai.color} ${ai.border} hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center`}
-                                >
-                                    {ai.loading ? <Loader2 size={14} className="animate-spin mb-1" /> : <ai.icon size={14} className="mb-1" />}
-                                    <span className="leading-tight">{ai.label}</span>
-                                    <span className="text-[7px] text-slate-400 font-normal">{ai.sub}</span>
-                                </button>
-                            ))}
+                                { id: 'openai', label: 'CHATGPT (GRÁTIS)', sub: 'GPT-4o Mini', icon: Bot, loading: isGeneratingOpenAI, color: 'text-emerald-300', border: 'hover:border-emerald-500/50', ringColor: 'ring-emerald-400 border-emerald-400 bg-emerald-950/80' },
+                                { id: 'claude', label: 'CLAUDE 3.7', sub: 'Anthropic', icon: Compass, loading: isGeneratingClaude, color: 'text-amber-300', border: 'hover:border-amber-500/50', ringColor: 'ring-amber-400 border-amber-400 bg-amber-950/80' },
+                                { id: 'deepseek', label: 'DEEPSEEK (GRÁTIS)', sub: 'R1 Visual', icon: Brain, loading: isGeneratingDeepseek, color: 'text-blue-300', border: 'hover:border-blue-500/50', ringColor: 'ring-blue-400 border-blue-400 bg-blue-950/80' }
+                            ].map(ai => {
+                                const isSelected = selectedVision === ai.id;
+                                return (
+                                    <button 
+                                        key={ai.id}
+                                        type="button"
+                                        onClick={() => handleSelectVision(ai.id)}
+                                        className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[9px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                            isSelected
+                                                ? `ring-2 ${ai.ringColor} text-white shadow-lg scale-[1.02]`
+                                                : `bg-slate-950/70 border border-slate-800 ${ai.color} ${ai.border} hover:bg-slate-800/80`
+                                        }`}
+                                        title={`Selecionar ${ai.label} para a compilação do prompt`}
+                                    >
+                                        {isSelected && <span className="absolute top-1 right-1 text-[7px] bg-violet-500 text-white font-black px-1 rounded-full">✓</span>}
+                                        {ai.loading ? <Loader2 size={14} className="animate-spin mb-1" /> : <ai.icon size={14} className="mb-1" />}
+                                        <span className="leading-tight">{ai.label}</span>
+                                        <span className="text-[7px] text-slate-400 font-normal">{ai.sub}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -785,11 +1022,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                             {/* 1. Midjourney */}
                             <button 
-                                disabled={!hasImage || isGeneratingMidjourney}
-                                onClick={onAnalyzeMidjourney}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-cyan-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Estética e Fotografia Midjourney v6.1 (/describe)"
+                                type="button"
+                                onClick={() => handleSelectVision('midjourney')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'midjourney'
+                                        ? 'ring-2 ring-cyan-400 bg-cyan-950/80 border border-cyan-400 text-white shadow-[0_0_12px_rgba(34,211,238,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-cyan-500/50 text-cyan-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão Midjourney v6.1 (/describe) para compilar o prompt"
                             >
+                                {selectedVision === 'midjourney' && <span className="absolute top-1 right-1 text-[7px] bg-cyan-500 text-slate-950 font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingMidjourney ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Camera size={13} className="mb-0.5 text-cyan-400" />}
                                 <span className="leading-tight">MIDJOURNEY</span>
                                 <span className="text-[7px] text-slate-400 font-normal">v6.1 /describe</span>
@@ -797,11 +1039,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 2. Flux.1 */}
                             <button 
-                                disabled={!hasImage || isGeneratingFlux}
-                                onClick={onAnalyzeFlux}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-rose-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-rose-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Realismo RAW e Texturas Físicas (Flux.1 Black Forest Labs)"
+                                type="button"
+                                onClick={() => handleSelectVision('flux')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'flux'
+                                        ? 'ring-2 ring-rose-400 bg-rose-950/80 border border-rose-400 text-white shadow-[0_0_12px_rgba(251,113,133,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-rose-500/50 text-rose-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão Flux.1 RAW Realism para compilar o prompt"
                             >
+                                {selectedVision === 'flux' && <span className="absolute top-1 right-1 text-[7px] bg-rose-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingFlux ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Flame size={13} className="mb-0.5 text-rose-400" />}
                                 <span className="leading-tight">FLUX.1</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Realismo RAW</span>
@@ -809,11 +1056,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 3. Redshift 3D */}
                             <button 
-                                disabled={!hasImage || isGeneratingRedshift}
-                                onClick={onAnalyzeRedshift}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-red-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-red-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de GPU Motion Design e Shaders SSS (Maxon Redshift 3D / Cinema 4D)"
+                                type="button"
+                                onClick={() => handleSelectVision('redshift')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'redshift'
+                                        ? 'ring-2 ring-red-400 bg-red-950/80 border border-red-400 text-white shadow-[0_0_12px_rgba(248,113,113,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-red-500/50 text-red-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de GPU Motion Design e Shaders SSS (Maxon Redshift 3D)"
                             >
+                                {selectedVision === 'redshift' && <span className="absolute top-1 right-1 text-[7px] bg-red-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingRedshift ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Flame size={13} className="mb-0.5 text-red-400" />}
                                 <span className="leading-tight">REDSHIFT 3D</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Maxon Mograph</span>
@@ -821,11 +1073,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 4. Octane Render */}
                             <button 
-                                disabled={!hasImage || isGeneratingOctane}
-                                onClick={onAnalyzeOctane}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-amber-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de GPU Path Tracing e Cáusticas Físicas (Octane Render / Cinema 4D)"
+                                type="button"
+                                onClick={() => handleSelectVision('octane')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'octane'
+                                        ? 'ring-2 ring-amber-400 bg-amber-950/80 border border-amber-400 text-white shadow-[0_0_12px_rgba(251,191,36,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 text-amber-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de GPU Path Tracing e Cáusticas Físicas (Octane Render)"
                             >
+                                {selectedVision === 'octane' && <span className="absolute top-1 right-1 text-[7px] bg-amber-500 text-slate-950 font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingOctane ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Sun size={13} className="mb-0.5 text-amber-400" />}
                                 <span className="leading-tight">OCTANE RENDER</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Path Tracing C4D</span>
@@ -833,11 +1090,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 5. Unreal Engine */}
                             <button 
-                                disabled={!hasImage || isGeneratingUnreal}
-                                onClick={onAnalyzeUnreal}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-blue-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-blue-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Iluminação Global Lumen e Geometria Nanite (Unreal Engine 5.5)"
+                                type="button"
+                                onClick={() => handleSelectVision('unreal')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'unreal'
+                                        ? 'ring-2 ring-blue-400 bg-blue-950/80 border border-blue-400 text-white shadow-[0_0_12px_rgba(96,165,250,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-blue-500/50 text-blue-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Iluminação Global Lumen e Nanite (Unreal Engine 5.5)"
                             >
+                                {selectedVision === 'unreal' && <span className="absolute top-1 right-1 text-[7px] bg-blue-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingUnreal ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Boxes size={13} className="mb-0.5 text-blue-400" />}
                                 <span className="leading-tight">UNREAL ENGINE</span>
                                 <span className="text-[7px] text-slate-400 font-normal">UE 5.5 / Lumen</span>
@@ -845,11 +1107,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 6. V-Ray 6 */}
                             <button 
-                                disabled={!hasImage || isGeneratingVRay}
-                                onClick={onAnalyzeVRay}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-emerald-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-emerald-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Render Arquitetônico e Automotivo de Luxo (Chaos V-Ray 6)"
+                                type="button"
+                                onClick={() => handleSelectVision('vray')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'vray'
+                                        ? 'ring-2 ring-emerald-400 bg-emerald-950/80 border border-emerald-400 text-white shadow-[0_0_12px_rgba(52,211,153,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-emerald-500/50 text-emerald-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Render Arquitetônico e Automotivo de Luxo (Chaos V-Ray 6)"
                             >
+                                {selectedVision === 'vray' && <span className="absolute top-1 right-1 text-[7px] bg-emerald-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingVRay ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Building2 size={13} className="mb-0.5 text-emerald-400" />}
                                 <span className="leading-tight">V-RAY 6</span>
                                 <span className="text-[7px] text-slate-400 font-normal">ArchViz & Luxury</span>
@@ -857,11 +1124,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 7. Corona Render */}
                             <button 
-                                disabled={!hasImage || isGeneratingCorona}
-                                onClick={onAnalyzeCorona}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-teal-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-teal-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Iluminação Escandinava e Materiais Orgânicos (Chaos Corona)"
+                                type="button"
+                                onClick={() => handleSelectVision('corona')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'corona'
+                                        ? 'ring-2 ring-teal-400 bg-teal-950/80 border border-teal-400 text-white shadow-[0_0_12px_rgba(45,212,191,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-teal-500/50 text-teal-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Iluminação Escandinava e Materiais Orgânicos (Chaos Corona)"
                             >
+                                {selectedVision === 'corona' && <span className="absolute top-1 right-1 text-[7px] bg-teal-500 text-slate-950 font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingCorona ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Feather size={13} className="mb-0.5 text-teal-400" />}
                                 <span className="leading-tight">CORONA RENDER</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Nordic Serenity</span>
@@ -869,11 +1141,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 8. Blender Cycles */}
                             <button 
-                                disabled={!hasImage || isGeneratingCycles}
-                                onClick={onAnalyzeCycles}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-orange-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-orange-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Ray Tracing Aberto e Shaders BSDF (Blender 4 Cycles X / AgX)"
+                                type="button"
+                                onClick={() => handleSelectVision('cycles')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'cycles'
+                                        ? 'ring-2 ring-orange-400 bg-orange-950/80 border border-orange-400 text-white shadow-[0_0_12px_rgba(251,146,60,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-orange-500/50 text-orange-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Ray Tracing Aberto e Shaders BSDF (Blender 4 Cycles X)"
                             >
+                                {selectedVision === 'cycles' && <span className="absolute top-1 right-1 text-[7px] bg-orange-500 text-slate-950 font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingCycles ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Orbit size={13} className="mb-0.5 text-orange-400" />}
                                 <span className="leading-tight">BLENDER CYCLES</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Cycles X / AgX</span>
@@ -881,11 +1158,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 9. Leonardo Phoenix */}
                             <button 
-                                disabled={!hasImage || isGeneratingLeonardo}
-                                onClick={onAnalyzeLeonardo}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-yellow-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-yellow-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Fotorealismo Cinematográfico (Leonardo.ai Phoenix / Kino)"
+                                type="button"
+                                onClick={() => handleSelectVision('leonardo')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'leonardo'
+                                        ? 'ring-2 ring-yellow-400 bg-yellow-950/80 border border-yellow-400 text-white shadow-[0_0_12px_rgba(250,204,21,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-yellow-500/50 text-yellow-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Fotorealismo Cinematográfico (Leonardo.ai Phoenix / Kino)"
                             >
+                                {selectedVision === 'leonardo' && <span className="absolute top-1 right-1 text-[7px] bg-yellow-500 text-slate-950 font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingLeonardo ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Sparkles size={13} className="mb-0.5 text-yellow-400" />}
                                 <span className="leading-tight">LEONARDO PHOENIX</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Photoreal V2</span>
@@ -893,11 +1175,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 10. SD 3.5 Large */}
                             <button 
-                                disabled={!hasImage || isGeneratingSD}
-                                onClick={onAnalyzeSD}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-violet-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-violet-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Difusão Latente ComfyUI (Stable Diffusion 3.5 Large)"
+                                type="button"
+                                onClick={() => handleSelectVision('sd')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'sd'
+                                        ? 'ring-2 ring-violet-400 bg-violet-950/80 border border-violet-400 text-white shadow-[0_0_12px_rgba(167,139,250,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-violet-500/50 text-violet-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Difusão Latente ComfyUI (Stable Diffusion 3.5 Large)"
                             >
+                                {selectedVision === 'sd' && <span className="absolute top-1 right-1 text-[7px] bg-violet-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingSD ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Cpu size={13} className="mb-0.5 text-violet-400" />}
                                 <span className="leading-tight">SD 3.5 LARGE</span>
                                 <span className="text-[7px] text-slate-400 font-normal">ComfyUI Latent</span>
@@ -905,11 +1192,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 11. Recraft v3 */}
                             <button 
-                                disabled={!hasImage || isGeneratingRecraft}
-                                onClick={onAnalyzeRecraft}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-pink-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-pink-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Design Gráfico #1 e Ícones 3D (Recraft v3 / Red Dot Best of the Best)"
+                                type="button"
+                                onClick={() => handleSelectVision('recraft')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'recraft'
+                                        ? 'ring-2 ring-pink-400 bg-pink-950/80 border border-pink-400 text-white shadow-[0_0_12px_rgba(244,114,182,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-pink-500/50 text-pink-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Design Gráfico #1 e Ícones 3D (Recraft v3)"
                             >
+                                {selectedVision === 'recraft' && <span className="absolute top-1 right-1 text-[7px] bg-pink-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingRecraft ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Gem size={13} className="mb-0.5 text-pink-400" />}
                                 <span className="leading-tight">RECRAFT v3</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Design & 3D Icons</span>
@@ -917,11 +1209,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 12. Magnific AI */}
                             <button 
-                                disabled={!hasImage || isGeneratingMagnific}
-                                onClick={onAnalyzeMagnific}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-sky-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-sky-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center"
-                                title="Visão de Micro-Texturas e Alucinação Neural 16K (Magnific AI / Krea)"
+                                type="button"
+                                onClick={() => handleSelectVision('magnific')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center ${
+                                    selectedVision === 'magnific'
+                                        ? 'ring-2 ring-sky-400 bg-sky-950/80 border border-sky-400 text-white shadow-[0_0_12px_rgba(56,189,248,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-sky-500/50 text-sky-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Micro-Texturas e Alucinação Neural 16K (Magnific AI / Krea)"
                             >
+                                {selectedVision === 'magnific' && <span className="absolute top-1 right-1 text-[7px] bg-sky-500 text-slate-950 font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingMagnific ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Wand size={13} className="mb-0.5 text-sky-400" />}
                                 <span className="leading-tight">MAGNIFIC 16K</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Micro-Texturas AI</span>
@@ -929,11 +1226,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
                             {/* 13. Ideogram 2.0 (Span across bottom) */}
                             <button 
-                                disabled={!hasImage || isGeneratingIdeogram}
-                                onClick={onAnalyzeIdeogram}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-fuchsia-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-fuchsia-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[52px] sm:min-h-[50px] active:scale-95 text-center col-span-2 sm:col-span-4"
-                                title="Visão de Tipografia e Design Gráfico (Ideogram 2.0)"
+                                type="button"
+                                onClick={() => handleSelectVision('ideogram')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[52px] sm:min-h-[50px] active:scale-95 text-center col-span-2 sm:col-span-4 ${
+                                    selectedVision === 'ideogram'
+                                        ? 'ring-2 ring-fuchsia-400 bg-fuchsia-950/80 border border-fuchsia-400 text-white shadow-[0_0_12px_rgba(232,121,249,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-fuchsia-500/50 text-fuchsia-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão de Tipografia e Design Gráfico (Ideogram 2.0)"
                             >
+                                {selectedVision === 'ideogram' && <span className="absolute top-1 right-1 text-[7px] bg-fuchsia-500 text-white font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingIdeogram ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Type size={13} className="mb-0.5 text-fuchsia-400" />}
                                 <span className="leading-tight">IDEOGRAM 2.0</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Design Gráfico, Logos & Tipografia Renderizada</span>
@@ -948,30 +1250,48 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         </div>
                         <div className="grid grid-cols-3 gap-1.5">
                             <button 
-                                disabled={!hasImage || isGeneratingGoogleVision}
-                                onClick={onAnalyzeGoogleVision}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-orange-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-orange-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
+                                type="button"
+                                onClick={() => handleSelectVision('google_vision')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[50px] sm:min-h-[48px] active:scale-95 text-center ${
+                                    selectedVision === 'google_vision'
+                                        ? 'ring-2 ring-orange-400 bg-orange-950/80 border border-orange-400 text-white shadow-[0_0_12px_rgba(251,146,60,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-orange-500/50 text-orange-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão Técnica do Google Cloud Vision (Features & Labels)"
                             >
+                                {selectedVision === 'google_vision' && <span className="absolute top-1 right-1 text-[7px] bg-orange-500 text-slate-950 font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingGoogleVision ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Eye size={13} className="mb-0.5 text-orange-400" />}
                                 <span className="leading-tight">GOOGLE VISION</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Features/Labels</span>
                             </button>
 
                             <button 
-                                disabled={!hasImage || isGeneratingWhisk}
-                                onClick={onAnalyzeWhisk}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-yellow-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-yellow-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
+                                type="button"
+                                onClick={() => handleSelectVision('whisk')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[50px] sm:min-h-[48px] active:scale-95 text-center ${
+                                    selectedVision === 'whisk'
+                                        ? 'ring-2 ring-yellow-400 bg-yellow-950/80 border border-yellow-400 text-white shadow-[0_0_12px_rgba(250,204,21,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-yellow-500/50 text-yellow-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão Artística Whisk AI"
                             >
+                                {selectedVision === 'whisk' && <span className="absolute top-1 right-1 text-[7px] bg-yellow-500 text-slate-950 font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingWhisk ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Wand2 size={13} className="mb-0.5 text-yellow-400" />}
                                 <span className="leading-tight">WHISK AI</span>
                                 <span className="text-[7px] text-slate-400 font-normal">Estilo Artístico</span>
                             </button>
 
                             <button 
-                                disabled={!hasImage || isGeneratingHuggingFace}
-                                onClick={onAnalyzeHuggingFace}
-                                className="flex flex-col items-center justify-center p-2 sm:p-1.5 bg-slate-950/70 border border-slate-800 hover:border-lime-500/50 rounded-lg text-[8px] sm:text-[8px] font-black text-lime-300 hover:bg-slate-800/80 transition-all disabled:opacity-40 min-h-[50px] sm:min-h-[48px] active:scale-95"
+                                type="button"
+                                onClick={() => handleSelectVision('huggingface')}
+                                className={`relative flex flex-col items-center justify-center p-2 sm:p-1.5 rounded-lg text-[8px] sm:text-[8px] font-black transition-all min-h-[50px] sm:min-h-[48px] active:scale-95 text-center ${
+                                    selectedVision === 'huggingface'
+                                        ? 'ring-2 ring-lime-400 bg-lime-950/80 border border-lime-400 text-white shadow-[0_0_12px_rgba(163,230,53,0.35)] scale-[1.02]'
+                                        : 'bg-slate-950/70 border border-slate-800 hover:border-lime-500/50 text-lime-300 hover:bg-slate-800/80'
+                                }`}
+                                title="Selecionar Visão Open-Source Hugging Face (BLIP-2 / Florence)"
                             >
+                                {selectedVision === 'huggingface' && <span className="absolute top-1 right-1 text-[7px] bg-lime-500 text-slate-950 font-black px-1 rounded-full">✓</span>}
                                 {isGeneratingHuggingFace ? <Loader2 size={13} className="animate-spin mb-0.5" /> : <Scan size={13} className="mb-0.5 text-lime-400" />}
                                 <span className="leading-tight">HUGGING FACE</span>
                                 <span className="text-[7px] text-slate-400 font-normal">BLIP-2 / Florence</span>
@@ -1257,12 +1577,53 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     </span>
                 </button>
 
-                <button 
-                    onClick={onGenerate} 
-                    className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-lg font-black text-xs shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95 uppercase tracking-widest"
-                >
-                    <Zap size={16} /> Compilar Prompt Profissional
-                </button>
+                <div className="space-y-1.5 pt-1">
+                    <button 
+                        type="button"
+                        onClick={onGenerate} 
+                        disabled={isAnyVisionGenerating}
+                        className={`w-full py-3.5 rounded-lg font-black text-xs shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95 uppercase tracking-widest disabled:opacity-50 ${
+                            selectedVision !== 'none'
+                                ? 'bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-violet-500/25 ring-2 ring-violet-400/50'
+                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
+                        }`}
+                        title={selectedVision !== 'none' ? `Gerar prompt analisando a imagem com ${activeVisionName}` : "Compilar prompt profissional com os parâmetros configurados"}
+                    >
+                        {isCurrentVisionLoading ? (
+                            <>
+                                <Loader2 size={16} className="animate-spin text-white" />
+                                <span>Compilando com {activeVisionName}...</span>
+                            </>
+                        ) : selectedVision !== 'none' ? (
+                            <>
+                                <Zap size={16} className="text-yellow-300 animate-pulse" />
+                                <span>Compilar Prompt com {activeVisionName}</span>
+                            </>
+                        ) : (
+                            <>
+                                <Zap size={16} />
+                                <span>Compilar Prompt Profissional</span>
+                            </>
+                        )}
+                    </button>
+
+                    {selectedVision !== 'none' && (
+                        <div className="flex items-center justify-between px-1 text-[10px] text-violet-300">
+                            <span className="flex items-center gap-1.5 font-medium">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>Modo de Visão: <strong className="text-white font-bold">{activeVisionName}</strong></span>
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => handleSelectVision('none')}
+                                className="text-[9px] text-slate-400 hover:text-rose-300 underline cursor-pointer transition-colors"
+                                title="Voltar ao modo compilador padrão sem IA Vision"
+                            >
+                                Voltar ao Padrão
+                            </button>
+                        </div>
+                    )}
+                </div>
 
             </div>
         </div>

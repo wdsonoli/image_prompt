@@ -19,6 +19,7 @@ interface GeneratedImageDisplayProps {
     originalImageName?: string | null;
     isGenerating: boolean;
     onClose: () => void;
+    onOpenUpscale?: (imageUrl: string) => void;
 }
 
 type ViewMode = 'side-by-side' | 'split' | 'single';
@@ -28,7 +29,8 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
     originalImageUrl,
     originalImageName,
     isGenerating, 
-    onClose
+    onClose,
+    onOpenUpscale
 }) => {
     const hasOriginal = Boolean(originalImageUrl);
     const [viewMode, setViewMode] = useState<ViewMode>('side-by-side');
@@ -454,7 +456,7 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
                 
                 {/* Rodapé Informativo */}
                 {!isGenerating && imageUrl && (
-                    <div className="bg-slate-900/60 px-5 py-2.5 text-[11px] text-slate-400 flex flex-wrap justify-between items-center gap-2 border-t border-slate-800">
+                    <div className="bg-slate-900/60 px-4 sm:px-5 py-2.5 text-[11px] text-slate-400 flex flex-wrap justify-between items-center gap-2 border-t border-slate-800">
                         <div className="flex items-center gap-2 font-medium">
                             <span className="flex items-center gap-1 uppercase tracking-widest font-bold text-emerald-400">
                                 <Zap size={11} /> Pronto para uso
@@ -463,16 +465,27 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
                                 <span className="text-slate-500 hidden sm:inline">• Modo: {viewMode === 'side-by-side' ? 'Lado a Lado' : viewMode === 'split' ? 'Slider Interativo' : 'Imagem Única'}</span>
                             )}
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {onOpenUpscale && (
+                                <button
+                                    type="button"
+                                    onClick={() => onOpenUpscale(imageUrl)}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                                    title="Abrir no Estúdio de Upscale (2x até 4x, Aprimoramento ON/OFF)"
+                                >
+                                    <Maximize2 size={12} className="text-emerald-400" />
+                                    <span>Upscale 2x-4x</span>
+                                </button>
+                            )}
+
                             <button
                                 type="button"
                                 onClick={handleDownload}
-                                className="text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 transition-colors"
+                                className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 border border-blue-500/40 font-bold flex items-center gap-1 transition-all cursor-pointer"
                             >
-                                <Download size={13} />
-                                Download PNG
+                                <Download size={12} />
+                                <span>{isDownloaded ? 'Baixado!' : 'Baixar Imagem'}</span>
                             </button>
-                            <span className="font-mono text-slate-600 text-[10px]">GEMINI ENGINE</span>
                         </div>
                     </div>
                 )}

@@ -102,7 +102,88 @@ export interface PromptSettings {
     selectedEffects?: string[];
     enableSearchGrounding?: boolean;
     characterGender?: 'woman' | 'man' | 'auto';
+    selectedVisionModel?: string; // 'none' / undefined or model ID (e.g. 'midjourney', 'gemini', 'consensus', etc.)
+    photographyFraming?: 'none' | 'chest_up' | 'waist_up' | 'full_body'; // Modo Fotografia: enquadramento de foto
 }
+
+export interface PhotographyFramingOption {
+    id: 'none' | 'chest_up' | 'waist_up' | 'full_body';
+    label: string;
+    sub: string;
+    promptText: string;
+    description: string;
+}
+
+export const PHOTOGRAPHY_FRAMING_OPTIONS: PhotographyFramingOption[] = [
+    {
+        id: 'none',
+        label: 'Automático',
+        sub: 'Padrão da Cena',
+        promptText: '',
+        description: 'Enquadramento dinâmico definido pela cena'
+    },
+    {
+        id: 'chest_up',
+        label: 'Peito pra Cima',
+        sub: 'Bust / Close-up',
+        promptText: 'medium close-up portrait shot, framed from the chest up, head and shoulders framing, professional portrait composition, shallow depth of field',
+        description: 'Retrato focado do peito para cima, destacando rosto, torso superior e iluminação de estúdio'
+    },
+    {
+        id: 'waist_up',
+        label: 'Até Meio da Barriga',
+        sub: 'Waist-Up / 1/2 Corpo',
+        promptText: 'medium shot, framed from the waist up, half-body photographic portrait, torso and posture focus, editorial fashion framing',
+        description: 'Plano médio mostrando da linha da cintura/meio da barriga para cima, ideal para moda e postura'
+    },
+    {
+        id: 'full_body',
+        label: 'Foto Completa',
+        sub: 'Corpo Inteiro',
+        promptText: 'full body shot, complete head-to-toe framing, whole body visible with feet on the ground, wide portrait angle, full silhouette',
+        description: 'Foto completa de corpo inteiro da cabeça aos pés, mostrando todo o calçado e o piso'
+    }
+];
+
+export interface VisionModelInfo {
+    id: string;
+    label: string;
+    sub: string;
+    category: 'consensus' | 'design' | 'cinema' | 'foundation' | 'specialist' | 'tech';
+    categoryLabel: string;
+    description: string;
+}
+
+export const VISION_MODELS_DATA: Record<string, VisionModelInfo> = {
+    consensus: { id: 'consensus', label: 'Consenso Multi-Visão', sub: 'Super Ensemble', category: 'consensus', categoryLabel: 'Super Ensemble', description: 'Funde geometria espacial, física de luz, texturas e plataforma' },
+    behance: { id: 'behance', label: 'Behance / Dribbble', sub: 'Brand & Layout', category: 'design', categoryLabel: 'Top Designers & Direção de Arte', description: 'Visão de Designer Gráfico & Branding de Elite (Behance / Dribbble Top Shot)' },
+    artstation: { id: 'artstation', label: 'ArtStation 3D', sub: 'Concept & CGI', category: 'design', categoryLabel: 'Top Designers & Direção de Arte', description: 'Visão de Art Director 3D & Concept Artist (ArtStation Trending #1)' },
+    product_design: { id: 'product_design', label: 'Design Produto', sub: 'CMF & Packaging', category: 'design', categoryLabel: 'Top Designers & Direção de Arte', description: 'Visão de Design Industrial & Embalagens CMF (Dieter Rams / Apple Studio)' },
+    awwwards: { id: 'awwwards', label: 'Awwwards UI/UX', sub: 'Bento & Digital', category: 'design', categoryLabel: 'Top Designers & Direção de Arte', description: 'Visão de Digital Product & UI/UX Designer (Awwwards Site of the Year / Bento Grids)' },
+    cinema: { id: 'cinema', label: 'Hollywood Cinema', sub: 'ARRI / 70mm IMAX', category: 'cinema', categoryLabel: 'Mestres do Cinema & Fotografia de Elite', description: 'Visão de Diretor de Fotografia de Hollywood (ARRI / IMAX 70mm / Roger Deakins)' },
+    vogue: { id: 'vogue', label: 'Vogue Editorial', sub: 'Moda & Alta Costura', category: 'cinema', categoryLabel: 'Mestres do Cinema & Fotografia de Elite', description: 'Visão de Direção de Moda & Estilo Vogue (Alta Costura & Iluminação de Luxo)' },
+    natgeo: { id: 'natgeo', label: 'NatGeo RAW', sub: 'Hasselblad 100MP', category: 'cinema', categoryLabel: 'Mestres do Cinema & Fotografia de Elite', description: 'Visão de Fotógrafo Fellow National Geographic (Hasselblad H6D 100MP RAW)' },
+    gemini: { id: 'gemini', label: 'Gemini 3.0', sub: 'Google Multimodal', category: 'foundation', categoryLabel: 'Multimodais Foundation', description: 'Visão Multimodal Gemini 3.0 Flash com reasoning nativo' },
+    openai: { id: 'openai', label: 'ChatGPT (Grátis)', sub: 'GPT-4o Mini', category: 'foundation', categoryLabel: 'Multimodais Foundation', description: 'Visão Multimodal OpenAI GPT-4o Mini' },
+    claude: { id: 'claude', label: 'Claude 3.7', sub: 'Anthropic Sonnet', category: 'foundation', categoryLabel: 'Multimodais Foundation', description: 'Visão e Raciocínio Profundo Claude 3.7 Sonnet' },
+    deepseek: { id: 'deepseek', label: 'DeepSeek (Grátis)', sub: 'R1 Visual', category: 'foundation', categoryLabel: 'Multimodais Foundation', description: 'Visão DeepSeek R1 Visual com cadeia de pensamento' },
+    midjourney: { id: 'midjourney', label: 'Midjourney', sub: 'v6.1 /describe', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Estética e Fotografia Midjourney v6.1 (/describe)' },
+    flux: { id: 'flux', label: 'Flux.1', sub: 'Realismo RAW', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Realismo RAW e Texturas Físicas (Flux.1 Black Forest Labs)' },
+    redshift: { id: 'redshift', label: 'Redshift 3D', sub: 'Maxon Mograph', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de GPU Motion Design e Shaders SSS (Maxon Redshift 3D / Cinema 4D)' },
+    octane: { id: 'octane', label: 'Octane Render', sub: 'Path Tracing C4D', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de GPU Path Tracing e Cáusticas Físicas (Octane Render / Cinema 4D)' },
+    unreal: { id: 'unreal', label: 'Unreal Engine', sub: 'UE 5.5 / Lumen', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Iluminação Global Lumen e Geometria Nanite (Unreal Engine 5.5)' },
+    vray: { id: 'vray', label: 'V-Ray 6', sub: 'ArchViz & Luxury', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Render Arquitetônico e Automotivo de Luxo (Chaos V-Ray 6)' },
+    corona: { id: 'corona', label: 'Corona Render', sub: 'Nordic Serenity', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Iluminação Escandinava e Materiais Orgânicos (Chaos Corona)' },
+    cycles: { id: 'cycles', label: 'Blender Cycles', sub: 'Cycles X / AgX', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Ray Tracing Aberto e Shaders BSDF (Blender 4 Cycles X / AgX)' },
+    leonardo: { id: 'leonardo', label: 'Leonardo Phoenix', sub: 'Photoreal V2', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Fotorealismo Cinematográfico (Leonardo.ai Phoenix / Kino)' },
+    sd: { id: 'sd', label: 'SD 3.5 Large', sub: 'ComfyUI Latent', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Difusão Latente ComfyUI (Stable Diffusion 3.5 Large)' },
+    recraft: { id: 'recraft', label: 'Recraft v3', sub: 'Design & 3D Icons', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Design Gráfico #1 e Ícones 3D (Recraft v3)' },
+    magnific: { id: 'magnific', label: 'Magnific 16K', sub: 'Micro-Texturas AI', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Micro-Texturas e Alucinação Neural 16K (Magnific AI / Krea)' },
+    ideogram: { id: 'ideogram', label: 'Ideogram 2.0', sub: 'Design Gráfico & Tipografia', category: 'specialist', categoryLabel: 'Especialistas em Imagem & Render', description: 'Visão de Tipografia e Design Gráfico (Ideogram 2.0)' },
+    google_vision: { id: 'google_vision', label: 'Google Vision', sub: 'Features/Labels', category: 'tech', categoryLabel: 'Visão Técnica & Open-Source', description: 'Visão Técnica do Google Cloud Vision (Features, Labels & Objetos)' },
+    whisk: { id: 'whisk', label: 'Whisk AI', sub: 'Estilo Artístico', category: 'tech', categoryLabel: 'Visão Técnica & Open-Source', description: 'Visão Artística Whisk AI com estilização avançada' },
+    huggingface: { id: 'huggingface', label: 'Hugging Face', sub: 'BLIP-2 / Florence', category: 'tech', categoryLabel: 'Visão Técnica & Open-Source', description: 'Visão Open-Source Hugging Face (BLIP-2 / Florence-2)' }
+};
 
 export interface SearchGroundingSource {
     title: string;
