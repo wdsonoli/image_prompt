@@ -9,6 +9,7 @@ import {
     Palette,
     Sparkles,
     Download,
+    RefreshCw,
     ZoomIn,
     ZoomOut,
     RotateCcw,
@@ -53,6 +54,7 @@ import {
     THEME_PRESETS,
     PARTY_CLIPART_ITEMS,
     PanelSizePreset,
+    PanelShape,
     createInitialBackdropState,
     renderBackdropToCanvas,
     downloadBackdrop
@@ -63,7 +65,8 @@ interface BirthdayBackdropStudioProps {
     availableImages?: UploadedImage[];
     onBackToArchitect?: () => void;
     onOpenBgRemover?: () => void;
-    onOpenPanelSplitter?: (imageUrl?: string) => void;
+    onOpenUpscale?: (url: string, name: string) => void;
+    onOpenPanelSplitter?: (imageUrl?: string, name?: string, mode?: 'cortador' | 'splitimage' | 'rasterbator' | 'wall_mockup' | 'criador_poster') => void;
     initialImportedImage?: string | null;
 }
 
@@ -73,6 +76,7 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
     availableImages = [],
     onBackToArchitect,
     onOpenBgRemover,
+    onOpenUpscale,
     onOpenPanelSplitter,
     initialImportedImage
 }) => {
@@ -105,6 +109,9 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
     const [exportResolution, setExportResolution] = useState<1 | 2>(1);
     const [downloadSuccess, setDownloadSuccess] = useState<string | null>(null);
     const [downloadError, setDownloadError] = useState<string | null>(null);
+    const [downloadFallbackUrl, setDownloadFallbackUrl] = useState<{ url: string; filename: string } | null>(null);
+
+    const [lockAspectRatio, setLockAspectRatio] = useState<boolean>(true);
 
     // Canvas de Exibição
     const displayCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -114,6 +121,9 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
 
     // Preset de Tamanho Atual
     const currentPreset = PANEL_SIZE_PRESETS.find(p => p.id === state.sizePresetId) || PANEL_SIZE_PRESETS[0];
+    const activeWidthCm = state.customWidthCm || currentPreset.widthCm;
+    const activeHeightCm = state.customHeightCm || currentPreset.heightCm;
+    const activeShape = state.customShape || currentPreset.shape;
 
     // Camada selecionada
     const selectedLayer = state.layers.find(l => l.id === selectedLayerId) || null;
@@ -386,18 +396,33 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
 
     // Download em Alta Definição para Gráfica
     const handleDownload = async () => {
+        setIsRendering(true);
         try {
             setDownloadSuccess(null);
             setDownloadError(null);
+            setDownloadFallbackUrl(null);
             // Renderiza em resolução gráfica de alta fidelidade
             const targetWidthPx = exportResolution === 2 ? 3600 : 2000;
             const master = await renderBackdropToCanvas(state, targetWidthPx, customImageCacheRef.current);
-            await downloadBackdrop(master, exportFormat, 'painel-aniversario-arte', currentPreset);
+            const effectivePreset = {
+                ...currentPreset,
+                widthCm: activeWidthCm,
+                heightCm: activeHeightCm,
+                shape: activeShape,
+                name: state.customWidthCm || state.customHeightCm ? `painel_${activeWidthCm}x${activeHeightCm}cm` : currentPreset.name
+            };
+            const downloadUrl = await downloadBackdrop(master, exportFormat, 'painel-aniversario-arte', effectivePreset);
+            const safeExt = exportFormat === 'jpeg' ? 'jpg' : exportFormat;
+            const filename = `painel-aniversario-arte-${effectivePreset.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}.${safeExt}`;
+
             setDownloadSuccess(`Arquivo ${exportFormat.toUpperCase()} gerado com sucesso em alta resolução!`);
-            setTimeout(() => setDownloadSuccess(null), 6000);
+            setDownloadFallbackUrl({ url: downloadUrl, filename });
+            setTimeout(() => setDownloadSuccess(null), 10000);
         } catch (err: any) {
             console.error("Erro no download:", err);
             setDownloadError(`Falha ao exportar arte: ${err?.message || 'Tente novamente'}`);
+        } finally {
+            setIsRendering(false);
         }
     };
 
@@ -446,31 +471,77 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                                 <span>Recortar Personagem</span>
                             </button>
                         )}
-                        {onOpenPanelSplitter && (
+                        {onOpenUpscale && (
                             <button
                                 type="button"
                                 onClick={() => {
-                                    if (displayCanvasRef.current) {
-                                        const dataUrl = displayCanvasRef.current.toDataURL('image/png');
-                                        onOpenPanelSplitter(dataUrl);
-                                    } else if (referenceImageUrl) {
-                                        onOpenPanelSplitter(referenceImageUrl);
-                                    }
+                                    const url = displayCanvasRef.current ? displayCanvasRef.current.toDataURL('image/png') : referenceImageUrl || '';
+                                    if (url) onOpenUpscale(url, state.exportFileName || 'painel-aniversario');
                                 }}
-                                className="px-3 py-2 text-xs font-bold text-cyan-300 bg-cyan-950/60 hover:bg-cyan-900/80 rounded-lg border border-cyan-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                                title="Fatiar este painel em folhas A4 ou A3 com sangria e abas de cola (FatiArt & Encantiva)"
+                                className="px-3 py-2 text-xs font-bold text-emerald-300 bg-emerald-950/60 hover:bg-emerald-900/80 rounded-lg border border-emerald-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                                title="Melhorar resolução e detalhes do painel com IA 4K"
                             >
-                                <Scissors size={14} className="text-cyan-400" />
-                                <span>Fatiar A4/A3 (FatiArt)</span>
+                                <Sparkles size={14} className="text-emerald-400" />
+                                <span>Upscale 4K</span>
                             </button>
+                        )}
+                        {onOpenPanelSplitter && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const url = displayCanvasRef.current ? displayCanvasRef.current.toDataURL('image/png') : referenceImageUrl || '';
+                                        onOpenPanelSplitter(url, 'painel-festa', 'cortador');
+                                    }}
+                                    className="px-3 py-2 text-xs font-bold text-cyan-300 bg-cyan-950/60 hover:bg-cyan-900/80 rounded-lg border border-cyan-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                                    title="Fatiar este painel em folhas A4 ou A3 com sangria e abas de cola (FatiArt & Encantiva)"
+                                >
+                                    <Scissors size={14} className="text-cyan-400" />
+                                    <span>Fatiar A4/A3</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const url = displayCanvasRef.current ? displayCanvasRef.current.toDataURL('image/png') : referenceImageUrl || '';
+                                        onOpenPanelSplitter(url, 'painel-festa', 'criador_poster');
+                                    }}
+                                    className="px-3 py-2 text-xs font-bold text-pink-300 bg-pink-950/60 hover:bg-pink-900/80 rounded-lg border border-pink-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                                    title="Criar pôster gigante em folhas A4 com abas COLE AQUI (Fazendo a Nossa Festa)"
+                                >
+                                    <Sparkles size={14} className="text-pink-400" />
+                                    <span>Pôster A4</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const url = displayCanvasRef.current ? displayCanvasRef.current.toDataURL('image/png') : referenceImageUrl || '';
+                                        onOpenPanelSplitter(url, 'painel-festa', 'rasterbator');
+                                    }}
+                                    className="px-3 py-2 text-xs font-bold text-teal-300 bg-teal-950/60 hover:bg-teal-900/80 rounded-lg border border-teal-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                                    title="Criar pôster gigante em retícula halftone (The Rasterbator)"
+                                >
+                                    <span className="font-mono font-black text-cyan-400">::</span>
+                                    <span>Rasterbator</span>
+                                </button>
+                            </>
                         )}
                         <button
                             type="button"
                             onClick={() => { setActiveTab('export'); handleDownload(); }}
-                            className="px-4 py-2 text-xs font-black text-slate-950 bg-gradient-to-r from-pink-400 via-amber-300 to-rose-400 hover:from-pink-300 hover:to-rose-300 rounded-lg shadow-lg shadow-pink-500/20 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            disabled={isRendering}
+                            className="px-4 py-2 text-xs font-black text-slate-950 bg-gradient-to-r from-pink-400 via-amber-300 to-rose-400 hover:from-pink-300 hover:to-rose-300 rounded-lg shadow-lg shadow-pink-500/20 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50"
                         >
-                            <Download size={14} />
-                            <span>Exportar Arte HD</span>
+                            {isRendering ? (
+                                <>
+                                    <RefreshCw size={14} className="animate-spin" />
+                                    <span>Gerando...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Download size={14} />
+                                    <span>Exportar Arte HD</span>
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -480,14 +551,14 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                     <div className="flex items-center gap-2 flex-wrap text-slate-300">
                         <span className="font-bold text-pink-400 flex items-center gap-1">
                             <Ruler size={13} />
-                            <span>{currentPreset.name}</span>
+                            <span>{state.customWidthCm || state.customHeightCm ? `Painel (${activeWidthCm}×${activeHeightCm}cm)` : currentPreset.name}</span>
                         </span>
                         <span className="text-slate-500">•</span>
-                        <span>Medida Real: <strong className="text-white font-mono">{currentPreset.widthCm} × {currentPreset.heightCm} cm</strong></span>
+                        <span>Medida Real: <strong className="text-white font-mono">{activeWidthCm} × {activeHeightCm} cm</strong></span>
                         <span className="text-slate-500">•</span>
-                        <span>Sangria para Elástico: <strong className="text-amber-300 font-mono">+{currentPreset.bleedMarginCm} cm</strong></span>
+                        <span>Sangria: <strong className="text-amber-300 font-mono">+{currentPreset.bleedMarginCm} cm</strong></span>
                         <span className="text-slate-500">•</span>
-                        <span>Área: <strong className="text-emerald-400 font-mono">{((currentPreset.widthCm * currentPreset.heightCm) / 10000).toFixed(2)} m²</strong></span>
+                        <span>Área: <strong className="text-emerald-400 font-mono">{((activeWidthCm * activeHeightCm) / 10000).toFixed(2)} m²</strong></span>
                     </div>
 
                     <div className="flex items-center gap-1.5 ml-auto">
@@ -578,26 +649,46 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                                         Painel Redondo Sublimado (Mais Popular):
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {PANEL_SIZE_PRESETS.filter(p => p.category === 'painel_redondo').map(preset => (
-                                            <button
-                                                key={preset.id}
-                                                type="button"
-                                                onClick={() => setState(prev => ({ ...prev, sizePresetId: preset.id }))}
-                                                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                                                    state.sizePresetId === preset.id
-                                                        ? 'bg-pink-500/20 border-pink-400 shadow-md ring-1 ring-pink-400'
-                                                        : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-1.5">
-                                                    <Circle size={12} className="text-pink-400" />
-                                                    <span className="text-xs font-bold text-white">{preset.name.split(' (')[0]}</span>
-                                                </div>
-                                                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                                    {preset.widthCm}cm de diâmetro
-                                                </div>
-                                            </button>
-                                        ))}
+                                        {PANEL_SIZE_PRESETS.filter(p => p.category === 'painel_redondo').map(preset => {
+                                            const isSelected = (state.sizePresetId === preset.id && !state.customWidthCm) || 
+                                                (activeWidthCm === preset.widthCm && activeHeightCm === preset.heightCm && activeShape === preset.shape);
+                                            const is35 = preset.widthCm === 35 && preset.heightCm === 35;
+                                            return (
+                                                <button
+                                                    key={preset.id}
+                                                    type="button"
+                                                    onClick={() => setState(prev => ({ 
+                                                        ...prev, 
+                                                        sizePresetId: preset.id,
+                                                        customWidthCm: preset.widthCm,
+                                                        customHeightCm: preset.heightCm,
+                                                        customShape: preset.shape 
+                                                    }))}
+                                                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${
+                                                        isSelected
+                                                            ? 'bg-pink-500/20 border-pink-400 shadow-md ring-2 ring-pink-400'
+                                                            : is35
+                                                            ? 'bg-slate-950/80 border-pink-500/40 hover:border-pink-400'
+                                                            : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between gap-1">
+                                                        <div className="flex items-center gap-1.5 min-w-0">
+                                                            <Circle size={12} className={is35 ? "text-pink-300" : "text-pink-400"} />
+                                                            <span className="text-xs font-bold text-white truncate">{preset.name.split(' (')[0]}</span>
+                                                        </div>
+                                                        {is35 && (
+                                                            <span className="text-[9px] font-black bg-pink-500 text-slate-950 px-1.5 py-0.5 rounded-full shrink-0">
+                                                                35×35
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                                        {preset.widthCm}cm de diâmetro
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -606,23 +697,32 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                                         Arco Romano & Painéis Verticais:
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {PANEL_SIZE_PRESETS.filter(p => p.category === 'arco_romano').map(preset => (
-                                            <button
-                                                key={preset.id}
-                                                type="button"
-                                                onClick={() => setState(prev => ({ ...prev, sizePresetId: preset.id }))}
-                                                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                                                    state.sizePresetId === preset.id
-                                                        ? 'bg-pink-500/20 border-pink-400 shadow-md ring-1 ring-pink-400'
-                                                        : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
-                                                }`}
-                                            >
-                                                <div className="text-xs font-bold text-white truncate">{preset.name}</div>
-                                                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                                    {preset.widthCm} × {preset.heightCm} cm
-                                                </div>
-                                            </button>
-                                        ))}
+                                        {PANEL_SIZE_PRESETS.filter(p => p.category === 'arco_romano').map(preset => {
+                                            const isSelected = activeWidthCm === preset.widthCm && activeHeightCm === preset.heightCm && activeShape === preset.shape;
+                                            return (
+                                                <button
+                                                    key={preset.id}
+                                                    type="button"
+                                                    onClick={() => setState(prev => ({ 
+                                                        ...prev, 
+                                                        sizePresetId: preset.id,
+                                                        customWidthCm: preset.widthCm,
+                                                        customHeightCm: preset.heightCm,
+                                                        customShape: preset.shape 
+                                                    }))}
+                                                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                                                        isSelected
+                                                            ? 'bg-pink-500/20 border-pink-400 shadow-md ring-1 ring-pink-400'
+                                                            : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <div className="text-xs font-bold text-white truncate">{preset.name}</div>
+                                                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                                        {preset.widthCm} × {preset.heightCm} cm
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -631,26 +731,313 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                                         Topos de Bolo & Papelaria:
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {PANEL_SIZE_PRESETS.filter(p => p.category === 'topo_bolo').map(preset => (
+                                        {PANEL_SIZE_PRESETS.filter(p => p.category === 'topo_bolo').map(preset => {
+                                            const isSelected = activeWidthCm === preset.widthCm && activeHeightCm === preset.heightCm && activeShape === preset.shape;
+                                            return (
+                                                <button
+                                                    key={preset.id}
+                                                    type="button"
+                                                    onClick={() => setState(prev => ({ 
+                                                        ...prev, 
+                                                        sizePresetId: preset.id,
+                                                        customWidthCm: preset.widthCm,
+                                                        customHeightCm: preset.heightCm,
+                                                        customShape: preset.shape 
+                                                    }))}
+                                                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                                                        isSelected
+                                                            ? 'bg-pink-500/20 border-pink-400 shadow-md ring-1 ring-pink-400'
+                                                            : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Cake size={12} className="text-amber-400" />
+                                                        <span className="text-xs font-bold text-white truncate">{preset.name.split(' (')[0]}</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                                        {preset.widthCm} × {preset.heightCm} cm
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* ENTRADA MANUAL DE DIMENSÕES PERSONALIZADAS (LARGURA E ALTURA EM CM) */}
+                                <div className="bg-slate-950/80 border border-pink-500/30 rounded-2xl p-3.5 space-y-3 pt-2 border-t border-slate-800">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-black uppercase text-pink-300 flex items-center gap-1.5">
+                                            <Sliders size={14} className="text-pink-400" />
+                                            <span>Ajuste Manual do Tamanho (Medidas em CM)</span>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setLockAspectRatio(!lockAspectRatio)}
+                                            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer flex items-center gap-1 ${
+                                                lockAspectRatio
+                                                    ? 'bg-pink-500/20 border-pink-400 text-pink-300'
+                                                    : 'bg-slate-900 border-slate-700 text-slate-400'
+                                            }`}
+                                            title={lockAspectRatio ? 'Largura e altura sincronizadas 1:1' : 'Largura e altura independentes'}
+                                        >
+                                            <span>Proporção 1:1 {lockAspectRatio ? 'Ativa' : 'Livre'}</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {/* Largura Manual */}
+                                        <div className="space-y-1">
+                                            <div className="flex items-center justify-between text-[11px]">
+                                                <label className="font-bold text-slate-300">Largura (cm):</label>
+                                                <span className="text-pink-400 font-mono font-bold">{activeWidthCm} cm</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nw = Math.max(5, activeWidthCm - 5);
+                                                        const shouldSync = lockAspectRatio || (activeShape === 'circle');
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            customWidthCm: nw,
+                                                            customHeightCm: shouldSync ? nw : (prev.customHeightCm || currentPreset.heightCm)
+                                                        }));
+                                                    }}
+                                                    className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                    title="Diminuir 5cm"
+                                                >
+                                                    -5
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nw = Math.max(5, activeWidthCm - 1);
+                                                        const shouldSync = lockAspectRatio || (activeShape === 'circle');
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            customWidthCm: nw,
+                                                            customHeightCm: shouldSync ? nw : (prev.customHeightCm || currentPreset.heightCm)
+                                                        }));
+                                                    }}
+                                                    className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                    title="Diminuir 1cm"
+                                                >
+                                                    -1
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    min="5"
+                                                    max="2000"
+                                                    step="1"
+                                                    value={activeWidthCm}
+                                                    onChange={(e) => {
+                                                        const val = Math.max(5, Number(e.target.value) || 5);
+                                                        const shouldSync = lockAspectRatio || (activeShape === 'circle');
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            customWidthCm: val,
+                                                            customHeightCm: shouldSync ? val : (prev.customHeightCm || currentPreset.heightCm)
+                                                        }));
+                                                    }}
+                                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-center text-xs font-mono font-bold text-white outline-none focus:border-pink-500"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nw = activeWidthCm + 1;
+                                                        const shouldSync = lockAspectRatio || (activeShape === 'circle');
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            customWidthCm: nw,
+                                                            customHeightCm: shouldSync ? nw : (prev.customHeightCm || currentPreset.heightCm)
+                                                        }));
+                                                    }}
+                                                    className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                    title="Aumentar 1cm"
+                                                >
+                                                    +1
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nw = activeWidthCm + 5;
+                                                        const shouldSync = lockAspectRatio || (activeShape === 'circle');
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            customWidthCm: nw,
+                                                            customHeightCm: shouldSync ? nw : (prev.customHeightCm || currentPreset.heightCm)
+                                                        }));
+                                                    }}
+                                                    className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                    title="Aumentar 5cm"
+                                                >
+                                                    +5
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Altura Manual */}
+                                        <div className="space-y-1">
+                                            <div className="flex items-center justify-between text-[11px]">
+                                                <label className="font-bold text-slate-300">Altura (cm):</label>
+                                                <span className="text-pink-400 font-mono font-bold">{activeHeightCm} cm</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nh = Math.max(5, activeHeightCm - 5);
+                                                        const shouldSync = lockAspectRatio || (activeShape === 'circle');
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            customHeightCm: nh,
+                                                            customWidthCm: shouldSync ? nh : (prev.customWidthCm || currentPreset.widthCm)
+                                                        }));
+                                                    }}
+                                                    className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                    title="Diminuir 5cm"
+                                                >
+                                                    -5
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nh = Math.max(5, activeHeightCm - 1);
+                                                        const shouldSync = lockAspectRatio || (activeShape === 'circle');
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            customHeightCm: nh,
+                                                            customWidthCm: shouldSync ? nh : (prev.customWidthCm || currentPreset.widthCm)
+                                                        }));
+                                                    }}
+                                                    className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                    title="Diminuir 1cm"
+                                                >
+                                                    -1
+                                                </button>
+                                                <input
+                                                    type="number"
+                                                    min="5"
+                                                    max="2000"
+                                                    step="1"
+                                                    value={activeHeightCm}
+                                                    onChange={(e) => {
+                                                        const val = Math.max(5, Number(e.target.value) || 5);
+                                                        const shouldSync = lockAspectRatio || (activeShape === 'circle');
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            customHeightCm: val,
+                                                            customWidthCm: shouldSync ? val : (prev.customWidthCm || currentPreset.widthCm)
+                                                        }));
+                                                    }}
+                                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-center text-xs font-mono font-bold text-white outline-none focus:border-pink-500"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nh = activeHeightCm + 1;
+                                                        const shouldSync = lockAspectRatio || (activeShape === 'circle');
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            customHeightCm: nh,
+                                                            customWidthCm: shouldSync ? nh : (prev.customWidthCm || currentPreset.widthCm)
+                                                        }));
+                                                    }}
+                                                    className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                    title="Aumentar 1cm"
+                                                >
+                                                    +1
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const nh = activeHeightCm + 5;
+                                                        const shouldSync = lockAspectRatio || (activeShape === 'circle');
+                                                        setState(prev => ({
+                                                            ...prev,
+                                                            customHeightCm: nh,
+                                                            customWidthCm: shouldSync ? nh : (prev.customWidthCm || currentPreset.widthCm)
+                                                        }));
+                                                    }}
+                                                    className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                    title="Aumentar 5cm"
+                                                >
+                                                    +5
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Formato do Painel */}
+                                    <div className="space-y-1.5 pt-1 border-t border-slate-800/80">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Formato do Painel:</label>
+                                        <div className="grid grid-cols-3 gap-1.5">
+                                            {[
+                                                { shape: 'circle' as PanelShape, label: 'Redondo / Círculo' },
+                                                { shape: 'arch' as PanelShape, label: 'Arco Romano' },
+                                                { shape: 'rectangle' as PanelShape, label: 'Retangular' },
+                                            ].map(f => {
+                                                const isSelected = activeShape === f.shape;
+                                                return (
+                                                    <button
+                                                        key={f.shape}
+                                                        type="button"
+                                                        onClick={() => setState(prev => ({ ...prev, customShape: f.shape }))}
+                                                        className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold text-center transition cursor-pointer ${
+                                                            isSelected
+                                                                ? 'bg-pink-600/30 border-pink-400 text-pink-200 ring-1 ring-pink-400'
+                                                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                                                        }`}
+                                                    >
+                                                        {f.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Atalhos Rápidos com destaque especial no Mini Painel 35x35cm */}
+                                    <div className="flex items-center gap-1.5 flex-wrap pt-1 text-[10px]">
+                                        <span className="text-slate-400 font-bold">Atalhos rápidos:</span>
+                                        {[
+                                            { label: '✨ 35 × 35 cm (Mini Painel)', w: 35, h: 35, shape: 'circle' as PanelShape, isMini: true },
+                                            { label: '50 × 50 cm', w: 50, h: 50, shape: 'circle' as PanelShape },
+                                            { label: '100 × 100 cm', w: 100, h: 100, shape: 'circle' as PanelShape },
+                                            { label: '120 × 120 cm', w: 120, h: 120, shape: 'circle' as PanelShape },
+                                            { label: '150 × 150 cm (Padrão)', w: 150, h: 150, shape: 'circle' as PanelShape },
+                                            { label: '100 × 200 cm (Arco)', w: 100, h: 200, shape: 'arch' as PanelShape },
+                                            { label: '200 × 150 cm (Retangular)', w: 200, h: 150, shape: 'rectangle' as PanelShape },
+                                        ].map(sh => (
                                             <button
-                                                key={preset.id}
+                                                key={sh.label}
                                                 type="button"
-                                                onClick={() => setState(prev => ({ ...prev, sizePresetId: preset.id }))}
-                                                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                                                    state.sizePresetId === preset.id
-                                                        ? 'bg-pink-500/20 border-pink-400 shadow-md ring-1 ring-pink-400'
-                                                        : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                                                onClick={() => {
+                                                    setState(prev => ({
+                                                        ...prev,
+                                                        customWidthCm: sh.w,
+                                                        customHeightCm: sh.h,
+                                                        customShape: sh.shape
+                                                    }));
+                                                }}
+                                                className={`px-2 py-0.5 rounded border transition cursor-pointer font-bold ${
+                                                    activeWidthCm === sh.w && activeHeightCm === sh.h && activeShape === sh.shape
+                                                        ? 'bg-pink-600 border-pink-400 text-white shadow-sm ring-1 ring-pink-400'
+                                                        : sh.isMini
+                                                        ? 'bg-pink-950/40 border-pink-500/50 text-pink-300 hover:text-white hover:border-pink-400'
+                                                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
                                                 }`}
                                             >
-                                                <div className="flex items-center gap-1.5">
-                                                    <Cake size={12} className="text-amber-400" />
-                                                    <span className="text-xs font-bold text-white truncate">{preset.name.split(' (')[0]}</span>
-                                                </div>
-                                                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                                    {preset.widthCm} × {preset.heightCm} cm
-                                                </div>
+                                                {sh.label}
                                             </button>
                                         ))}
+                                    </div>
+
+                                    {/* Resumo ao vivo */}
+                                    <div className="bg-slate-900/90 rounded-xl p-2 border border-slate-800 flex items-center justify-between text-xs text-slate-300">
+                                        <span>Medida Ativa: <strong className="text-white font-mono">{activeWidthCm} × {activeHeightCm} cm</strong></span>
+                                        <span className="text-pink-300 font-mono text-[11px] font-bold">
+                                            {activeShape === 'circle' ? `Diâmetro: ${activeWidthCm}cm` : activeShape === 'arch' ? 'Arco Romano' : 'Retangular'}
+                                        </span>
                                     </div>
                                 </div>
 
@@ -1774,34 +2161,79 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                                 <button
                                     type="button"
                                     onClick={handleDownload}
-                                    className="w-full py-3.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider text-slate-950 bg-gradient-to-r from-pink-400 via-amber-300 to-rose-400 hover:from-pink-300 hover:to-rose-300 shadow-xl shadow-pink-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+                                    disabled={isRendering}
+                                    className="w-full py-3.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider text-slate-950 bg-gradient-to-r from-pink-400 via-amber-300 to-rose-400 hover:from-pink-300 hover:to-rose-300 shadow-xl shadow-pink-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-50"
                                 >
-                                    <Download size={16} />
-                                    <span>Baixar Arquivo {exportFormat.toUpperCase()}</span>
+                                    {isRendering ? (
+                                        <>
+                                            <RefreshCw size={16} className="animate-spin" />
+                                            <span>Gerando Arquivo em Alta Resolução...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Download size={16} />
+                                            <span>Baixar Arquivo {exportFormat.toUpperCase()}</span>
+                                        </>
+                                    )}
                                 </button>
 
                                 {onOpenPanelSplitter && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (displayCanvasRef.current) {
-                                                const dataUrl = displayCanvasRef.current.toDataURL('image/png');
-                                                onOpenPanelSplitter(dataUrl);
-                                            } else if (referenceImageUrl) {
-                                                onOpenPanelSplitter(referenceImageUrl);
-                                            }
-                                        }}
-                                        className="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-cyan-200 bg-cyan-950/80 border border-cyan-500/40 hover:bg-cyan-900/80 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-950/50"
-                                    >
-                                        <Scissors size={15} className="text-cyan-400" />
-                                        <span>Fatiar Painel em Folhas A4/A3 (FatiArt & Encantiva)</span>
-                                    </button>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const url = displayCanvasRef.current ? displayCanvasRef.current.toDataURL('image/png') : referenceImageUrl || '';
+                                                onOpenPanelSplitter(url, 'painel-festa', 'cortador');
+                                            }}
+                                            className="w-full py-2.5 px-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-cyan-200 bg-cyan-950/80 border border-cyan-500/40 hover:bg-cyan-900/80 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-950/50"
+                                            title="Fatiamento inteligente para folhas A4 e A3 com sangria e marcas de corte"
+                                        >
+                                            <Scissors size={14} className="text-cyan-400" />
+                                            <span>Fatiar A4/A3</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const url = displayCanvasRef.current ? displayCanvasRef.current.toDataURL('image/png') : referenceImageUrl || '';
+                                                onOpenPanelSplitter(url, 'painel-festa', 'criador_poster');
+                                            }}
+                                            className="w-full py-2.5 px-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-pink-200 bg-pink-950/80 border border-pink-500/40 hover:bg-pink-900/80 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-pink-950/50"
+                                            title="Criar pôster gigante em folhas A4 com abas COLE AQUI guiadas"
+                                        >
+                                            <Sparkles size={14} className="text-pink-400" />
+                                            <span>Pôster A4 Cole</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const url = displayCanvasRef.current ? displayCanvasRef.current.toDataURL('image/png') : referenceImageUrl || '';
+                                                onOpenPanelSplitter(url, 'painel-festa', 'rasterbator');
+                                            }}
+                                            className="w-full py-2.5 px-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-teal-200 bg-teal-950/80 border border-teal-500/40 hover:bg-teal-900/80 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-teal-950/50"
+                                            title="Pôster gigante com meio-tom e pontos reticulados para imprimir em casa"
+                                        >
+                                            <span className="font-mono font-black text-cyan-300">::</span>
+                                            <span>The Rasterbator</span>
+                                        </button>
+                                    </div>
                                 )}
 
                                 {downloadSuccess && (
-                                    <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/60 text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in">
-                                        <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
-                                        <span>{downloadSuccess}</span>
+                                    <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/60 text-emerald-200 text-xs flex items-center justify-between gap-2 animate-in fade-in shadow-lg">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                                            <span className="font-bold">{downloadSuccess}</span>
+                                        </div>
+                                        {downloadFallbackUrl && (
+                                            <a
+                                                href={downloadFallbackUrl.url}
+                                                download={downloadFallbackUrl.filename}
+                                                className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1 shadow cursor-pointer whitespace-nowrap"
+                                            >
+                                                <Download size={13} />
+                                                <span>Baixar Novamente</span>
+                                            </a>
+                                        )}
                                     </div>
                                 )}
 
@@ -1819,11 +2251,11 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                                     </div>
                                     <div className="flex justify-between">
                                         <span>Estrutura:</span>
-                                        <strong className="text-white">{currentPreset.name}</strong>
+                                        <strong className="text-white">{state.customWidthCm || state.customHeightCm ? `Personalizado (${activeWidthCm} × ${activeHeightCm} cm)` : currentPreset.name}</strong>
                                     </div>
                                     <div className="flex justify-between">
                                         <span>Diâmetro / Dimensão:</span>
-                                        <strong className="text-white">{currentPreset.widthCm} × {currentPreset.heightCm} cm</strong>
+                                        <strong className="text-white">{activeWidthCm} × {activeHeightCm} cm</strong>
                                     </div>
                                     <div className="flex justify-between">
                                         <span>Margem de Sangria (Costura):</span>
@@ -1929,10 +2361,11 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                             <button
                                 type="button"
                                 onClick={() => { setActiveTab('export'); handleDownload(); }}
-                                className="px-3 py-1.5 rounded-lg bg-pink-500 hover:bg-pink-400 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-pink-500/20 active:scale-95 cursor-pointer"
+                                disabled={isRendering}
+                                className="px-3 py-1.5 rounded-lg bg-pink-500 hover:bg-pink-400 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-pink-500/20 active:scale-95 cursor-pointer disabled:opacity-50"
                             >
-                                <Download size={13} />
-                                <span>Baixar {currentPreset.shape === 'circle' ? 'Painel Redondo' : 'Arte'}</span>
+                                {isRendering ? <RefreshCw size={13} className="animate-spin" /> : <Download size={13} />}
+                                <span>{isRendering ? 'Gerando...' : `Baixar ${currentPreset.shape === 'circle' ? 'Painel Redondo' : 'Arte'}`}</span>
                             </button>
                         </div>
                     </div>
@@ -1977,7 +2410,7 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                                             <span>Painel / Topo de Bolo (Edição)</span>
                                         </span>
                                         <span className="text-[10px] text-slate-400 font-mono">
-                                            {currentPreset.widthCm}×{currentPreset.heightCm}cm
+                                            {activeWidthCm}×{activeHeightCm}cm
                                         </span>
                                     </div>
                                     <div className="flex-1 w-full flex items-center justify-center overflow-hidden max-h-[560px]">
@@ -2000,7 +2433,7 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                             /* MODO PADRÃO OU SOBREPOSTO (OVERLAY FANTASMA) */
                             <div className="relative w-full h-full flex items-center justify-center">
                                 {/* Suporte de ferro do painel redondo (cenografia realista) */}
-                                {currentPreset.shape === 'circle' && (
+                                {activeShape === 'circle' && (
                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
                                         <div className="w-[460px] h-[460px] rounded-full border-4 border-slate-500" />
                                         <div className="absolute bottom-8 w-1 h-36 bg-slate-600" />
@@ -2053,7 +2486,7 @@ export const BirthdayBackdropStudio: React.FC<BirthdayBackdropStudioProps> = ({
                             <span>Linha vermelha pontilhada: sangria para costura e elástico de sublimação do painel.</span>
                         </span>
                         <span className="text-slate-400 font-bold">
-                            Tamanho selecionado: {currentPreset.widthCm} × {currentPreset.heightCm} cm
+                            Tamanho selecionado: {activeWidthCm} × {activeHeightCm} cm
                         </span>
                     </div>
                 </div>

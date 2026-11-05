@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <title>Image prompt 2.5</title>
     <meta name="description" content="Advanced image-to-prompt generator with multi-vision suite, 120+ photographic effects, Ultra-Premium 16K Remaster, and instant export to Google ImageFX, Midjourney, and Flux.">
     <meta property="og:title" content="Image prompt 2.5">
@@ -11,6 +11,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        future: {
+          hoverOnlyWhenSupported: true,
+        },
         theme: {
           extend: {
             colors: {
@@ -39,6 +42,72 @@
           }
         }
       }
+    </script>
+    <!-- Sistema de Iniciativa Imediata ao Toque nos Botões (Zero Atraso e 1 Único Toque) -->
+    <script>
+      (function() {
+        var touchStartX = 0;
+        var touchStartY = 0;
+        var touchStartTime = 0;
+        var activeCandidate = null;
+        var lastActivatedTime = 0;
+
+        document.addEventListener('touchstart', function(e) {
+          if (e.touches.length !== 1) {
+            activeCandidate = null;
+            return;
+          }
+          var t = e.touches[0];
+          touchStartX = t.clientX;
+          touchStartY = t.clientY;
+          touchStartTime = Date.now();
+          activeCandidate = t.target ? (t.target.closest ? t.target.closest('button, [role="button"], input[type="button"], input[type="submit"]') : null) : null;
+        }, { passive: true, capture: true });
+
+        document.addEventListener('touchend', function(e) {
+          if (!activeCandidate) return;
+          var btn = activeCandidate;
+          activeCandidate = null;
+
+          if (btn.disabled || btn.getAttribute('aria-disabled') === 'true') return;
+
+          var t = e.changedTouches ? e.changedTouches[0] : null;
+          if (!t) return;
+
+          var dx = Math.abs(t.clientX - touchStartX);
+          var dy = Math.abs(t.clientY - touchStartY);
+          var dt = Date.now() - touchStartTime;
+
+          // Se foi um toque rápido (menos de 450ms) e sem arrastar (tolerância de até 22px para movimentos naturais do polegar)
+          if (dt < 450 && dx < 22 && dy < 22) {
+            var now = Date.now();
+            if (now - lastActivatedTime < 80) return;
+            lastActivatedTime = now;
+
+            try {
+              if (typeof btn.focus === 'function') {
+                btn.focus();
+              }
+            } catch (err) {}
+
+            var nativeFired = false;
+            var markNative = function() {
+              nativeFired = true;
+              btn.removeEventListener('click', markNative, true);
+            };
+            btn.addEventListener('click', markNative, true);
+
+            setTimeout(function() {
+              btn.removeEventListener('click', markNative, true);
+              if (!nativeFired && !btn.disabled) {
+                try {
+                  btn.click();
+                } catch (e) {}
+              }
+            }, 30);
+          }
+        }, { passive: true, capture: true });
+      })();
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <!-- TensorFlow.js and MobileNet for free local AI -->

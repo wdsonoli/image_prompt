@@ -10,8 +10,12 @@ import {
     Image as ImageIcon, 
     Maximize2, 
     Minimize2,
-    Check
+    Check,
+    Scissors,
+    Grid,
+    Clapperboard
 } from 'lucide-react';
+import { downloadFile } from '../utils/downloadHelper';
 
 interface GeneratedImageDisplayProps {
     imageUrl: string | null;
@@ -20,6 +24,9 @@ interface GeneratedImageDisplayProps {
     isGenerating: boolean;
     onClose: () => void;
     onOpenUpscale?: (imageUrl: string) => void;
+    onOpenPanelSplitter?: (imageUrl?: string, name?: string, mode?: 'cortador' | 'splitimage' | 'rasterbator' | 'wall_mockup' | 'criador_poster') => void;
+    onOpenPixelEngine?: (imageUrl: string) => void;
+    onOpenVideoStoryboard?: () => void;
 }
 
 type ViewMode = 'side-by-side' | 'split' | 'single';
@@ -30,7 +37,10 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
     originalImageName,
     isGenerating, 
     onClose,
-    onOpenUpscale
+    onOpenUpscale,
+    onOpenPanelSplitter,
+    onOpenPixelEngine,
+    onOpenVideoStoryboard
 }) => {
     const hasOriginal = Boolean(originalImageUrl);
     const [viewMode, setViewMode] = useState<ViewMode>('side-by-side');
@@ -95,15 +105,9 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
         setIsDragging(false);
     };
 
-    const handleDownload = () => {
+    const handleDownload = async () => {
         if (!imageUrl) return;
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        link.download = `generated-${Date.now()}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
+        await downloadFile(imageUrl, `generated-${Date.now()}.png`);
         setIsDownloaded(true);
         setTimeout(() => setIsDownloaded(false), 2500);
     };
@@ -474,7 +478,65 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
                                     title="Abrir no Estúdio de Upscale (2x até 4x, Aprimoramento ON/OFF)"
                                 >
                                     <Maximize2 size={12} className="text-emerald-400" />
-                                    <span>Upscale 2x-4x</span>
+                                    <span>Upscale</span>
+                                </button>
+                            )}
+
+                            {onOpenPanelSplitter && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenPanelSplitter(imageUrl, 'poster-festa', 'criador_poster')}
+                                        className="px-2.5 py-1 rounded-lg bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 hover:text-pink-200 border border-pink-500/40 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                                        title="Abrir no Criador de Pôster para imprimir painel ou personagem gigante em folhas A4"
+                                    >
+                                        <Sparkles size={12} className="text-pink-400" />
+                                        <span>Criador de Pôster</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenPanelSplitter(imageUrl, 'arte-gerada', 'cortador')}
+                                        className="px-2.5 py-1 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 hover:text-cyan-200 border border-cyan-500/40 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                                        title="Fatiar em Folhas A4/A3 com FatiArt"
+                                    >
+                                        <Scissors size={12} className="text-cyan-400" />
+                                        <span>Fatiar A4/A3</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => onOpenPanelSplitter(imageUrl, 'rasterbator-poster', 'rasterbator')}
+                                        className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-teal-500/20 to-blue-500/20 hover:from-teal-500/30 hover:to-blue-500/30 text-teal-300 hover:text-teal-200 border border-teal-500/40 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                                        title="Abrir no The Rasterbator para criar pôster gigante com retícula halftone / meio-tom"
+                                    >
+                                        <span className="font-mono text-xs font-black text-teal-400">::</span>
+                                        <span>Rasterbator</span>
+                                    </button>
+                                </>
+                            )}
+
+                            {onOpenPixelEngine && (
+                                <button
+                                    type="button"
+                                    onClick={() => onOpenPixelEngine(imageUrl)}
+                                    className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-cyan-300 hover:text-cyan-200 border border-cyan-500/40 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                                    title="Abrir no Pixel Engine para converter em Pixel Art no tamanho exato (16x16 até 128x128)"
+                                >
+                                    <Grid size={12} className="text-cyan-400" />
+                                    <span>Pixel Engine</span>
+                                </button>
+                            )}
+
+                            {onOpenVideoStoryboard && (
+                                <button
+                                    type="button"
+                                    onClick={onOpenVideoStoryboard}
+                                    className="px-2.5 py-1 rounded-lg bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 hover:text-pink-200 border border-pink-500/40 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                                    title="Criar cenas de vídeo (10s a 30s) e Storyboard UGC para este produto"
+                                >
+                                    <Clapperboard size={12} className="text-pink-400" />
+                                    <span>Vídeo Ad & UGC</span>
                                 </button>
                             )}
 
@@ -484,7 +546,7 @@ export const GeneratedImageDisplay: React.FC<GeneratedImageDisplayProps> = ({
                                 className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-blue-200 border border-blue-500/40 font-bold flex items-center gap-1 transition-all cursor-pointer"
                             >
                                 <Download size={12} />
-                                <span>{isDownloaded ? 'Baixado!' : 'Baixar Imagem'}</span>
+                                <span>{isDownloaded ? 'Baixado!' : 'Baixar'}</span>
                             </button>
                         </div>
                     </div>

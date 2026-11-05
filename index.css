@@ -1,0 +1,59 @@
+/* ==========================================================================
+   INSTANT TOUCH INITIATIVE & HIGH-RESPONSIVENESS SYSTEM
+   Ensures single-tap instant execution across mobile, tablet, and desktop
+   ========================================================================== */
+
+/* 1. Global Viewport & Touch Optimization */
+html, body {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* 2. All Buttons, Clickable Roles and Links */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+.cursor-pointer {
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  cursor: pointer !important;
+}
+
+/* 3. Protect internal icons and text from swallowing or fragmenting touch/click events */
+button > svg,
+button > svg *,
+button > span:not([contenteditable="true"]),
+button > p,
+[role="button"] > svg,
+[role="button"] > svg *,
+[role="button"] > span:not([contenteditable="true"]) {
+  pointer-events: none;
+}
+
+/* Re-allow interactive elements if deliberately placed inside a button container */
+button input,
+button select,
+button textarea,
+button [contenteditable="true"] {
+  pointer-events: auto !important;
+}
+
+/* 4. Instant Visual Tactile Feedback on Touch/Click */
+button:active:not(:disabled),
+[role="button"]:active:not([aria-disabled="true"]) {
+  transform: scale(0.97);
+  transition: transform 0.05s ease-out;
+}
+
+/* 5. Prevent sticky hover entrapment on touch screens (where first tap only hovers) */
+@media (hover: none) and (pointer: coarse) {
+  button:hover:not(:active),
+  [role="button"]:hover:not(:active) {
+    filter: none !important;
+  }
+}

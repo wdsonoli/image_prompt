@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, X, Scissors, Crop as CropIcon, Check, Ban, Circle, Square, Wand2, Maximize2, Download } from 'lucide-react';
+import { downloadBlob, downloadFile } from '../utils/downloadHelper';
 
 interface ImagePreviewProps {
     src: string;
@@ -161,30 +162,13 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
         ctx.drawImage(img, startX, startY, width, height, 0, 0, canvas.width, canvas.height);
 
         try {
-            canvas.toBlob((blob) => {
+            canvas.toBlob(async (blob) => {
+                const filename = `recorte-${Date.now()}.png`;
                 if (blob) {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = `recorte-${Date.now()}.png`;
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => {
-                        try { document.body.removeChild(a); } catch (_) {}
-                        URL.revokeObjectURL(url);
-                    }, 1000);
+                    await downloadBlob(blob, filename, 60000);
                 } else {
                     const dataUrl = canvas.toDataURL('image/png');
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = dataUrl;
-                    a.download = `recorte-${Date.now()}.png`;
-                    document.body.appendChild(a);
-                    a.click();
-                    setTimeout(() => {
-                        try { document.body.removeChild(a); } catch (_) {}
-                    }, 1000);
+                    await downloadFile(dataUrl, filename);
                 }
             }, 'image/png');
         } catch (err) {

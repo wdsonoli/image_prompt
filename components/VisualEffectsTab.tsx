@@ -31,7 +31,7 @@ interface FeaturedEffectItem {
 }
 
 interface FeaturedPack {
-    id: 'framing' | 'portraits' | 'lighting' | 'lenses';
+    id: 'commercial' | 'framing' | 'portraits' | 'lighting' | 'lenses';
     title: string;
     badge: string;
     subtitle: string;
@@ -44,6 +44,23 @@ interface FeaturedPack {
 }
 
 const FEATURED_PACKS: FeaturedPack[] = [
+    {
+        id: 'commercial',
+        title: 'PRODUTO & HERO SHOT',
+        badge: 'Publicidade de Luxo',
+        subtitle: 'Fotografia comercial de produto: estilo Hero Shot, 85mm e estúdio 3-pontos',
+        icon: Camera,
+        accentColor: 'text-amber-400',
+        gradient: 'from-amber-950/70 via-stone-900 to-black',
+        borderColor: 'border-amber-600/40',
+        effectIds: ['heroshot', 'lens85mm', 'rimlight', 'softbox'],
+        items: [
+            { id: 'heroshot', tag: '/heroshot', name: 'Hero Shot', desc: 'Produto a 70% em ângulo low-angle com iluminação de estúdio de luxo', angle: 'Hero Shot 85mm' },
+            { id: 'lens85mm', tag: '/85mm', name: 'Lente 85mm', desc: 'Lente comercial clássica com proporções reais e profundidade de campo', angle: '85mm Comercial' },
+            { id: 'rimlight', tag: '/rimlight', name: 'Rim Light', desc: 'Luz de contorno traseira desenhando o contorno e as bordas do produto', angle: 'Contorno' },
+            { id: 'softbox', tag: '/softbox', name: 'Softbox', desc: 'Iluminação difusa suave de estúdio com sombras e reflexos controlados', angle: 'Luz Suave' },
+        ]
+    },
     {
         id: 'framing',
         title: 'Comandos de Enquadramento',
@@ -126,9 +143,9 @@ export const VisualEffectsTab: React.FC<VisualEffectsTabProps> = ({
 }) => {
     // Selection state
     const [selectedEffectIds, setSelectedEffectIds] = useState<string[]>([
-        'forcedperspective', 'leadinglines', 'depthshot', '8k'
+        'heroshot', 'lens85mm', 'rimlight', 'softbox', '8k'
     ]);
-    const [activeFeaturedPack, setActiveFeaturedPack] = useState<'framing' | 'portraits' | 'lighting' | 'lenses'>('framing');
+    const [activeFeaturedPack, setActiveFeaturedPack] = useState<'commercial' | 'framing' | 'portraits' | 'lighting' | 'lenses'>('commercial');
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [includeColon, setIncludeColon] = useState<boolean>(false); // Alternar entre /tag e /tag:

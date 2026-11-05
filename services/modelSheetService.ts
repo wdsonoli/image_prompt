@@ -1,4 +1,276 @@
-import type { ModelSheetData, CharacterColorSwatch, ModelSectionToggles, ModelGender } from '../types.ts';
+import type { ModelSheetData, CharacterColorSwatch, ModelSectionToggles, ModelGender, CharacterRaceOption } from '../types.ts';
+
+export const CHARACTER_RACES_DATA: Record<string, CharacterRaceOption> = {
+    // === ETNIAS HUMANAS REAIS ===
+    latino: {
+        id: 'latino',
+        label: 'Pardo / Moreno / Latino',
+        sub: 'Hispânico & Miscigenado',
+        category: 'human',
+        categoryLabel: 'Etnias Humanas Reais',
+        enPrompt: 'Latino / Hispanic / Mixed heritage person, warm sun-kissed golden-tan skin tone, expressive features, dark wavy or straight hair',
+        description: 'Tom de pele moreno claro/médio com subtom quente dourado, cabelos escuros e traços expressivos',
+        suggestedSkinTone: 'Tom de pele moreno bronzeado suave com subtom quente (#C68B59)',
+        suggestedSkinHex: '#C68B59',
+        suggestedHair: 'Cabelo castanho escuro ondulado com movimento (#251A15)',
+        suggestedHairHex: '#251A15',
+        icon: '🧑🏽'
+    },
+    black: {
+        id: 'black',
+        label: 'Negro / Afrodescendente',
+        sub: 'Afro & Melânica',
+        category: 'human',
+        categoryLabel: 'Etnias Humanas Reais',
+        enPrompt: 'Black / Afro-descendant person, rich radiant melanin dark skin tone, expressive authentic facial features, natural textured hair (afro curls, dreadlocks, or sleek braids)',
+        description: 'Pele negra rica em melanina, traços faciais autênticos marcantes e cabelos crespos texturizados',
+        suggestedSkinTone: 'Pele negra profunda rica em melanina (#5C3826)',
+        suggestedSkinHex: '#5C3826',
+        suggestedHair: 'Cabelo crespo natural / tranças afro bem cuidadas (#1A110D)',
+        suggestedHairHex: '#1A110D',
+        icon: '🧑🏾'
+    },
+    caucasian: {
+        id: 'caucasian',
+        label: 'Branco / Caucasiano',
+        sub: 'Europeu & Ocidental',
+        category: 'human',
+        categoryLabel: 'Etnias Humanas Reais',
+        enPrompt: 'Caucasian ethnicity, European descent, fair to light porcelain skin tone with neutral or rosy undertones, distinct natural facial contours',
+        description: 'Pele clara com subtom neutro ou rosado, traços europeus clássicos e cabelos castanhos ou claros',
+        suggestedSkinTone: 'Pele clara porcelana com subtom neutro suave (#F8B48E)',
+        suggestedSkinHex: '#F8B48E',
+        suggestedHair: 'Cabelo castanho ou louro ondulado sedoso (#3B2A1F)',
+        suggestedHairHex: '#3B2A1F',
+        icon: '🧑🏼'
+    },
+    east_asian: {
+        id: 'east_asian',
+        label: 'Asiático Oriental',
+        sub: 'Japonês / Coreano / Chinês',
+        category: 'human',
+        categoryLabel: 'Etnias Humanas Reais',
+        enPrompt: 'East Asian person, delicate monolid or hooded almond-shaped eyes, smooth radiant fair porcelain or light golden skin, sleek dark hair',
+        description: 'Olhos amendoados expressivos, pele porcelana ou dourada suave e cabelo liso preto sedoso',
+        suggestedSkinTone: 'Pele porcelana lisa com subtom suavemente dourado (#F5D3B3)',
+        suggestedSkinHex: '#F5D3B3',
+        suggestedHair: 'Cabelo preto liso sedoso e brilhante (#151313)',
+        suggestedHairHex: '#151313',
+        icon: '🧑🏻'
+    },
+    indigenous: {
+        id: 'indigenous',
+        label: 'Indígena / Nativo',
+        sub: 'Povos Originários',
+        category: 'human',
+        categoryLabel: 'Etnias Humanas Reais',
+        enPrompt: 'Indigenous / Native American heritage person, warm reddish-copper or golden-bronze skin tone, strong high cheekbones, deep dark eyes, sleek black hair',
+        description: 'Maçãs do rosto marcantes, pele acobreada saudável e cabelos pretos lisos',
+        suggestedSkinTone: 'Tom de pele acobreado ou bronze natural saudável (#B26D45)',
+        suggestedSkinHex: '#B26D45',
+        suggestedHair: 'Cabelo preto liso sedoso e espesso (#120F0D)',
+        suggestedHairHex: '#120F0D',
+        icon: '🪶'
+    },
+    south_asian: {
+        id: 'south_asian',
+        label: 'Sul-Asiático / Indiano',
+        sub: 'Desi / Indiano / Paquistanês',
+        category: 'human',
+        categoryLabel: 'Etnias Humanas Reais',
+        enPrompt: 'South Asian / Indian descent person, warm olive to deep amber skin tone, large expressive dark almond eyes with thick lashes, lustrous dark hair',
+        description: 'Olhos amendoados expressivos com cílios densos, pele oliva ou âmbar e cabelos escuros volumosos',
+        suggestedSkinTone: 'Tom de pele âmbar dourado ou oliva profundo (#9E643E)',
+        suggestedSkinHex: '#9E643E',
+        suggestedHair: 'Cabelo escuro volumoso e brilhante (#1A1412)',
+        suggestedHairHex: '#1A1412',
+        icon: '🪷'
+    },
+    middle_eastern: {
+        id: 'middle_eastern',
+        label: 'Médio-Oriental / Árabe',
+        sub: 'Persa / Árabe / Levantino',
+        category: 'human',
+        categoryLabel: 'Etnias Humanas Reais',
+        enPrompt: 'Middle Eastern / Arab heritage person, warm olive to golden-sand complexion, striking defined brows, intense almond-shaped eyes, dark wavy hair',
+        description: 'Olhar penetrante, sobrancelhas bem desenhadas, pele oliva ou areia dourada',
+        suggestedSkinTone: 'Tom de pele oliva quente mediterrânea (#D19C72)',
+        suggestedSkinHex: '#D19C72',
+        suggestedHair: 'Cabelo escuro ondulado denso (#211815)',
+        suggestedHairHex: '#211815',
+        icon: '🕌'
+    },
+    nordic: {
+        id: 'nordic',
+        label: 'Nórdico / Escandinavo',
+        sub: 'Viking / Sueco / Norueguês',
+        category: 'human',
+        categoryLabel: 'Etnias Humanas Reais',
+        enPrompt: 'Nordic / Scandinavian person, pale porcelain skin with gentle rosy cheeks, piercing blue or light grey eyes, blonde or platinum hair',
+        description: 'Pele muito clara com rubor suave, olhos claros e cabelos platinados ou dourados',
+        suggestedSkinTone: 'Pele clara nórdica com rubor natural suave (#FDE4D8)',
+        suggestedSkinHex: '#FDE4D8',
+        suggestedHair: 'Cabelo louro claro platinado ou dourado (#E6C687)',
+        suggestedHairHex: '#E6C687',
+        icon: '❄️'
+    },
+    polynesian: {
+        id: 'polynesian',
+        label: 'Polinésio / Ilhas do Pacífico',
+        sub: 'Maori / Havaiano / Samoano',
+        category: 'human',
+        categoryLabel: 'Etnias Humanas Reais',
+        enPrompt: 'Polynesian / Pacific Islander person, strong athletic bone structure, rich golden-bronze tanned skin, deep dark wavy hair',
+        description: 'Estrutura óssea atlética e imponente, pele bronzeada dourada e cabelos ondulados',
+        suggestedSkinTone: 'Tom de pele bronze dourado profundo (#A86C45)',
+        suggestedSkinHex: '#A86C45',
+        suggestedHair: 'Cabelo escuro volumoso com ondas naturais (#1C1513)',
+        suggestedHairHex: '#1C1513',
+        icon: '🌺'
+    },
+
+    // === RAÇAS FANTÁSTICAS, MÍTICAS & SCI-FI ===
+    elf: {
+        id: 'elf',
+        label: 'Elfo / Elfa',
+        sub: 'Alto Elfo / Fantasia Épica',
+        category: 'fantasy',
+        categoryLabel: 'Raças Fantásticas & Sci-Fi',
+        enPrompt: 'Ethereal High Elf character, delicately pointed ears, refined high cheekbones, elegant graceful posture, luminous noble presence, mystical aura',
+        description: 'Orelhas élficas pontiagudas, porte esguio e elegante, traços esculturais nobres e presença mágica',
+        suggestedSkinTone: 'Pele etérea luminosa de elfo com brilho translúcido (#FDF1E7)',
+        suggestedSkinHex: '#FDF1E7',
+        suggestedHair: 'Cabelo longo platinado, prateado ou dourado élfico (#EAE6DF)',
+        suggestedHairHex: '#EAE6DF',
+        icon: '🧝'
+    },
+    cyborg: {
+        id: 'cyborg',
+        label: 'Ciborgue / Androide / Synth',
+        sub: 'Cyberpunk & Sci-Fi',
+        category: 'fantasy',
+        categoryLabel: 'Raças Fantásticas & Sci-Fi',
+        enPrompt: 'Sleek Cyberpunk Cyborg / Android humanoid, subtle glowing cybernetic eye or facial panel seams, futuristic synthetic beauty, chrome and carbon fiber accents',
+        description: 'Humanóide sintético com linhas de circuitos faciais brilhantes, olho cibernético e acabamento mecha de precisão',
+        suggestedSkinTone: 'Pele sintética perfeita com linhas cibernéticas sutis (#E0E6ED)',
+        suggestedSkinHex: '#E0E6ED',
+        suggestedHair: 'Cabelo estilizado cyberpunk com mechas neon futuristas (#00E5FF)',
+        suggestedHairHex: '#00E5FF',
+        icon: '🤖'
+    },
+    vampire: {
+        id: 'vampire',
+        label: 'Vampiro / Noturno',
+        sub: 'Gótico & Aristocrático',
+        category: 'fantasy',
+        categoryLabel: 'Raças Fantásticas & Sci-Fi',
+        enPrompt: 'Noble Gothic Vampire character, aristocratic alabaster pale porcelain skin, mesmerizing crimson or amber eyes, elegant dark royal aesthetic',
+        description: 'Pele de porcelana pálida aristocrática, olhos hipnóticos carmesim e elegância gótica imortal',
+        suggestedSkinTone: 'Pele pálida de alabastro fria (#F0EBF4)',
+        suggestedSkinHex: '#F0EBF4',
+        suggestedHair: 'Cabelo preto ébano contrastante ou prateado (#110E14)',
+        suggestedHairHex: '#110E14',
+        icon: '🧛'
+    },
+    dwarf: {
+        id: 'dwarf',
+        label: 'Anão / Anã',
+        sub: 'Montanha & Forja',
+        category: 'fantasy',
+        categoryLabel: 'Raças Fantásticas & Sci-Fi',
+        enPrompt: 'Dwarf character, sturdy stocky powerful build, weathered resilient skin, braided intricate hair and braided beard or ornate hair ornaments',
+        description: 'Compleição forte e robusta de forjador, postura firme e cabelos/barba trançados com anéis metálicos',
+        suggestedSkinTone: 'Pele rústica bronzeada por forjas e montanhas (#C58F68)',
+        suggestedSkinHex: '#C58F68',
+        suggestedHair: 'Cabelo ruivo acobreado trançado com ornamentos (#8C381E)',
+        suggestedHairHex: '#8C381E',
+        icon: '⛏️'
+    },
+    orc: {
+        id: 'orc',
+        label: 'Orc / Meio-Orc',
+        sub: 'Guerreiro Tribal',
+        category: 'fantasy',
+        categoryLabel: 'Raças Fantásticas & Sci-Fi',
+        enPrompt: 'Half-Orc / Orc character, strong muscular imposing jaw, subtle tusks protruding from lower lip, olive-green or grayish-tan skin tone, warrior fierce gaze',
+        description: 'Mandíbula imponente com presas inferiores discretas, tom esverdeado/oliva e porte heroico guerreiro',
+        suggestedSkinTone: 'Tom de pele oliva acinzentado guerreiro (#7C8A66)',
+        suggestedSkinHex: '#7C8A66',
+        suggestedHair: 'Cabelo escuro preso em rabo de guerreiro (#1D1D1B)',
+        suggestedHairHex: '#1D1D1B',
+        icon: '🛡️'
+    },
+    catfolk: {
+        id: 'catfolk',
+        label: 'Felino / Beastkin / Neko',
+        sub: 'Híbrido Animal & Ágil',
+        category: 'fantasy',
+        categoryLabel: 'Raças Fantásticas & Sci-Fi',
+        enPrompt: 'Feline Beastkin / Catfolk humanoid character, expressive furry cat ears on head, slender agile grace, feline slit-pupil eyes, delicate whisker marks',
+        description: 'Orelhas felinas peludas e expressivas, olhar felino e agilidade graciosa',
+        suggestedSkinTone: 'Pele suave com pelugem sedosa (#E8B996)',
+        suggestedSkinHex: '#E8B996',
+        suggestedHair: 'Cabelo volumoso combinando com a cor das orelhas felinas (#D48C46)',
+        suggestedHairHex: '#D48C46',
+        icon: '🐾'
+    },
+    fairy: {
+        id: 'fairy',
+        label: 'Fada / Ninfa / Elemental',
+        sub: 'Espírito da Floresta',
+        category: 'fantasy',
+        categoryLabel: 'Raças Fantásticas & Sci-Fi',
+        enPrompt: 'Whimsical Fairy / Nature Nymph character, shimmering translucent gossamer insect wings, gentle ethereal glow, floral nature motifs, sparkling expressive eyes',
+        description: 'Asas translúcidas cintilantes, brilho suave na pele e elementos orgânicos florais',
+        suggestedSkinTone: 'Pele suave com brilho mágico de pó de fada (#FFE4E1)',
+        suggestedSkinHex: '#FFE4E1',
+        suggestedHair: 'Cabelo fluido com mechas em tons pastéis mágicos (#FAD2E1)',
+        suggestedHairHex: '#FAD2E1',
+        icon: '🧚'
+    },
+    celestial: {
+        id: 'celestial',
+        label: 'Anjo / Celestial / Aasimar',
+        sub: 'Divino & Luz Sagrada',
+        category: 'fantasy',
+        categoryLabel: 'Raças Fantásticas & Sci-Fi',
+        enPrompt: 'Divine Celestial / Angelic humanoid character, gentle golden halo radiance, pure majestic aura, luminous warm golden eyes, immaculate divine presence',
+        description: 'Halo suave de luz sagrada, olhos dourados brilhantes e presença angelical majestosa',
+        suggestedSkinTone: 'Pele luminosa com reflexos quentes dourados (#FFF8E7)',
+        suggestedSkinHex: '#FFF8E7',
+        suggestedHair: 'Cabelo dourado reluzente ou branco celestial (#FFE082)',
+        suggestedHairHex: '#FFE082',
+        icon: '✨'
+    },
+    tiefling: {
+        id: 'tiefling',
+        label: 'Tiefling / Demônio / Fiend',
+        sub: 'Chifres & Fogo Interior',
+        category: 'fantasy',
+        categoryLabel: 'Raças Fantásticas & Sci-Fi',
+        enPrompt: 'Tiefling / Fiendish humanoid character, elegant curved horns rising from forehead, striking crimson or purple-toned skin, solid glowing eyes, long slender tail',
+        description: 'Chifres curvos esculpidos na testa, pele carmesim/obsidiana e olhos iluminados sem pupila',
+        suggestedSkinTone: 'Tom de pele carmesim avermelhado ou roxo místico (#C23B4E)',
+        suggestedSkinHex: '#C23B4E',
+        suggestedHair: 'Cabelo preto corvo profundo ou mechas incandescentes (#1B0E12)',
+        suggestedHairHex: '#1B0E12',
+        icon: '🔥'
+    },
+    alien: {
+        id: 'alien',
+        label: 'Alienígena / Xenóide',
+        sub: 'Extraterrestre & Cósmico',
+        category: 'fantasy',
+        categoryLabel: 'Raças Fantásticas & Sci-Fi',
+        enPrompt: 'Sci-Fi Alien extraterrestrial humanoid, iridescent biomorphic skin, large luminous cosmic eyes, sleek otherworldly cranial crests, bioluminescent skin patterns',
+        description: 'Pele bioluminescente cósmica, olhos grandes fascinantes e crista craniana futurista',
+        suggestedSkinTone: 'Pele bioluminescente azulada ou ciano estelar (#64B5F6)',
+        suggestedSkinHex: '#64B5F6',
+        suggestedHair: 'Sem cabelo ou com cristas futuristas luminescentes (#0D47A1)',
+        suggestedHairHex: '#0D47A1',
+        icon: '🛸'
+    }
+};
 
 export const DEFAULT_SECTION_TOGGLES: ModelSectionToggles = {
     profile: true,
@@ -310,6 +582,8 @@ export const DEFAULT_MODEL_SHEET: ModelSheetData = {
     gender: 'woman',
     characterName: 'Aura',
     role: 'Protagonista / Modelo',
+    race: 'latino',
+    raceCategory: 'human',
     age: '23-25',
     height: "175 cm",
     bodyType: 'Slim / Elegante',
@@ -982,6 +1256,26 @@ export function compileModelSheetPrompt(
         ? 'Male Model / Character'
         : 'Female Model / Character';
 
+    const raceKey = data.race;
+    const raceInfo = raceKey ? (CHARACTER_RACES_DATA[raceKey] || {
+        id: raceKey,
+        label: raceKey,
+        sub: 'Personalizado',
+        category: (data.raceCategory as any) || 'custom',
+        categoryLabel: 'Raça Customizada',
+        enPrompt: raceKey,
+        description: raceKey,
+        suggestedSkinTone: data.skinTone,
+        suggestedSkinHex: data.skinToneHex,
+        suggestedHair: data.hair,
+        suggestedHairHex: data.hairColorHex,
+        icon: '👤'
+    }) : null;
+
+    const raceClause = raceInfo 
+        ? `Race / Lineage: ${raceInfo.label} (${raceInfo.enPrompt})${data.raceDetails ? ` - Detail: ${data.raceDetails}` : ''}`
+        : '';
+
     const facialHairClause = (isMale && !isChild && !isTeen && data.facialHair) ? `, Facial Hair: ${data.facialHair}` : '';
 
     // Diretivas explícitas de referências de vestuário enviadas pelo usuário
@@ -999,11 +1293,11 @@ export function compileModelSheetPrompt(
 
         // Intro / Profile
         if (effectiveToggles.profile) {
-            sections.push(`Complete ${genderRole.toLowerCase()} turnaround model sheet and identity reference board, photographic ultra-high-definition presentation grid.
-Character: ${data.characterName || 'Hero Character'}, Gender: ${genderRole}, Role: ${data.role || 'Protagonist'}, Age: ${data.age || (isChild ? '8 years old' : isTeen ? '15 years old' : 'Mid 20s')}, Height: ${data.height || (isChild ? "4'2\\\"" : isTeen ? "5'8\\\"" : isMale ? "6'0\\\"" : "5'8\\\"")}, Body Type: ${data.bodyType || (isChild ? 'Natural Child' : isTeen ? 'Slim Teen' : isMale ? 'Athletic Masculine' : 'Slim')}.
+            sections.push(`Complete ${genderRole.toLowerCase()}${raceInfo ? ` (${raceInfo.label} - ${raceInfo.enPrompt})` : ''} turnaround model sheet and identity reference board, photographic ultra-high-definition presentation grid.
+Character: ${data.characterName || 'Hero Character'}, Gender: ${genderRole}${raceClause ? `, ${raceClause}` : ''}, Role: ${data.role || 'Protagonist'}, Age: ${data.age || (isChild ? '8 years old' : isTeen ? '15 years old' : 'Mid 20s')}, Height: ${data.height || (isChild ? "4'2\\\"" : isTeen ? "5'8\\\"" : isMale ? "6'0\\\"" : "5'8\\\"")}, Body Type: ${data.bodyType || (isChild ? 'Natural Child' : isTeen ? 'Slim Teen' : isMale ? 'Athletic Masculine' : 'Slim')}.
 Distinctive Traits: ${data.distinctiveTraits}. Personality: ${data.personality}.`);
         } else {
-            sections.push(`Complete ${genderRole.toLowerCase()} character presentation grid. Character: ${data.characterName || 'Hero Character'}.`);
+            sections.push(`Complete ${genderRole.toLowerCase()}${raceInfo ? ` (${raceInfo.enPrompt})` : ''} character presentation grid. Character: ${data.characterName || 'Hero Character'}.`);
         }
 
         // Section 1: Turnaround
@@ -1015,7 +1309,7 @@ Four aligned full-body angles side-by-side: Front View, 3/4 View, Side Profile V
         // Section 2: Face & Identity Biometrics
         if (effectiveToggles.face) {
             sections.push(`[SECTION: FACE AND IDENTITY BIOMETRICS]
-Close-up triple view (Front, Profile, 3/4 View). Facial Structure: ${data.facialStructure}. Eyes: ${data.eyes}. Eyebrows: ${data.eyebrows}. Nose: ${data.nose}. Lips: ${data.lips}. Skin: ${data.skinTone} (Hex ${data.skinToneHex || '#F6CCC8'}). Hair: ${data.hair} (Hex ${data.hairColorHex || '#3B2A1F'}). Makeup: ${data.makeup}${facialHairClause}. Marks: ${data.scarsOrMarks}.`);
+Close-up triple view (Front, Profile, 3/4 View). ${raceClause ? `Lineage / Ethnicity: ${raceInfo?.enPrompt}. ` : ''}Facial Structure: ${data.facialStructure}. Eyes: ${data.eyes}. Eyebrows: ${data.eyebrows}. Nose: ${data.nose}. Lips: ${data.lips}. Skin: ${data.skinTone} (Hex ${data.skinToneHex || '#F6CCC8'}). Hair: ${data.hair} (Hex ${data.hairColorHex || '#3B2A1F'}). Makeup: ${data.makeup}${facialHairClause}. Marks: ${data.scarsOrMarks}.`);
         }
 
         // Section 3: 8-Emotion Expression Sheet
@@ -1071,12 +1365,12 @@ Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, clean layout, w
     // 2. 4-View Turnaround Grid
     if (data.outputType === 'turnaround_4_views') {
         const parts: string[] = [];
-        parts.push(`Full-body ${genderRole.toLowerCase()} turnaround sheet, 4 distinct sequential angles side-by-side on a clean line: Front View, 3/4 View, Side Profile View, Back View.`);
+        parts.push(`Full-body ${genderRole.toLowerCase()}${raceInfo ? ` (${raceInfo.label} - ${raceInfo.enPrompt})` : ''} turnaround sheet, 4 distinct sequential angles side-by-side on a clean line: Front View, 3/4 View, Side Profile View, Back View.`);
         if (effectiveToggles.profile) {
-            parts.push(`Subject: ${data.characterName}, ${genderRole}, ${data.age}, ${data.height}, ${data.bodyType} body type.`);
+            parts.push(`Subject: ${data.characterName}, ${genderRole}${raceClause ? `, ${raceClause}` : ''}, ${data.age}, ${data.height}, ${data.bodyType} body type.`);
         }
         if (effectiveToggles.face) {
-            parts.push(`Facial Identity: ${data.facialStructure}, ${data.eyes}, ${data.hair} (Hex ${data.hairColorHex})${facialHairClause}.`);
+            parts.push(`Facial Identity: ${raceInfo ? `${raceInfo.enPrompt}, ` : ''}${data.facialStructure}, ${data.eyes}, ${data.hair} (Hex ${data.hairColorHex})${facialHairClause}.`);
         }
         if (effectiveToggles.costume) {
             parts.push(`Costume: Wearing identical ${data.outfitType}, neckline ${data.topNeckline}, ${data.bottomPiece}, footwear ${data.footwear}.${wardrobeRefClause}`);
@@ -1099,9 +1393,9 @@ Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, clean layout, w
     // 3. 8-Emotion Expression Grid
     if (data.outputType === 'expression_grid') {
         const parts: string[] = [];
-        parts.push(`${genderRole} facial expression sheet, 8 emotional expressions in neat 2x4 photographic portrait grid: Neutral, Happy, Angry, Sad, Surprised, Worried, Confident, Determined.`);
+        parts.push(`${genderRole}${raceInfo ? ` (${raceInfo.label} - ${raceInfo.enPrompt})` : ''} facial expression sheet, 8 emotional expressions in neat 2x4 photographic portrait grid: Neutral, Happy, Angry, Sad, Surprised, Worried, Confident, Determined.`);
         if (effectiveToggles.profile) {
-            parts.push(`Subject: ${data.characterName}, ${data.age}, identical facial biometrics across all 8 panels.`);
+            parts.push(`Subject: ${data.characterName}${raceClause ? `, ${raceClause}` : ''}, ${data.age}, identical facial biometrics across all 8 panels.`);
         }
         if (effectiveToggles.face) {
             parts.push(`Features: ${data.facialStructure}, ${data.eyes}, ${data.lips}, skin ${data.skinTone} (Hex ${data.skinToneHex}), hair ${data.hair}${facialHairClause}.`);
@@ -1125,7 +1419,7 @@ Directives: ${data.additionalNotes}. Style: ${data.renderStyle}, clean layout, w
         if (count === 1) {
             const singlePose = poses[0] || POSE_DEFINITIONS.neutral_stand;
             parts.push(`[MODE: SINGLE MASTER POSE PHOTOGRAPH - 1 SHOT (${framingOption.labelShort.toUpperCase()})]
-1 single high-resolution master photograph of ${data.characterName}, ${genderRole}.
+1 single high-resolution master photograph of ${data.characterName}, ${genderRole}${raceInfo ? ` (${raceInfo.label} - ${raceInfo.enPrompt})` : ''}.
 Framing & Scale: ${framingOption.cameraInstruction}.
 Focused Stance & Pose: ${singlePose.enName} — ${singlePose.enPrompt}.${data.poseDetails && data.poseDetails !== singlePose.desc ? ` Specific Pose Nuance: ${data.poseDetails}.` : ''}
 Background & Environment: ${data.backgroundSetting}.`);

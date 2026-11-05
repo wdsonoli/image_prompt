@@ -14,7 +14,7 @@ import {
     Film, Crown, Laptop, Building2, Feather, Orbit, Shapes, Gem, Wand, UserCheck, User, Scissors
 } from 'lucide-react';
 import { Tooltip } from './Tooltip';
-import { ULTRA_PREMIUM_16K_PROMPT } from '../utils/visualEffectsData';
+import { ULTRA_PREMIUM_16K_PROMPT, ULTRA_PREMIUM_16K_NEGATIVE_PROMPT } from '../utils/visualEffectsData';
 
 interface ControlPanelProps {
     settings: PromptSettings;
@@ -75,20 +75,13 @@ interface ControlPanelProps {
     isGeneratingNatGeo?: boolean;
     isGeneratingOctane?: boolean;
     isGeneratingUnreal?: boolean;
-    isGeneratingLeonardo?: boolean;
-    isGeneratingSD?: boolean;
-    isGeneratingRedshift?: boolean;
-    isGeneratingVRay?: boolean;
-    isGeneratingCorona?: boolean;
-    isGeneratingCycles?: boolean;
-    isGeneratingRecraft?: boolean;
-    isGeneratingMagnific?: boolean;
     hasImage: boolean;
     onSwitchToEffects?: () => void;
     onSwitchToModelSheet?: () => void;
     onSwitchToProductSheet?: () => void;
     onSwitchToBgRemover?: () => void;
     onSwitchToUpscale?: () => void;
+    onSwitchToNegativePrompts?: () => void;
     onOpenGemini3ProGenerator?: () => void;
     onOpenImageEditor?: () => void;
 }
@@ -217,6 +210,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     onSwitchToProductSheet,
     onSwitchToBgRemover,
     onSwitchToUpscale,
+    onSwitchToNegativePrompts,
     onOpenGemini3ProGenerator,
     onOpenImageEditor
 }) => {
@@ -286,8 +280,20 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         isGeneratingImageFX || isGeneratingTF
     );
 
-    const handleQuickMode = (modeType: 'general' | 'mockup' | 'selo3d' | 'keepcolor' | 'extract_bg' | 'extract_element' | 'extract_person' | 'remove_branding') => {
+    const handleQuickMode = (modeType: 'general' | 'mockup' | 'selo3d' | 'keepcolor' | 'extract_bg' | 'extract_element' | 'extract_person' | 'remove_branding' | 'hero_shot') => {
         switch(modeType) {
+            case 'hero_shot':
+                onSettingsChange({ 
+                    ...settings, 
+                    mode: 'general', 
+                    is3dLogo: false, 
+                    keepColors: true, 
+                    removeBranding: false, 
+                    style: 'hero_shot',
+                    cameraAngle: 'low_angle',
+                    lighting: 'studio'
+                });
+                break;
             case 'general':
                 onSettingsChange({ ...settings, mode: 'general', is3dLogo: false, keepColors: true, removeBranding: false, style: 'photorealistic' });
                 break;
@@ -329,6 +335,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     const detailInfo = DETAIL_LEVEL_MAP[currentDetailValue];
 
     // Determine current active visual mode
+    const isHeroShotActive = settings.style === 'hero_shot';
     const isExtractPersonActive = settings.mode === 'extract_person';
     const isExtractElementActive = settings.mode === 'extract_element';
     const isExtractBgActive = settings.mode === 'extract_background';
@@ -336,7 +343,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     const isMockupColor = settings.mode === 'mockup' && settings.keepColors && !isRemoveBrandingActive && !isExtractElementActive && !isExtractPersonActive;
     const isMockupPlain = settings.mode === 'mockup' && !settings.keepColors && !isRemoveBrandingActive && !isExtractElementActive && !isExtractPersonActive;
     const isSeloActive = settings.is3dLogo && settings.mode !== 'extract_background' && settings.mode !== 'extract_element' && settings.mode !== 'extract_person' && !isRemoveBrandingActive;
-    const isGeneralActive = settings.mode === 'general' && !settings.is3dLogo && !isRemoveBrandingActive && !isExtractElementActive && !isExtractPersonActive;
+    const isGeneralActive = settings.mode === 'general' && !settings.is3dLogo && !isRemoveBrandingActive && !isExtractElementActive && !isExtractPersonActive && !isHeroShotActive;
 
     return (
         <div className="bg-slate-800/90 rounded-xl p-3.5 sm:p-5 border border-slate-700 backdrop-blur-md h-full flex flex-col relative shadow-2xl">
@@ -512,7 +519,52 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                                 sem marca / rótulo
                             </span>
                         )}
+                        {isHeroShotActive && (
+                            <span className="text-amber-400 text-[10px] font-mono lowercase tracking-normal flex items-center gap-1 font-bold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                ⭐ hero shot comercial
+                            </span>
+                        )}
                     </div>
+
+                    {/* Featured Hero Shot Commercial Button */}
+                    <button 
+                        type="button"
+                        onClick={() => handleQuickMode('hero_shot')}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 transition-all group mb-2.5 cursor-pointer ${
+                            isHeroShotActive 
+                                ? 'bg-amber-500/20 border-amber-400 text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.35)] ring-1 ring-amber-400/50' 
+                                : 'bg-gradient-to-r from-amber-950/40 via-slate-900/60 to-slate-900/60 border-amber-500/40 hover:border-amber-400 text-slate-300'
+                        }`}
+                        title="Fotografia comercial profissional de produto em estilo HERO SHOT com iluminação dramática de estúdio e lente 85mm"
+                    >
+                        <div className="flex items-center gap-2.5">
+                            <div className={`p-1.5 rounded-lg border ${isHeroShotActive ? 'bg-amber-500/30 border-amber-400 text-amber-300' : 'bg-amber-950/50 border-amber-500/30 text-amber-400'}`}>
+                                <Camera size={16} />
+                            </div>
+                            <div className="text-left">
+                                <div className="flex items-center gap-1.5">
+                                    <span className={`text-[10px] font-black uppercase tracking-tight ${isHeroShotActive ? 'text-amber-300' : 'text-slate-100'}`}>
+                                        Hero Shot Comercial
+                                    </span>
+                                    <span className="text-[7.5px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-mono border border-amber-500/30 uppercase font-bold">
+                                        85mm Luxo
+                                    </span>
+                                </div>
+                                <span className="text-[8.5px] text-slate-400 font-medium block">
+                                    Luz 3 pontos • Contra-Plongée • Centro 70% • Fidelidade 100%
+                                </span>
+                            </div>
+                        </div>
+                        <span className={`text-[9px] font-black px-2 py-1 rounded-md tracking-wider uppercase transition-all ${
+                            isHeroShotActive 
+                                ? 'bg-amber-400 text-slate-950 shadow-sm' 
+                                : 'bg-slate-800 text-amber-400 border border-amber-500/30 group-hover:bg-amber-500/20'
+                        }`}>
+                            {isHeroShotActive ? 'ATIVO' : 'ATIVAR'}
+                        </span>
+                    </button>
+
                     <div className="grid grid-cols-3 gap-2">
                         <button 
                             onClick={() => handleQuickMode('general')}
@@ -624,6 +676,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             <div className="leading-relaxed">
                                 <strong className="text-emerald-300 font-bold block mb-0.5">Modo Extrair Background Ativo:</strong>
                                 A IA selecionada identificará e isolará o cenário de fundo, detalhando todos os seus elementos (arquitetura, superfícies, móveis, iluminação e atmosfera) e removendo o sujeito em primeiro plano.
+                            </div>
+                        </div>
+                    )}
+
+                    {isHeroShotActive && (
+                        <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/40 text-[11px] text-amber-200 flex items-start gap-2.5 animate-in fade-in duration-200">
+                            <Sparkles size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                            <div className="leading-relaxed">
+                                <strong className="text-amber-300 font-bold block mb-0.5">⭐ Fotografia Comercial HERO SHOT Ativa:</strong>
+                                O produto é a peça central absoluta (70% do enquadramento). Iluminação cinematográfica de estúdio em 3 pontos com rim light e reflexos controlados, câmera em contra-plongée (85mm commercial lens), e <strong className="text-white underline decoration-amber-400">preservação total do design, cores, embalagem e tipografia originais</strong>.
                             </div>
                         </div>
                     )}
@@ -1466,15 +1528,27 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         </button>
                     </div>
                     <div className="flex flex-wrap gap-1">
-                        {Object.entries(STYLE_TEMPLATES).slice(0, 28).map(([id, _]) => (
-                            <button
-                                key={id}
-                                onClick={() => handleChange('style', id)}
-                                className={`px-2 py-1 rounded text-[8px] font-black uppercase border transition-all ${settings.style === id ? 'bg-pink-600/20 border-pink-500 text-pink-400' : 'bg-slate-900/50 border-slate-700 text-slate-500 hover:text-slate-300'}`}
-                            >
-                                {id.replace('_', ' ')}
-                            </button>
-                        ))}
+                        {Object.entries(STYLE_TEMPLATES).slice(0, 32).map(([id, _]) => {
+                            const isHero = id === 'hero_shot';
+                            const isCurrent = settings.style === id;
+                            return (
+                                <button
+                                    key={id}
+                                    onClick={() => handleChange('style', id)}
+                                    className={`px-2 py-1 rounded text-[8px] font-black uppercase border transition-all cursor-pointer ${
+                                        isCurrent
+                                            ? isHero 
+                                                ? 'bg-amber-500/25 border-amber-400 text-amber-300 ring-1 ring-amber-400/50 shadow-[0_0_10px_rgba(251,191,36,0.35)]'
+                                                : 'bg-pink-600/20 border-pink-500 text-pink-400' 
+                                            : isHero
+                                                ? 'bg-amber-950/40 border-amber-600/50 text-amber-400 hover:border-amber-400 hover:text-amber-200'
+                                                : 'bg-slate-900/50 border-slate-700 text-slate-500 hover:text-slate-300'
+                                    }`}
+                                >
+                                    {isHero ? '⭐ HERO SHOT' : id.replace('_', ' ')}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -1532,15 +1606,57 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                             className="w-full bg-slate-950 border border-slate-700 rounded-md px-2 py-1.5 text-[11px] text-slate-200 outline-none h-14 focus:border-blue-500 transition-colors custom-scrollbar"
                         />
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                            <Ban size={10} className="text-red-400" /> Prompt Negativo
-                        </label>
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-1">
+                            <label className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                                <Ban size={10} className="text-red-400" /> Prompt Negativo
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const current = settings.negativePrompt || '';
+                                        if (current.includes('Background replacement, background redesign')) {
+                                            const cleaned = current
+                                                .replace(ULTRA_PREMIUM_16K_NEGATIVE_PROMPT, '')
+                                                .replace(/,\s*,/g, ',')
+                                                .replace(/^,\s*|,\s*$/g, '')
+                                                .trim();
+                                            handleChange('negativePrompt', cleaned);
+                                        } else if (!current.trim()) {
+                                            handleChange('negativePrompt', ULTRA_PREMIUM_16K_NEGATIVE_PROMPT);
+                                        } else {
+                                            handleChange('negativePrompt', current.trim() + ', ' + ULTRA_PREMIUM_16K_NEGATIVE_PROMPT);
+                                        }
+                                    }}
+                                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer flex items-center gap-1 border ${
+                                        settings.negativePrompt?.includes('Background replacement, background redesign')
+                                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-xs'
+                                            : 'bg-slate-900 text-slate-400 hover:text-amber-300 border-slate-800 hover:border-amber-500/30'
+                                    }`}
+                                    title="Alternar Prompt Negativo 16K Anti-Alucinação"
+                                >
+                                    <Sparkles size={9} className="text-amber-400" />
+                                    <span>{settings.negativePrompt?.includes('Background replacement, background redesign') ? '✓ 16K Negativo' : '+ 16K Negativo'}</span>
+                                </button>
+                                {onSwitchToNegativePrompts && (
+                                    <button
+                                        type="button"
+                                        onClick={onSwitchToNegativePrompts}
+                                        className="px-1.5 py-0.5 rounded text-[9px] font-bold text-rose-300 hover:text-white bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 transition-all cursor-pointer flex items-center gap-1"
+                                        title="Abrir Estúdio Completo de Prompts Negativos para Todas as Situações"
+                                    >
+                                        <Ban size={9} />
+                                        <span>Biblioteca</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                         <textarea
                             value={settings.negativePrompt}
                             onChange={(e) => handleChange('negativePrompt', e.target.value)}
                             placeholder="Ex: text, watermarks, blurry..."
-                            className="w-full bg-slate-950 border border-slate-700 rounded-md px-2 py-1.5 text-[11px] text-red-200/60 outline-none h-12 focus:border-red-500 transition-colors custom-scrollbar"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-md px-2 py-1.5 text-[11px] text-red-200/80 outline-none h-12 focus:border-red-500 transition-colors custom-scrollbar font-mono"
                         />
                     </div>
                 </div>

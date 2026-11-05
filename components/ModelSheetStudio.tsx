@@ -5,7 +5,7 @@ import {
     Maximize2, ChevronDown, ChevronRight, Plus, Trash2, Tag, 
     Shirt, Compass, Sun, Flame, Box, HelpCircle, Upload, Image as ImageIcon,
     Scissors, CheckCircle2, ArrowRight, Sparkle, AlertCircle,
-    ToggleLeft, ToggleRight, Power, Baby, Smile
+    ToggleLeft, ToggleRight, Power, Baby, Smile, Dna
 } from 'lucide-react';
 import type { 
     ModelSheetData, 
@@ -13,7 +13,8 @@ import type {
     WardrobeReferenceItem, 
     UploadedImage,
     ModelSectionToggles,
-    ModelGender
+    ModelGender,
+    CharacterRaceOption
 } from '../types.ts';
 import { 
     SOAIMA_PRESET, 
@@ -37,7 +38,8 @@ import {
     POSE_DEFINITIONS,
     getResolvedPoses,
     PHOTOGRAPHY_FRAMING_OPTIONS,
-    PhotographyFramingOption
+    PhotographyFramingOption,
+    CHARACTER_RACES_DATA
 } from '../services/modelSheetService.ts';
 
 interface ModelSheetStudioProps {
@@ -97,6 +99,31 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
     const [copied, setCopied] = useState<boolean>(false);
     const [appliedSuccess, setAppliedSuccess] = useState<boolean>(false);
     const [showLivePrompt, setShowLivePrompt] = useState<boolean>(false);
+    const [raceCategoryFilter, setRaceCategoryFilter] = useState<'all' | 'human' | 'fantasy'>('all');
+    const [raceSearchQuery, setRaceSearchQuery] = useState<string>('');
+
+    const handleSelectRace = (raceId: string, applySuggestedBiometrics: boolean = false) => {
+        const raceObj = CHARACTER_RACES_DATA[raceId];
+        if (!raceObj) return;
+        setData(prev => ({
+            ...prev,
+            race: raceId,
+            raceCategory: raceObj.category,
+            raceDetails: prev.raceDetails && prev.raceDetails !== CHARACTER_RACES_DATA[prev.race || '']?.description 
+                ? prev.raceDetails 
+                : raceObj.description,
+            ...(applySuggestedBiometrics ? {
+                skinTone: raceObj.suggestedSkinTone,
+                skinToneHex: raceObj.suggestedSkinHex,
+                hair: raceObj.suggestedHair,
+                hairColorHex: raceObj.suggestedHairHex
+            } : {})
+        }));
+        if (applySuggestedBiometrics) {
+            setExtractSuccess(`Raça "${raceObj.label}" aplicada! Tons de pele (${raceObj.suggestedSkinHex}) e cabelo (${raceObj.suggestedHairHex}) sincronizados.`);
+            setTimeout(() => setExtractSuccess(null), 3500);
+        }
+    };
 
     // Chaves ON/OFF para cada um dos 8 tipos de preenchimento da ficha
     const [sectionToggles, setSectionToggles] = useState<ModelSectionToggles>(() => {
@@ -1516,38 +1543,7 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                             >
                                 <Icon size={13} className={isActive ? 'text-white' : isEnabled ? 'text-amber-400' : 'text-slate-500'} />
                                 <span>{sec.label}</span>
-                                {sec.isPoseTab ? (
-                                    /* Contador Interativo Diretamente na Aba de Poses (Mín 1 e Máx 4) */
-                                    <div className="flex items-center gap-0.5 ml-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-700/80" onClick={(e) => e.stopPropagation()}>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleSetPhotoCount(posePhotoCount - 1);
-                                            }}
-                                            disabled={posePhotoCount <= 1}
-                                            className="w-4 h-4 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-20 text-slate-200 text-[9px] font-black flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
-                                            title="Diminuir fotos a gerar (Mínimo: 1)"
-                                        >
-                                            -
-                                        </button>
-                                        <span className="px-1 text-[9px] font-mono font-black text-amber-300" title="Quantidade de fotos a gerar">
-                                            {posePhotoCount}
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleSetPhotoCount(posePhotoCount + 1);
-                                            }}
-                                            disabled={posePhotoCount >= 4}
-                                            className="w-4 h-4 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-20 text-slate-200 text-[9px] font-black flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
-                                            title="Aumentar fotos a gerar (Máximo: 4)"
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                ) : sec.badge ? (
+                                {sec.badge && (
                                     <span className={`px-1.5 py-0.2 text-[8px] font-black rounded-full uppercase border ${
                                         isActive 
                                             ? 'bg-amber-400 text-slate-950 border-amber-300' 
@@ -1555,8 +1551,35 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                                     }`}>
                                         {sec.badge}
                                     </span>
-                                ) : null}
+                                )}
                             </button>
+
+                            {sec.isPoseTab && (
+                                /* Contador Interativo Diretamente na Aba de Poses (Mín 1 e Máx 4) - Fora da tag button */
+                                <div className="flex items-center gap-0.5 mx-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-700/80">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetPhotoCount(posePhotoCount - 1)}
+                                        disabled={posePhotoCount <= 1}
+                                        className="w-4 h-4 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-20 text-slate-200 text-[9px] font-black flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
+                                        title="Diminuir fotos a gerar (Mínimo: 1)"
+                                    >
+                                        -
+                                    </button>
+                                    <span className="px-1 text-[9px] font-mono font-black text-amber-300" title="Quantidade de fotos a gerar">
+                                        {posePhotoCount}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetPhotoCount(posePhotoCount + 1)}
+                                        disabled={posePhotoCount >= 4}
+                                        className="w-4 h-4 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-20 text-slate-200 text-[9px] font-black flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
+                                        title="Aumentar fotos a gerar (Máximo: 4)"
+                                    >
+                                        +
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Mini Toggle ON/OFF individual por Aba */}
                             <button
@@ -1739,6 +1762,168 @@ export const ModelSheetStudio: React.FC<ModelSheetStudioProps> = ({
                                     onChange={e => updateField('height', e.target.value)}
                                     placeholder={data.gender === 'boy' ? "4'2\" (128 cm)" : data.gender === 'girl' ? "3'11\" (120 cm)" : data.gender === 'teen_boy' ? "5'8\" (173 cm)" : data.gender === 'teen_girl' ? "5'5\" (165 cm)" : data.gender === 'man' ? "6'0\" (183 cm) - Athletic" : "5'8\" (173 cm) - Slim"}
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-red-500"
+                                />
+                            </div>
+                        </div>
+
+                        {/* CATEGORIA DE RAÇA, ETNIA & LINHAGEM DO PERSONAGEM */}
+                        <div className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5 space-y-3 shadow-md">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400">
+                                        <Dna size={15} />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                                                Categoria de Raça, Etnia & Linhagem
+                                            </h4>
+                                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-red-500/20 text-red-300 border border-red-500/30">
+                                                {CHARACTER_RACES_DATA[data.race || 'latino']?.label || data.race || 'Selecione'}
+                                            </span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400">
+                                            Defina a etnia humana ou raça fantástica/sci-fi para guiar a fisionomia, biometria e consistência da IA
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <div className="inline-flex p-0.5 bg-slate-950 border border-slate-800 rounded-lg text-[10px]">
+                                        <button
+                                            type="button"
+                                            onClick={() => setRaceCategoryFilter('all')}
+                                            className={`px-2.5 py-1 rounded-md font-bold transition-all cursor-pointer ${
+                                                raceCategoryFilter === 'all'
+                                                    ? 'bg-slate-800 text-white shadow-sm'
+                                                    : 'text-slate-400 hover:text-slate-200'
+                                            }`}
+                                        >
+                                            Todas (19)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRaceCategoryFilter('human')}
+                                            className={`px-2.5 py-1 rounded-md font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                                                raceCategoryFilter === 'human'
+                                                    ? 'bg-red-600 text-white shadow-sm'
+                                                    : 'text-slate-400 hover:text-slate-200'
+                                            }`}
+                                        >
+                                            <span>🧑 Humanas (9)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setRaceCategoryFilter('fantasy')}
+                                            className={`px-2.5 py-1 rounded-md font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                                                raceCategoryFilter === 'fantasy'
+                                                    ? 'bg-purple-600 text-white shadow-sm'
+                                                    : 'text-slate-400 hover:text-slate-200'
+                                            }`}
+                                        >
+                                            <span>✨ Fantasia & Sci-Fi (10)</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Grade de Tipos de Raça */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 max-h-56 overflow-y-auto custom-scrollbar p-0.5">
+                                {Object.values(CHARACTER_RACES_DATA)
+                                    .filter(r => raceCategoryFilter === 'all' || r.category === raceCategoryFilter)
+                                    .filter(r => !raceSearchQuery || r.label.toLowerCase().includes(raceSearchQuery.toLowerCase()) || r.sub.toLowerCase().includes(raceSearchQuery.toLowerCase()))
+                                    .map(raceItem => {
+                                        const isSelected = (data.race || 'latino') === raceItem.id;
+                                        return (
+                                            <button
+                                                key={raceItem.id}
+                                                type="button"
+                                                onClick={() => handleSelectRace(raceItem.id, false)}
+                                                className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer relative group ${
+                                                    isSelected
+                                                        ? 'bg-red-950/40 border-red-500 ring-2 ring-red-500/40 shadow-md shadow-red-500/20'
+                                                        : 'bg-slate-950/70 border-slate-800 hover:border-slate-700 hover:bg-slate-900/80'
+                                                }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-1">
+                                                    <span className="text-base select-none leading-none">
+                                                        {raceItem.icon || '👤'}
+                                                    </span>
+                                                    <div className="flex items-center gap-1">
+                                                        <span 
+                                                            className="w-2.5 h-2.5 rounded-full border border-black/40 shadow-xs" 
+                                                            style={{ backgroundColor: raceItem.suggestedSkinHex }}
+                                                            title={`Tom de pele sugerido: ${raceItem.suggestedSkinHex}`}
+                                                        />
+                                                        <span 
+                                                            className="w-2.5 h-2.5 rounded-full border border-black/40 shadow-xs" 
+                                                            style={{ backgroundColor: raceItem.suggestedHairHex }}
+                                                            title={`Tom de cabelo sugerido: ${raceItem.suggestedHairHex}`}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-1.5">
+                                                    <p className={`text-[11px] font-black leading-tight truncate ${isSelected ? 'text-red-300' : 'text-slate-200'}`}>
+                                                        {raceItem.label}
+                                                    </p>
+                                                    <p className="text-[9px] text-slate-400 truncate mt-0.5">
+                                                        {raceItem.sub}
+                                                    </p>
+                                                </div>
+
+                                                {isSelected && (
+                                                    <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-400 shadow-sm" />
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                            </div>
+
+                            {/* Informações da Raça Ativa e Ação Rápida de Sincronização */}
+                            {data.race && CHARACTER_RACES_DATA[data.race] && (
+                                <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                    <div className="space-y-0.5 min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-sm">{CHARACTER_RACES_DATA[data.race].icon}</span>
+                                            <span className="font-bold text-white text-[11px]">
+                                                {CHARACTER_RACES_DATA[data.race].label}
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 font-mono">
+                                                ({CHARACTER_RACES_DATA[data.race].sub})
+                                            </span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 leading-tight truncate" title={CHARACTER_RACES_DATA[data.race].description}>
+                                            {CHARACTER_RACES_DATA[data.race].description}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSelectRace(data.race!, true)}
+                                            className="px-2.5 py-1.5 rounded-lg text-[10px] font-extrabold bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-600/20 flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                                            title="Aplica automaticamente o tom de pele e tom de cabelo recomendados para esta raça"
+                                        >
+                                            <Palette size={11} />
+                                            <span>Sincronizar Pele & Cabelo</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Campo de Detalhes Específicos da Raça / Linhagem Customizada */}
+                            <div className="space-y-1">
+                                <label className="text-[9px] font-bold text-slate-400 uppercase flex items-center justify-between">
+                                    <span>Detalhes Especiais da Raça / Linhagem (Opcional)</span>
+                                    <span className="text-[8px] text-slate-500 font-normal">Ex: orelhas pontiagudas, marcas tribais, traços marcantes, pele luminosa</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={data.raceDetails || ''}
+                                    onChange={e => updateField('raceDetails', e.target.value)}
+                                    placeholder={CHARACTER_RACES_DATA[data.race || 'latino']?.description || "Descreva características específicas da raça..."}
+                                    className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-slate-600 outline-none focus:border-red-500"
                                 />
                             </div>
                         </div>

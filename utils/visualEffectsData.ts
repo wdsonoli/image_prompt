@@ -1577,10 +1577,45 @@ export const VISUAL_EFFECTS: VisualEffect[] = [
         promptToken: 'Ultra-Premium 16K Professional Remaster & Enhancement. Preserve the image exactly as provided while dramatically improving quality, realism, sharpness, and clarity. Enhance only existing visible details — do not invent, generate, reconstruct, or add facial features, hair, beard strands, pores, wrinkles, clothing details, or textures not present in the source. Maintain the exact face, hairstyle, beard density, expression, skin tone, facial proportions, lighting, colors, clothing, and composition. Improve only through faithful super-resolution, natural sharpening, artifact removal, noise reduction, texture refinement, and realistic detail recovery. Preserve the original background exactly — do not replace, redesign, extend, reimagine, or add elements. Apply subtle improvements to clarity, textures, gradients, edges, lighting fidelity, and resolution while keeping the background visually identical. Professional camera realism, authentic optics, realistic dynamic range, premium color science, clean highlights, rich shadows, natural micro-contrast, crystal-clear focus, luxury commercial photography, medium-format fidelity, magazine-cover finish, production-ready 16K master.',
         gradient: 'from-amber-500/40 via-yellow-600/30 to-neutral-900',
         iconName: 'Sparkles'
+    },
+    {
+        id: 'heroshot',
+        tag: '/heroshot',
+        name: 'Hero Shot (Fotografia Comercial de Produto)',
+        category: 'styles',
+        categoryLabel: 'Estilos Fotográficos & Publicidade',
+        description: 'Fotografia comercial de produto com ângulo low-angle, lente 85mm, iluminação 3-pontos, 70% do enquadramento e preservação absoluta do design original.',
+        promptToken: 'Professional commercial product photography, HERO SHOT style. The product is the absolute centerpiece of the composition, photographed with a premium advertising aesthetic. Create a visually striking, hyper-realistic product photograph with dramatic studio lighting, sophisticated shadows, controlled highlights, realistic reflections and exceptional material detail. CAMERA ANGLE: Low-angle perspective, slightly below the product\'s center, emphasizing its proportions, presence and visual authority. COMPOSITION: Strong visual hierarchy, product occupying approximately 70% of the frame, clean composition, balanced negative space and carefully controlled perspective. LIGHTING: Cinematic three-point studio lighting, soft key light, subtle rim lighting, precise specular highlights and realistic ambient occlusion. BACKGROUND: Sophisticated, seamless studio environment with subtle gradients and atmospheric depth, harmonizing with the product\'s original colors. PHOTOGRAPHIC QUALITY: Shot on a professional full-frame camera, 85mm commercial photography lens, ultra-detailed textures, realistic depth of field, premium color grading, crisp focus and high dynamic range. ART DIRECTION: Luxury brand advertising campaign, premium editorial photography, sophisticated visual storytelling, contemporary commercial aesthetic. IMPORTANT: Preserve the exact original product design, shape, proportions, colors, packaging, typography and branding. Do not redesign, reinterpret or distort the product. FINAL RESULT: An exceptionally realistic, high-end HERO SHOT suitable for luxury advertising campaigns, premium e-commerce, product launches and commercial marketing. No illustration, no cartoon, no artificial-looking CGI, no unnecessary props, no distorted geometry.',
+        gradient: 'from-amber-500/50 via-orange-600/40 to-slate-900',
+        iconName: 'Camera'
     }
 ];
 
+export const HERO_SHOT_PROMPT = `Professional commercial product photography, HERO SHOT style. The product is the absolute centerpiece of the composition, photographed with a premium advertising aesthetic.
+
+Create a visually striking, hyper-realistic product photograph with dramatic studio lighting, sophisticated shadows, controlled highlights, realistic reflections and exceptional material detail.
+
+CAMERA ANGLE: Low-angle perspective, slightly below the product's center, emphasizing its proportions, presence and visual authority.
+
+COMPOSITION: Strong visual hierarchy, product occupying approximately 70% of the frame, clean composition, balanced negative space and carefully controlled perspective.
+
+LIGHTING: Cinematic three-point studio lighting, soft key light, subtle rim lighting, precise specular highlights and realistic ambient occlusion.
+
+BACKGROUND: Sophisticated, seamless studio environment with subtle gradients and atmospheric depth, harmonizing with the product's original colors.
+
+PHOTOGRAPHIC QUALITY: Shot on a professional full-frame camera, 85mm commercial photography lens, ultra-detailed textures, realistic depth of field, premium color grading, crisp focus and high dynamic range.
+
+ART DIRECTION: Luxury brand advertising campaign, premium editorial photography, sophisticated visual storytelling, contemporary commercial aesthetic.
+
+IMPORTANT: Preserve the exact original product design, shape, proportions, colors, packaging, typography and branding. Do not redesign, reinterpret or distort the product.
+
+FINAL RESULT: An exceptionally realistic, high-end HERO SHOT suitable for luxury advertising campaigns, premium e-commerce, product launches and commercial marketing.
+
+No illustration, no cartoon, no artificial-looking CGI, no unnecessary props, no distorted geometry.`;
+
 export const ULTRA_PREMIUM_16K_PROMPT = `Ultra-Premium 16K Professional Remaster & Enhancement. Preserve the image exactly as provided while dramatically improving quality, realism, sharpness, and clarity. Enhance only existing visible details — do not invent, generate, reconstruct, or add facial features, hair, beard strands, pores, wrinkles, clothing details, or textures not present in the source. Maintain the exact face, hairstyle, beard density, expression, skin tone, facial proportions, lighting, colors, clothing, and composition. Improve only through faithful super-resolution, natural sharpening, artifact removal, noise reduction, texture refinement, and realistic detail recovery. Preserve the original background exactly — do not replace, redesign, extend, reimagine, or add elements. Apply subtle improvements to clarity, textures, gradients, edges, lighting fidelity, and resolution while keeping the background visually identical. Professional camera realism, authentic optics, realistic dynamic range, premium color science, clean highlights, rich shadows, natural micro-contrast, crystal-clear focus, luxury commercial photography, medium-format fidelity, magazine-cover finish, production-ready 16K master.`;
+
+export const ULTRA_PREMIUM_16K_NEGATIVE_PROMPT = `Background replacement, background redesign, new elements, added objects, added hair, thicker beard, extra facial hair, invented skin texture, generated pores, AI hallucinations, facial modifications, identity changes, age changes, oversharpening, plastic skin, CGI, illustration, synthetic details, unrealistic textures, altered composition.`;
 
 export interface EffectPreset {
     id: string;
@@ -1592,6 +1627,14 @@ export interface EffectPreset {
 }
 
 export const EFFECT_PRESETS: EffectPreset[] = [
+    {
+        id: 'hero_shot_commercial',
+        title: 'Hero Shot - Fotografia Comercial de Produto',
+        description: 'Fotografia publicitária premium de produto: 70% do enquadramento, ângulo low-angle, iluminação 3-pontos, lente 85mm e fidelidade 100% ao design original.',
+        effectIds: ['heroshot', 'lens85mm', 'rimlight', 'softbox', '8k'],
+        tagDisplay: '/heroshot /85mm /softbox /rimlight /8k',
+        gradient: 'from-amber-600 via-orange-600 to-slate-900'
+    },
     {
         id: 'ultra_16k_remaster',
         title: 'Ultra-Premium 16K Remaster & Enhancement',

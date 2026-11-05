@@ -34,10 +34,12 @@ export const PANEL_PRESETS: PanelPreset[] = [
     { id: 'enc_20', name: '20cm (Mini)', shape: 'round', defaultWidthCm: 20, defaultHeightCm: 20, sheetsEstimate: '2 folhas', category: 'encantiva_mini', description: 'Mini painel para mesa' },
     { id: 'enc_25', name: '25cm (Pequeno)', shape: 'round', defaultWidthCm: 25, defaultHeightCm: 25, sheetsEstimate: '2 folhas', category: 'encantiva_mini', description: 'Painel de mesa compacto' },
     { id: 'enc_30', name: '30cm (Médio)', shape: 'round', defaultWidthCm: 30, defaultHeightCm: 30, sheetsEstimate: '4 folhas', category: 'encantiva_mini', description: 'Ideal para topo e mesas' },
+    { id: 'enc_35', name: '35cm (Mini Painel 35x35)', shape: 'round', defaultWidthCm: 35, defaultHeightCm: 35, sheetsEstimate: '2 a 4 folhas', category: 'encantiva_mini', description: 'Mini painel 35×35cm para mesa, pocket party ou sousplat' },
     { id: 'enc_40', name: '40cm (Grande)', shape: 'round', defaultWidthCm: 40, defaultHeightCm: 40, sheetsEstimate: '9 folhas', category: 'encantiva_mini', description: 'Painel para fundo de mesa' },
     { id: 'enc_50', name: '50cm (Super)', shape: 'round', defaultWidthCm: 50, defaultHeightCm: 50, sheetsEstimate: '6 folhas', category: 'encantiva_mini', description: 'Painel 50cm em folhas deitadas' },
 
     // Painéis de Festa Tradicionais
+    { id: 'mini_35x35', name: 'Mini Painel 35x35cm (Mesa)', shape: 'round', defaultWidthCm: 35, defaultHeightCm: 35, sheetsEstimate: '2 a 4 folhas', category: 'party_standard', description: 'Mini painel 35×35cm para mesa de bolo e decorações intimistas' },
     { id: 'round_150', name: 'Painel Redondo 150cm (Padrão Festa)', shape: 'round', defaultWidthCm: 150, defaultHeightCm: 150, sheetsEstimate: '15-20 folhas', category: 'party_standard', description: 'O diâmetro mais usado em estruturas circulares de festas' },
     { id: 'round_120', name: 'Painel Redondo 120cm (Médio)', shape: 'round', defaultWidthCm: 120, defaultHeightCm: 120, sheetsEstimate: '10-14 folhas', category: 'party_standard', description: 'Ideal para salas e espaços compactos' },
     { id: 'round_180', name: 'Painel Redondo 180cm (Grande)', shape: 'round', defaultWidthCm: 180, defaultHeightCm: 180, sheetsEstimate: '25-30 folhas', category: 'party_standard', description: 'Cenografia ampla para salões de eventos' },

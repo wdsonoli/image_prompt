@@ -3,8 +3,9 @@ import {
     Copy, Check, Terminal, Edit3, Sparkles, ShieldCheck, 
     ChevronDown, X, Globe, Search, ExternalLink, Loader2 
 } from 'lucide-react';
-import { ULTRA_PREMIUM_16K_PROMPT } from '../utils/visualEffectsData';
+import { ULTRA_PREMIUM_16K_PROMPT, ULTRA_PREMIUM_16K_NEGATIVE_PROMPT } from '../utils/visualEffectsData';
 import { SearchGroundingData } from '../types';
+import { Ban } from 'lucide-react';
 
 interface PromptDisplayProps {
     prompt: string;
@@ -79,6 +80,16 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
             .replace(/Ultra-Premium 16K Professional Remaster & Enhancement[\s\S]*?production-ready 16K master\./gi, '')
             .trim();
         onUpdatePrompt(cleaned);
+        setShow16kMenu(false);
+    };
+
+    const handleAttachNegative16k = () => {
+        if (!localPrompt || !localPrompt.trim()) {
+            onUpdatePrompt(`--no ${ULTRA_PREMIUM_16K_NEGATIVE_PROMPT}`);
+        } else if (!localPrompt.includes('Background replacement, background redesign')) {
+            const separator = localPrompt.includes('--no') ? ', ' : ' --no ';
+            onUpdatePrompt(`${localPrompt.trim()}${separator}${ULTRA_PREMIUM_16K_NEGATIVE_PROMPT}`);
+        }
         setShow16kMenu(false);
     };
 
@@ -159,6 +170,17 @@ export const PromptDisplay: React.FC<PromptDisplayProps> = ({
                                 >
                                     <span>Mesclar ao Prompt Atual</span>
                                     <span className="text-[9px] font-mono text-amber-400">Recomendado</span>
+                                </button>
+
+                                <button
+                                    onClick={handleAttachNegative16k}
+                                    className="w-full text-left px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-200 font-bold transition-all flex items-center justify-between border border-rose-500/30 cursor-pointer"
+                                >
+                                    <span className="flex items-center gap-1.5">
+                                        <Ban size={11} className="text-rose-400" />
+                                        <span>Anexar Negativo 16K (--no)</span>
+                                    </span>
+                                    <span className="text-[9px] font-mono text-rose-300">Anti-IA</span>
                                 </button>
 
                                 {is16kActive && (

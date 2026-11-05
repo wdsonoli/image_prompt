@@ -4,6 +4,8 @@
  * and Cake Toppers (Topo de Bolo com corte e sangria).
  */
 
+import { downloadBlob, downloadFile, dataUrlToBlob } from '../utils/downloadHelper';
+
 export type PanelShape = 'circle' | 'arch' | 'rectangle' | 'cake_topper' | 'cylinder';
 
 export interface PanelSizePreset {
@@ -19,6 +21,30 @@ export interface PanelSizePreset {
 }
 
 export const PANEL_SIZE_PRESETS: PanelSizePreset[] = [
+    // Mini Painel de Mesa (35x35cm)
+    {
+        id: 'circle_35',
+        name: 'Mini Painel 35 × 35 cm (Mesa / Sousplat)',
+        shape: 'circle',
+        widthCm: 35,
+        heightCm: 35,
+        category: 'painel_redondo',
+        description: 'Mini painel de mesa 35×35cm ideal para mesa de bolo, mini cenografia, pocket party e sousplat.',
+        bleedMarginCm: 2,
+        safetyMarginCm: 3
+    },
+    {
+        id: 'square_35',
+        name: 'Mini Painel Quadrado 35 × 35 cm',
+        shape: 'rectangle',
+        widthCm: 35,
+        heightCm: 35,
+        category: 'painel_retangular',
+        description: 'Mini painel quadrado 35×35cm para fundo de mesa compacto ou displays.',
+        bleedMarginCm: 2,
+        safetyMarginCm: 3
+    },
+
     // Painéis Redondos (Sublimação / Tecido / MDF)
     {
         id: 'circle_150',
@@ -1537,42 +1563,43 @@ export async function downloadBackdrop(
     baseFilename: string,
     preset: PanelSizePreset,
     includeSpecsSheet: boolean = true
-) {
+): Promise<string> {
     const filename = `${baseFilename}-${preset.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}.${format === 'jpeg' ? 'jpg' : format}`;
 
     if (format === 'pdf') {
         // Gera PDF em alta definição com medidas reais da gráfica
         const jpegUrl = canvas.toDataURL('image/jpeg', 0.95);
         const pdfBlob = createBackdropPdfBlob(jpegUrl, canvas.width, canvas.height, preset.widthCm, preset.heightCm, preset.name);
-        triggerDownloadBlob(pdfBlob, filename);
+        await downloadBlob(pdfBlob, filename, 60000);
+        return URL.createObjectURL(pdfBlob);
     } else {
         const mime = format === 'png' ? 'image/png' : format === 'webp' ? 'image/webp' : 'image/jpeg';
-        canvas.toBlob((blob) => {
-            if (blob) {
-                triggerDownloadBlob(blob, filename);
-            } else {
-                const dataUrl = canvas.toDataURL(mime, 0.95);
-                triggerDownloadDataUrl(dataUrl, filename);
-            }
-        }, mime, 0.95);
+        
+        let blob: Blob | null = null;
+        try {
+            // Conversão rápida para manter o gesto de clique ativo no navegador
+            const dataUrl = canvas.toDataURL(mime, 0.95);
+            blob = dataUrlToBlob(dataUrl);
+        } catch (e) {
+            console.warn('Fallback assíncrono para canvas.toBlob:', e);
+            blob = await new Promise<Blob | null>((resolve) => {
+                try {
+                    canvas.toBlob((b) => resolve(b), mime, 0.95);
+                } catch {
+                    resolve(null);
+                }
+            });
+        }
+
+        if (blob) {
+            await downloadBlob(blob, filename, 60000);
+            return URL.createObjectURL(blob);
+        } else {
+            const dataUrl = canvas.toDataURL(mime, 0.95);
+            await downloadFile(dataUrl, filename);
+            return dataUrl;
+        }
     }
-}
-
-function triggerDownloadBlob(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    triggerDownloadDataUrl(url, filename);
-    setTimeout(() => URL.revokeObjectURL(url), 20000);
-}
-
-function triggerDownloadDataUrl(url: string, filename: string) {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-        if (link.parentNode) link.parentNode.removeChild(link);
-    }, 500);
 }
 
 /**

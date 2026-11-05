@@ -41,6 +41,7 @@ import {
     Search
 } from 'lucide-react';
 import { UploadedImage } from '../types';
+import { downloadBlob, downloadFile } from '../utils/downloadHelper';
 import {
     SplitterConfig,
     SplitMode,
@@ -59,13 +60,20 @@ import {
     SplitCalculationResult,
     SheetSlice
 } from '../services/panelSplitterService';
+import { RasterbatorStudio } from './RasterbatorStudio';
+import { CriadorPosterStudio } from './CriadorPosterStudio';
+import { BirthdayBackdropStudio } from './BirthdayBackdropStudio';
+
+export type PanelStudioMode = 'painel_festa' | 'cortador' | 'criador_poster' | 'rasterbator' | 'splitimage' | 'wall_mockup';
 
 interface PanelSplitterStudioProps {
     availableImages: UploadedImage[];
     initialImageUrl?: string | null;
     initialImageName?: string | null;
+    initialMode?: PanelStudioMode;
     onBackToArchitect: () => void;
     onOpenBirthdayStudio?: () => void;
+    onOpenBgRemover?: () => void;
     onOpenUpscale?: (url: string, name: string) => void;
 }
 
@@ -99,8 +107,10 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
     availableImages,
     initialImageUrl,
     initialImageName,
+    initialMode,
     onBackToArchitect,
     onOpenBirthdayStudio,
+    onOpenBgRemover,
     onOpenUpscale
 }) => {
     // Imagem ativa selecionada
@@ -116,7 +126,19 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
     const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
     // Modo principal
-    const [mainMode, setMainMode] = useState<'cortador' | 'splitimage' | 'wall_mockup'>('cortador');
+    const [mainMode, setMainMode] = useState<PanelStudioMode>(initialMode || 'painel_festa');
+
+    useEffect(() => {
+        if (initialMode) {
+            setMainMode(initialMode);
+        }
+    }, [initialMode]);
+
+    useEffect(() => {
+        if (initialImageUrl) {
+            setSelectedImageUrl(initialImageUrl);
+        }
+    }, [initialImageUrl]);
 
     // Stepper FatiArt (Etapas 1 a 6)
     const [currentStep, setCurrentStep] = useState<FatiArtStep>(1);
@@ -177,6 +199,8 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
     const [previewSheetDataUrl, setPreviewSheetDataUrl] = useState<string | null>(null);
     const [showMontageModal, setShowMontageModal] = useState(false);
     const [montageMapUrl, setMontageMapUrl] = useState<string | null>(null);
+    const [downloadToast, setDownloadToast] = useState<{ type: 'success' | 'error' | 'info'; message: string; fallbackUrl?: string; fallbackFilename?: string } | null>(null);
+    const [lockAspectRatio, setLockAspectRatio] = useState<boolean>(true);
 
     // Accordions da Etapa 5 (Avançado FatiArt)
     const [openAdvancedSection, setOpenAdvancedSection] = useState<string | null>('cortes_marcas');
@@ -199,8 +223,17 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
             setImageDimensions({ width: img.naturalWidth || img.width, height: img.naturalHeight || img.height });
         };
         img.onerror = () => {
-            console.error('Erro ao carregar imagem para fatiamento');
-            setLoadedImage(null);
+            console.warn('Tentativa com crossOrigin anonymous falhou, tentando carregamento direto...');
+            const directImg = new Image();
+            directImg.onload = () => {
+                setLoadedImage(directImg);
+                setImageDimensions({ width: directImg.naturalWidth || directImg.width, height: directImg.naturalHeight || directImg.height });
+            };
+            directImg.onerror = () => {
+                console.error('Erro ao carregar imagem para fatiamento');
+                setLoadedImage(null);
+            };
+            directImg.src = selectedImageUrl;
         };
         img.src = selectedImageUrl;
     }, [selectedImageUrl]);
@@ -248,6 +281,34 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
         }));
     };
 
+    // Ajuste manual de largura em cm
+    const handleManualWidthChange = (val: number) => {
+        const safeW = Math.max(5, Math.min(2000, Math.round(val)));
+        setConfig(prev => {
+            const isRound = prev.panelShape === 'round';
+            const shouldSync = lockAspectRatio || isRound;
+            return {
+                ...prev,
+                panelWidthCm: safeW,
+                panelHeightCm: shouldSync ? safeW : prev.panelHeightCm
+            };
+        });
+    };
+
+    // Ajuste manual de altura em cm
+    const handleManualHeightChange = (val: number) => {
+        const safeH = Math.max(5, Math.min(2000, Math.round(val)));
+        setConfig(prev => {
+            const isRound = prev.panelShape === 'round';
+            const shouldSync = lockAspectRatio || isRound;
+            return {
+                ...prev,
+                panelHeightCm: safeH,
+                panelWidthCm: shouldSync ? safeH : prev.panelWidthCm
+            };
+        });
+    };
+
     // Upload de nova imagem
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -277,58 +338,110 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
         reader.readAsDataURL(file);
     };
 
-    // Exportação em PDF
+    // Exportação em PDF com downloadBlob seguro (sem revogação prematura)
     const handleDownloadPdf = async () => {
-        if (!loadedImage) return;
+        let img = loadedImage;
+        if (!img && selectedImageUrl) {
+            img = await new Promise<HTMLImageElement | null>((resolve) => {
+                const i = new Image();
+                i.onload = () => resolve(i);
+                i.onerror = () => resolve(null);
+                i.src = selectedImageUrl;
+            });
+            if (img) setLoadedImage(img);
+        }
+
+        if (!img) {
+            setDownloadToast({
+                type: 'error',
+                message: 'Selecione ou envie uma imagem antes de gerar o PDF.'
+            });
+            return;
+        }
+
         setIsGeneratingPdf(true);
         setGenerationProgress({ current: 0, total: calcResult.printableSheets });
+        setDownloadToast({ type: 'info', message: 'Gerando PDF pronto para impressão...' });
 
         try {
-            const blob = await generatePrintablePdf(loadedImage, config, calcResult, (current, total) => {
+            const blob = await generatePrintablePdf(img, config, calcResult, (current, total) => {
                 setGenerationProgress({ current, total });
             });
 
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
             const safeName = (config.panelName || 'Painel').replace(/[^a-zA-Z0-9_-]/g, '_');
-            a.download = `${safeName}_${config.panelWidthCm}x${config.panelHeightCm}cm_${calcResult.printableSheets}Folhas_${config.paperFormat}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (error) {
+            const filename = `${safeName}_${config.panelWidthCm}x${config.panelHeightCm}cm_${calcResult.printableSheets}Folhas_${config.paperFormat}.pdf`;
+            
+            const ok = await downloadBlob(blob, filename, 120000);
+            const fallbackUrl = URL.createObjectURL(blob);
+            setDownloadToast({
+                type: 'success',
+                message: `PDF baixado com sucesso! (${calcResult.printableSheets} folhas montadas para impressão)`,
+                fallbackUrl,
+                fallbackFilename: filename
+            });
+            setTimeout(() => setDownloadToast(null), 10000);
+        } catch (error: any) {
             console.error('Erro ao gerar PDF do painel:', error);
-            alert('Falha ao gerar o PDF. Verifique se a imagem foi carregada corretamente.');
+            setDownloadToast({
+                type: 'error',
+                message: 'Falha ao gerar o PDF. Verifique se a imagem foi carregada corretamente.'
+            });
+            setTimeout(() => setDownloadToast(null), 6000);
         } finally {
             setIsGeneratingPdf(false);
             setGenerationProgress(null);
         }
     };
 
-    // Exportação em ZIP
+    // Exportação em ZIP com downloadBlob seguro
     const handleDownloadZip = async () => {
-        if (!loadedImage) return;
+        let img = loadedImage;
+        if (!img && selectedImageUrl) {
+            img = await new Promise<HTMLImageElement | null>((resolve) => {
+                const i = new Image();
+                i.onload = () => resolve(i);
+                i.onerror = () => resolve(null);
+                i.src = selectedImageUrl;
+            });
+            if (img) setLoadedImage(img);
+        }
+
+        if (!img) {
+            setDownloadToast({
+                type: 'error',
+                message: 'Selecione ou envie uma imagem antes de gerar o arquivo ZIP.'
+            });
+            return;
+        }
+
         setIsGeneratingZip(true);
         setGenerationProgress({ current: 0, total: calcResult.printableSheets });
+        setDownloadToast({ type: 'info', message: 'Compactando fatias em alta resolução...' });
 
         try {
-            const blob = await generateSlicesZip(loadedImage, config, calcResult, (current, total) => {
+            const blob = await generateSlicesZip(img, config, calcResult, (current, total) => {
                 setGenerationProgress({ current, total });
             });
 
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
             const safeName = (config.panelName || 'Fatias').replace(/[^a-zA-Z0-9_-]/g, '_');
-            a.download = `${safeName}_${calcResult.printableSheets}_Folhas_${config.paperFormat}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (error) {
+            const filename = `${safeName}_${calcResult.printableSheets}_Folhas_${config.paperFormat}.zip`;
+            
+            const ok = await downloadBlob(blob, filename, 120000);
+            const fallbackUrl = URL.createObjectURL(blob);
+            setDownloadToast({
+                type: 'success',
+                message: `Pacote ZIP baixado com sucesso! (${calcResult.printableSheets} fatias com guias e instruções)`,
+                fallbackUrl,
+                fallbackFilename: filename
+            });
+            setTimeout(() => setDownloadToast(null), 10000);
+        } catch (error: any) {
             console.error('Erro ao gerar ZIP das fatias:', error);
-            alert('Falha ao compactar os arquivos em ZIP.');
+            setDownloadToast({
+                type: 'error',
+                message: 'Falha ao compactar os arquivos em ZIP.'
+            });
+            setTimeout(() => setDownloadToast(null), 6000);
         } finally {
             setIsGeneratingZip(false);
             setGenerationProgress(null);
@@ -336,14 +449,28 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
     };
 
     // Baixar folha individual
-    const handleDownloadCurrentSheet = () => {
+    const handleDownloadCurrentSheet = async () => {
         if (!previewSheetDataUrl || selectedSheetIndex === null) return;
-        const a = document.createElement('a');
-        a.href = previewSheetDataUrl;
-        a.download = `Folha_${selectedSheetIndex.toString().padStart(2, '0')}_${config.panelName || 'Painel'}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        const filename = `Folha_${selectedSheetIndex.toString().padStart(2, '0')}_${config.panelName || 'Painel'}.png`;
+        await downloadFile(previewSheetDataUrl, filename);
+        setDownloadToast({
+            type: 'success',
+            message: `Folha ${selectedSheetIndex} baixada em alta resolução!`,
+            fallbackUrl: previewSheetDataUrl,
+            fallbackFilename: filename
+        });
+        setTimeout(() => setDownloadToast(null), 8000);
+    };
+
+    // Baixar Mapa de Montagem
+    const handleDownloadMontageMap = async () => {
+        if (!montageMapUrl) return;
+        await downloadFile(montageMapUrl, `Mapa_Geral_De_Montagem_${config.panelName || 'Painel'}.png`);
+        setDownloadToast({
+            type: 'success',
+            message: 'Mapa geral de montagem salvo!'
+        });
+        setTimeout(() => setDownloadToast(null), 3500);
     };
 
     // Abrir Mapa de Montagem
@@ -379,7 +506,46 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
 
     return (
         <div className="space-y-6">
-            {/* CABEÇALHO DO CORTADOR DE PAINÉIS (Estilo Encantiva Pro / FatiArt) */}
+            {/* Notificação / Feedback de Download */}
+            {downloadToast && (
+                <div className={`p-4 rounded-2xl border flex items-center justify-between gap-3 text-sm font-bold shadow-xl animate-in fade-in slide-in-from-top duration-300 ${
+                    downloadToast.type === 'success'
+                        ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200 shadow-emerald-900/20'
+                        : downloadToast.type === 'error'
+                        ? 'bg-rose-950/90 border-rose-500/40 text-rose-200 shadow-rose-900/20'
+                        : 'bg-blue-950/90 border-blue-500/40 text-blue-200 shadow-blue-900/20'
+                }`}>
+                    <div className="flex items-center gap-2.5">
+                        {downloadToast.type === 'success' ? (
+                            <Check size={18} className="text-emerald-400 shrink-0" />
+                        ) : downloadToast.type === 'error' ? (
+                            <Info size={18} className="text-rose-400 shrink-0" />
+                        ) : (
+                            <RefreshCw size={18} className="text-blue-400 animate-spin shrink-0" />
+                        )}
+                        <span>{downloadToast.message}</span>
+                        {downloadToast.fallbackUrl && (
+                            <a
+                                href={downloadToast.fallbackUrl}
+                                download={downloadToast.fallbackFilename || 'arquivo'}
+                                className="ml-2 text-xs px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow flex items-center gap-1 cursor-pointer"
+                            >
+                                <Download size={13} />
+                                <span>Baixar Agora</span>
+                            </a>
+                        )}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setDownloadToast(null)}
+                        className="text-xs opacity-70 hover:opacity-100 px-2 py-1 rounded bg-black/20 cursor-pointer"
+                    >
+                        Fechar
+                    </button>
+                </div>
+            )}
+
+            {/* CABEÇALHO DO SUPER ESTÚDIO UNIFICADO (Painel de Festa, Fatiador, Pôster A4 e Rasterbator) */}
             <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 backdrop-blur-md shadow-2xl space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -391,35 +557,64 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
                         >
                             <ArrowLeft size={18} />
                         </button>
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-500 flex items-center justify-center text-white shadow-xl shadow-pink-500/25">
-                            <Scissors size={24} />
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xl ${
+                            mainMode === 'painel_festa'
+                                ? 'bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-500 shadow-pink-500/25'
+                                : mainMode === 'criador_poster'
+                                ? 'bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-600 shadow-purple-500/25'
+                                : mainMode === 'rasterbator'
+                                ? 'bg-gradient-to-tr from-cyan-400 via-teal-500 to-blue-600 shadow-cyan-500/25'
+                                : mainMode === 'splitimage'
+                                ? 'bg-gradient-to-tr from-purple-500 to-indigo-600 shadow-purple-500/25'
+                                : mainMode === 'wall_mockup'
+                                ? 'bg-gradient-to-tr from-amber-500 to-orange-600 shadow-amber-500/25'
+                                : 'bg-gradient-to-tr from-pink-500 via-rose-500 to-cyan-500 shadow-pink-500/25'
+                        }`}>
+                            {mainMode === 'painel_festa' ? (
+                                <PartyPopper size={24} />
+                            ) : mainMode === 'criador_poster' ? (
+                                <Sparkles size={24} />
+                            ) : mainMode === 'rasterbator' ? (
+                                <span className="font-mono font-black text-xl">::</span>
+                            ) : mainMode === 'splitimage' ? (
+                                <Grid size={24} />
+                            ) : mainMode === 'wall_mockup' ? (
+                                <Home size={24} />
+                            ) : (
+                                <Scissors size={24} />
+                            )}
                         </div>
                         <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                                 <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                                    Cortador de Painéis
+                                    {mainMode === 'painel_festa' && 'Painel de Festa & Topo de Bolo'}
+                                    {mainMode === 'cortador' && 'Fatiador de Festa (FatiArt)'}
+                                    {mainMode === 'criador_poster' && 'Criador de Pôster A4 (Cole Aqui)'}
+                                    {mainMode === 'rasterbator' && 'The Rasterbator (Halftone)'}
+                                    {mainMode === 'splitimage' && 'SplitImage (Grade & Mosaico)'}
+                                    {mainMode === 'wall_mockup' && 'Simulador 3D na Parede'}
                                 </h1>
                                 <span className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30">
-                                    FatiArt & Encantiva Pro
+                                    {mainMode === 'painel_festa' && 'Design Cenográfico'}
+                                    {mainMode === 'cortador' && 'FatiArt & Encantiva Pro'}
+                                    {mainMode === 'criador_poster' && 'Fazendo a Nossa Festa'}
+                                    {mainMode === 'rasterbator' && 'Rasterbator.net'}
+                                    {mainMode === 'splitimage' && 'SplitImage.im'}
+                                    {mainMode === 'wall_mockup' && 'Simulação 3D'}
                                 </span>
                             </div>
-                            <p className="text-xs text-slate-400 mt-0.5">
-                                Transforme sua imagem em {calcResult.printableSheets} folhas {config.paperFormat} prontas para imprimir — corte com sangria e abas de cola
+                            <p className="text-xs text-slate-400 mt-0.5 max-w-2xl">
+                                {mainMode === 'painel_festa' && 'Crie painéis redondos 1.5m, arcos romanos, cilindros e topos de bolo personalizados prontos para imprimir'}
+                                {mainMode === 'cortador' && `Transforme sua imagem em ${calcResult.printableSheets} folhas ${config.paperFormat} prontas para imprimir — corte com sangria e abas de cola`}
+                                {mainMode === 'criador_poster' && 'Painéis e mascotes gigantes divididos em folhas A4 com abas "COLE AQUI" guiadas e marcas de corte'}
+                                {mainMode === 'rasterbator' && 'Pôsteres murais gigantes com retícula de pontos meio-tom personalizável para imprimir em folhas comuns'}
+                                {mainMode === 'splitimage' && 'Modelos rápidos de divisão em grade para Instagram, carrossel e redes sociais'}
+                                {mainMode === 'wall_mockup' && 'Visualize o painel montado em uma sala real com escala humana e iluminação realista'}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                        {onOpenBirthdayStudio && (
-                            <button
-                                type="button"
-                                onClick={onOpenBirthdayStudio}
-                                className="px-3 py-2 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 text-pink-300 border border-pink-500/30 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-                            >
-                                <PartyPopper size={14} />
-                                <span>Criador de Painel</span>
-                            </button>
-                        )}
+                    <div className="flex items-center gap-2 flex-wrap">
                         {onOpenUpscale && selectedImageUrl && (
                             <button
                                 type="button"
@@ -449,43 +644,85 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
                     </div>
                 </div>
 
-                {/* MODOS DE NAVEGAÇÃO PRINCIPAIS (CORTADOR / GRADE / SIMULADOR NA PAREDE) */}
-                <div className="grid grid-cols-3 gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800/80 max-w-xl">
+                {/* MODOS DE NAVEGAÇÃO PRINCIPAIS - SUPER ESTÚDIO UNIFICADO (4 EM 1) */}
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 bg-slate-950/90 p-1.5 rounded-2xl border border-slate-800/80">
+                    <button
+                        type="button"
+                        onClick={() => setMainMode('painel_festa')}
+                        className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
+                            mainMode === 'painel_festa'
+                                ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-slate-950 shadow-lg shadow-pink-500/25 ring-1 ring-pink-400 font-black'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                        title="Criador de Painel Redondo, Arco Romano, Cilindros e Topo de Bolo"
+                    >
+                        <PartyPopper size={14} className={mainMode === 'painel_festa' ? 'text-slate-950' : 'text-pink-400'} />
+                        <span>Painel de Festa</span>
+                    </button>
                     <button
                         type="button"
                         onClick={() => { setMainMode('cortador'); setConfig(p => ({ ...p, mode: 'party_panel' })); }}
                         className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
                             mainMode === 'cortador'
-                                ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-lg shadow-pink-500/25'
-                                : 'text-slate-400 hover:text-slate-200'
+                                ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 ring-1 ring-cyan-400 font-black'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
+                        title="Fatiador de Painéis com Sangria Milimétrica, Linhas de Corte e PDF A4/A3"
                     >
-                        <Scissors size={14} />
-                        <span>Cortador de Festa</span>
+                        <Scissors size={14} className={mainMode === 'cortador' ? 'text-white' : 'text-cyan-400'} />
+                        <span>Fatiador Festa</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMainMode('criador_poster')}
+                        className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
+                            mainMode === 'criador_poster'
+                                ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white shadow-lg shadow-pink-500/25 ring-1 ring-pink-400 font-black'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                        title="Criador de Pôster A4 com Abas 'COLE AQUI' Guiadas e Marcas de Encaixe"
+                    >
+                        <Sparkles size={14} className={mainMode === 'criador_poster' ? 'text-white' : 'text-pink-400'} />
+                        <span>Pôster A4 Cole</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMainMode('rasterbator')}
+                        className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
+                            mainMode === 'rasterbator'
+                                ? 'bg-gradient-to-r from-cyan-400 via-teal-500 to-blue-600 text-slate-950 shadow-lg shadow-cyan-500/25 ring-1 ring-cyan-300 font-black'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`}
+                        title="The Rasterbator - Retícula Halftone / Pontos Meio-Tom Gigante"
+                    >
+                        <span className={`font-mono font-black text-xs ${mainMode === 'rasterbator' ? 'text-slate-950' : 'text-cyan-400'}`}>::</span>
+                        <span>The Rasterbator</span>
                     </button>
                     <button
                         type="button"
                         onClick={() => { setMainMode('splitimage'); setConfig(p => ({ ...p, mode: 'grid' })); }}
                         className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
                             mainMode === 'splitimage'
-                                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
-                                : 'text-slate-400 hover:text-slate-200'
+                                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/25 font-black'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
+                        title="SplitImage - Grade 2x2, 3x3 e Carrossel"
                     >
                         <Grid size={14} />
-                        <span>SplitImage (Grade)</span>
+                        <span>SplitImage</span>
                     </button>
                     <button
                         type="button"
                         onClick={() => setMainMode('wall_mockup')}
                         className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition cursor-pointer ${
                             mainMode === 'wall_mockup'
-                                ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/25'
-                                : 'text-slate-400 hover:text-slate-200'
+                                ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/25 font-black'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                         }`}
+                        title="Simulador 3D do Painel Aplicado na Parede"
                     >
                         <Home size={14} />
-                        <span>Na Parede (3D)</span>
+                        <span>Parede 3D</span>
                     </button>
                 </div>
 
@@ -543,8 +780,49 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
                 )}
             </div>
 
-            {/* CONTEÚDO PRINCIPAL: CONTROLES À ESQUERDA (5 COLS) E PRÉ-VISUALIZAÇÃO À DIREITA (7 COLS) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {mainMode === 'painel_festa' ? (
+                <BirthdayBackdropStudio
+                    availableImages={availableImages}
+                    onBackToArchitect={onBackToArchitect}
+                    onOpenBgRemover={onOpenBgRemover}
+                    onOpenUpscale={onOpenUpscale}
+                    onOpenPanelSplitter={(imageUrl, name, mode) => {
+                        if (imageUrl) {
+                            setSelectedImageUrl(imageUrl);
+                        }
+                        if (name) {
+                            setConfig(p => ({ ...p, panelName: name }));
+                        }
+                        if (mode) {
+                            setMainMode(mode);
+                        } else {
+                            setMainMode('cortador');
+                        }
+                    }}
+                    initialImportedImage={selectedImageUrl || initialImageUrl || null}
+                />
+            ) : mainMode === 'criador_poster' ? (
+                <CriadorPosterStudio
+                    initialImageUrl={selectedImageUrl || ''}
+                    initialImageName={config.panelName || 'meu-poster-festa'}
+                    availableImages={availableImages}
+                    onBackToArchitect={() => setMainMode('painel_festa')}
+                    onOpenUpscale={onOpenUpscale}
+                    onOpenBirthdayStudio={() => setMainMode('painel_festa')}
+                    onSwitchMode={(m) => setMainMode(m)}
+                />
+            ) : mainMode === 'rasterbator' ? (
+                <RasterbatorStudio
+                    imageUrl={selectedImageUrl || ''}
+                    imageName={config.panelName || 'rasterbator-poster'}
+                    availableImages={availableImages}
+                    onBack={() => setMainMode('painel_festa')}
+                    onSwitchMode={(m) => setMainMode(m)}
+                    onOpenUpscale={onOpenUpscale}
+                />
+            ) : (
+                /* CONTEÚDO PRINCIPAL: CONTROLES À ESQUERDA (5 COLS) E PRÉ-VISUALIZAÇÃO À DIREITA (7 COLS) */
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* COLUNA ESQUERDA: CONTROLES DA ETAPA ATUAL */}
                 <div className="lg:col-span-5 space-y-5">
                     {/* SE MODO FOR SPLITIMAGE.IM (SCREENSHOT 02:09:41) */}
@@ -800,28 +1078,213 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
 
                                     {/* Presets Rápidos Encantiva Pro (Screenshot 02:10:36) */}
                                     <div className="space-y-2">
-                                        <span className="text-[11px] font-bold text-pink-400 uppercase tracking-wider block">
-                                            Mini Painéis Rápidos (Mesa & Topo):
-                                        </span>
-                                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[11px] font-bold text-pink-400 uppercase tracking-wider block">
+                                                Mini Painéis Rápidos (Mesa & Topo):
+                                            </span>
+                                            <span className="text-[10px] text-pink-300 font-mono font-bold">
+                                                Inclui Mini 35×35cm
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                                             {PANEL_PRESETS.filter(p => p.category === 'encantiva_mini').map(p => {
                                                 const isSelected = config.panelWidthCm === p.defaultWidthCm && config.panelHeightCm === p.defaultHeightCm && config.panelShape === 'round';
+                                                const is35 = p.defaultWidthCm === 35;
                                                 return (
                                                     <button
                                                         key={p.id}
                                                         type="button"
                                                         onClick={() => handleApplyPreset(p)}
-                                                        className={`p-2 rounded-2xl border text-center transition flex flex-col items-center justify-center cursor-pointer ${
+                                                        className={`p-2 rounded-2xl border text-center transition flex flex-col items-center justify-center cursor-pointer relative ${
                                                             isSelected
-                                                                ? 'bg-pink-600/20 border-pink-500 text-pink-200 ring-2 ring-pink-500 shadow-lg'
+                                                                ? 'bg-pink-600/25 border-pink-500 text-pink-200 ring-2 ring-pink-500 shadow-lg'
+                                                                : is35
+                                                                ? 'bg-slate-950 border-pink-500/50 text-slate-200 hover:border-pink-400'
                                                                 : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
                                                         }`}
                                                     >
+                                                        {is35 && (
+                                                            <span className="absolute -top-1.5 -right-1 bg-pink-500 text-slate-950 text-[8px] font-black px-1 rounded-full">
+                                                                35×35
+                                                            </span>
+                                                        )}
                                                         <span className="text-xs font-black font-mono">{p.defaultWidthCm}cm</span>
                                                         <span className="text-[9px] text-slate-400 font-bold mt-0.5">{p.sheetsEstimate}</span>
                                                     </button>
                                                 );
                                             })}
+                                        </div>
+                                    </div>
+
+                                    {/* ENTRADA MANUAL DE DIMENSÕES PERSONALIZADAS (LARGURA E ALTURA EM CM) */}
+                                    <div className="bg-slate-950/80 border border-indigo-500/30 rounded-2xl p-3.5 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-black uppercase text-indigo-300 flex items-center gap-1.5">
+                                                <Sliders size={14} className="text-indigo-400" />
+                                                <span>Ajuste Manual do Tamanho (Personalizado em CM)</span>
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setLockAspectRatio(!lockAspectRatio)}
+                                                className={`px-2 py-0.5 rounded text-[10px] font-bold border transition cursor-pointer flex items-center gap-1 ${
+                                                    lockAspectRatio
+                                                        ? 'bg-indigo-500/20 border-indigo-400 text-indigo-300'
+                                                        : 'bg-slate-900 border-slate-700 text-slate-400'
+                                                }`}
+                                                title={lockAspectRatio ? 'Largura e altura sincronizadas' : 'Largura e altura independentes'}
+                                            >
+                                                <span>Proporção 1:1 {lockAspectRatio ? 'Ativa' : 'Livre'}</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {/* Largura Manual */}
+                                            <div className="space-y-1">
+                                                <div className="flex items-center justify-between text-[11px]">
+                                                    <label className="font-bold text-slate-300">Largura do Painel:</label>
+                                                    <span className="font-mono text-cyan-400 font-black">{config.panelWidthCm} cm</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleManualWidthChange(config.panelWidthCm - 5)}
+                                                        className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                        title="Diminuir 5cm"
+                                                    >
+                                                        -5
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleManualWidthChange(config.panelWidthCm - 1)}
+                                                        className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                        title="Diminuir 1cm"
+                                                    >
+                                                        -1
+                                                    </button>
+                                                    <input
+                                                        type="number"
+                                                        min="5"
+                                                        max="2000"
+                                                        step="1"
+                                                        value={config.panelWidthCm}
+                                                        onChange={(e) => handleManualWidthChange(Number(e.target.value) || 5)}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-center text-sm font-mono font-bold text-white outline-none focus:border-indigo-500"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleManualWidthChange(config.panelWidthCm + 1)}
+                                                        className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                        title="Aumentar 1cm"
+                                                    >
+                                                        +1
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleManualWidthChange(config.panelWidthCm + 5)}
+                                                        className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                        title="Aumentar 5cm"
+                                                    >
+                                                        +5
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Altura Manual */}
+                                            <div className="space-y-1">
+                                                <div className="flex items-center justify-between text-[11px]">
+                                                    <label className="font-bold text-slate-300">Altura do Painel:</label>
+                                                    <span className="font-mono text-pink-400 font-black">{config.panelHeightCm} cm</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleManualHeightChange(config.panelHeightCm - 5)}
+                                                        className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                        title="Diminuir 5cm"
+                                                    >
+                                                        -5
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleManualHeightChange(config.panelHeightCm - 1)}
+                                                        className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                        title="Diminuir 1cm"
+                                                    >
+                                                        -1
+                                                    </button>
+                                                    <input
+                                                        type="number"
+                                                        min="5"
+                                                        max="2000"
+                                                        step="1"
+                                                        value={config.panelHeightCm}
+                                                        onChange={(e) => handleManualHeightChange(Number(e.target.value) || 5)}
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-center text-sm font-mono font-bold text-white outline-none focus:border-indigo-500"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleManualHeightChange(config.panelHeightCm + 1)}
+                                                        className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                        title="Aumentar 1cm"
+                                                    >
+                                                        +1
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleManualHeightChange(config.panelHeightCm + 5)}
+                                                        className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs border border-slate-800 cursor-pointer"
+                                                        title="Aumentar 5cm"
+                                                    >
+                                                        +5
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Atalhos Rápidos com 35x35cm em destaque */}
+                                        <div className="flex items-center gap-1.5 flex-wrap pt-1 text-[10px]">
+                                            <span className="text-slate-400 font-bold">Atalhos rápidos:</span>
+                                            {[
+                                                { label: '✨ 35 × 35 cm (Mini)', w: 35, h: 35, shape: 'round' as PanelShape, isMini: true },
+                                                { label: '50 × 50 cm', w: 50, h: 50, shape: 'round' as PanelShape },
+                                                { label: '100 × 100 cm', w: 100, h: 100, shape: 'round' as PanelShape },
+                                                { label: '120 × 120 cm', w: 120, h: 120, shape: 'round' as PanelShape },
+                                                { label: '150 × 150 cm (Padrão)', w: 150, h: 150, shape: 'round' as PanelShape },
+                                                { label: '100 × 200 cm (Arco)', w: 100, h: 200, shape: 'roman_arch' as PanelShape },
+                                                { label: '200 × 150 cm (Retangular)', w: 200, h: 150, shape: 'rectangular' as PanelShape },
+                                            ].map(sh => (
+                                                <button
+                                                    key={sh.label}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setConfig(p => ({
+                                                            ...p,
+                                                            panelWidthCm: sh.w,
+                                                            panelHeightCm: sh.h,
+                                                            panelShape: sh.shape
+                                                        }));
+                                                    }}
+                                                    className={`px-2 py-0.5 rounded border transition cursor-pointer font-bold ${
+                                                        config.panelWidthCm === sh.w && config.panelHeightCm === sh.h && config.panelShape === sh.shape
+                                                            ? 'bg-indigo-600 border-indigo-400 text-white font-black shadow-sm ring-1 ring-indigo-400'
+                                                            : sh.isMini
+                                                            ? 'bg-pink-950/40 border-pink-500/50 text-pink-300 hover:text-white hover:border-pink-400'
+                                                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                                                    }`}
+                                                >
+                                                    {sh.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Resumo do Cálculo Físico */}
+                                        <div className="bg-slate-900/90 rounded-xl p-2.5 border border-slate-800 flex items-center justify-between gap-2 text-xs flex-wrap">
+                                            <span className="text-slate-300">
+                                                Tamanho configurado: <strong className="text-white font-mono">{config.panelWidthCm} × {config.panelHeightCm} cm</strong>
+                                            </span>
+                                            <span className="text-emerald-400 font-mono font-bold">
+                                                {calcResult.printableSheets} folhas {config.paperFormat} ({config.paperOrientation === 'landscape' ? 'deitadas' : 'em pé'})
+                                            </span>
                                         </div>
                                     </div>
 
@@ -1816,6 +2279,7 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
                     )}
                 </div>
             </div>
+            )}
 
             {/* MODAL DO MAPA GERAL DE MONTAGEM */}
             {showMontageModal && montageMapUrl && (
@@ -1843,14 +2307,14 @@ export const PanelSplitterStudio: React.FC<PanelSplitterStudioProps> = ({
                             <span className="text-xs text-slate-400">
                                 Guarde este mapa para orientar a colagem folha a folha na ordem correta.
                             </span>
-                            <a
-                                href={montageMapUrl}
-                                download="Mapa_Geral_De_Montagem.png"
-                                className="py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer"
+                            <button
+                                type="button"
+                                onClick={handleDownloadMontageMap}
+                                className="py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-lg"
                             >
                                 <Download size={14} />
                                 <span>Salvar Imagem do Mapa</span>
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>

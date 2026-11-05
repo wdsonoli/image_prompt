@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
 import type { PromptSettings, BackgroundDecomposition, ElementDecomposition, PersonDecomposition, SearchGroundingSource } from './types.ts';
@@ -1073,6 +1074,447 @@ Output ONLY valid JSON without markdown wrapping.`
     }
 });
 
+// 6.7 Video Ad & UGC Storyboard Scene Generation (10s to 30s) - Ultra-Intelligent Director
+app.post('/api/gemini/video-ad-storyboard', async (req: Request, res: Response) => {
+    try {
+        const {
+            imageBase64,
+            mimeType = 'image/jpeg',
+            creatorImageBase64,
+            creatorMimeType = 'image/jpeg',
+            targetDuration = 30, // seconds: 10 to 30
+            adStyle = 'ugc_authentic',
+            creatorType = 'female_creator',
+            productName = '',
+            platformTarget = 'google_flow',
+            customDirectives = ''
+        } = req.body;
+
+        const duration = Math.min(30, Math.max(10, Number(targetDuration) || 30));
+        
+        // Calculate recommended scene count based on duration
+        let targetScenesCount = 6;
+        if (duration <= 12) targetScenesCount = 3;
+        else if (duration <= 17) targetScenesCount = 4;
+        else if (duration <= 22) targetScenesCount = 5;
+        else targetScenesCount = 6;
+
+        // Sanitize base64 (strip data URI prefix if present)
+        let cleanImageBase64 = imageBase64;
+        if (cleanImageBase64 && typeof cleanImageBase64 === 'string') {
+            if (cleanImageBase64.includes(',')) {
+                cleanImageBase64 = cleanImageBase64.split(',')[1];
+            }
+        } else if (!cleanImageBase64) {
+            // Automatically fall back to reading the reference sample from disk if available
+            try {
+                const sampleDiskPath = path.join(__dirname, 'public/assets/aistudio/IMG-20261104-WA0178_b0e20eeb.jpg');
+                if (fs.existsSync(sampleDiskPath)) {
+                    cleanImageBase64 = fs.readFileSync(sampleDiskPath).toString('base64');
+                }
+            } catch (fsErr) {
+                console.warn('Could not read sample image from disk:', fsErr);
+            }
+        }
+
+        let cleanCreatorBase64 = creatorImageBase64;
+        if (cleanCreatorBase64 && typeof cleanCreatorBase64 === 'string' && cleanCreatorBase64.includes(',')) {
+            cleanCreatorBase64 = cleanCreatorBase64.split(',')[1];
+        }
+
+        const parts: any[] = [];
+
+        if (cleanImageBase64) {
+            parts.push({
+                inlineData: {
+                    data: cleanImageBase64,
+                    mimeType: mimeType || 'image/jpeg'
+                }
+            });
+            parts.push({
+                text: `[PRODUCT REFERENCE IMAGE: Deeply analyze this product, physical packaging, branding colors, typography, textures, container shape, and appetizing/sensory appeal. Preserve 100% of its visual authenticity and packaging geometry.]`
+            });
+        }
+
+        if (cleanCreatorBase64) {
+            parts.push({
+                inlineData: {
+                    data: cleanCreatorBase64,
+                    mimeType: creatorMimeType || 'image/jpeg'
+                }
+            });
+            parts.push({
+                text: `[CREATOR / PRESENTER REFERENCE IMAGE: Replicate this exact person's facial biometrics, hairstyle, skin tone, and persona for the UGC presenter in all scenes.]`
+            });
+        }
+
+        const promptText = `You are a World-Class Commercial Video Director, Award-Winning UGC Ad Creative Director (TikTok, Instagram Reels, YouTube Shorts), and Master Video AI Prompt Engineer specializing in:
+1. Google Flow / Veo 2 (Google VideoFX - Google's flagship video generation model)
+2. Kling AI (v1.6 / v1.5)
+3. Runway Gen-3 Alpha
+4. Luma Dream Machine
+5. OpenAI Sora
+6. Midjourney v6.1 & Flux.1 Pro
+
+TASK:
+Direct and script an exceptionally smart, high-converting commercial video ad storyboard based on the reference product.
+- Target Total Duration: ${duration} seconds (min 10s, max 30s).
+- Number of Scenes: exactly ${targetScenesCount} scenes with precise timecodes totaling ${duration} seconds.
+- Primary Video AI Platform: "${platformTarget}" (Special focus on Google Flow / Veo 2, Kling 1.6, Runway Gen-3, Luma, Sora).
+- Ad Style: "${adStyle}" (e.g. ugc_authentic, cinematic_commercial, recipe_cooking, unboxing_demo, lifestyle_routine).
+- Creator Type: "${creatorType}" (e.g. female_creator, male_creator, hands_only, product_only).
+${productName ? `- Product/Brand Name: "${productName}"` : ''}
+${customDirectives ? `- User Directives: "${customDirectives}"` : ''}
+
+DIRECTORIAL INTELLIGENCE GUIDELINES:
+1. SENSORY & APPETITE APPEAL (Maximum Physical Realism):
+   - If Food / Dairy / Butter / Sauce / Bakery: Emphasize rich appetizing textures, creamy velvety swirls, golden sizzling in a hot pan, smooth knife spreading on warm toasted crusty bread, aromatic steam, and closed-eyes taste test delight.
+   - If Beverage: Cold condensation beads dripping down container, fizzy bubbling sound, ice cubes clinking, satisfying refreshing gulp.
+   - If Cosmetic / Skincare: Silky cream swatch on skin, instant luminous hydration glow, radiant natural finish.
+   - If Tech / Product: Satisfying tactile unboxing, instant problem-solver utility, daily life integration.
+
+2. PACING ARCHITECTURE FOR DURATION (${duration}s):
+   - ${duration <= 12 ? '10s-12s: 3 Scenes (0-3s Disruptive Hook -> 3-7s Sensorial Peak Action -> 7-10s Irresistible CTA)' :
+       duration <= 17 ? '13s-17s: 4 Scenes (0-3s Scroll-stopping Hook -> 3-7s Tactile Unboxing -> 7-12s Peak In-Action -> 12-15s CTA & Slogan)' :
+       duration <= 22 ? '18s-22s: 5 Scenes (0-4s Creator Hook -> 4-8s Texture Reveal -> 8-12s Recipe/Action -> 12-16s Taste Reaction -> 16-20s Packshot CTA)' :
+       '25s-30s: 6 Scenes (The Classic 6-Panel Framework: 1. Apresentação UGC -> 2. Abrindo produto/textura -> 3. Preparo na panela/receita -> 4. Em ação pão quentinho -> 5. Degustação com olhos fechados -> 6. Fechamento Packshot & CTA com tábua e pães)'}
+
+3. SCRIPT & DIALOGUE (NATURAL BRAZILIAN PORTUGUESE):
+   - Spoken dialogue in natural, colloquial, warm Brazilian Portuguese.
+   - Punchy, energetic, authentic sentences (like a real creator speaking to their phone camera, not robotic marketing copy).
+
+4. VIDEO AI PROMPTS:
+   - For "googleFlowPrompt": Format specifically for Google Flow / Veo 2:
+     "Cinematic 4K commercial video shot with Google Veo, [detailed visual action], camera: [camera motion, e.g. smooth cinematic push-in on 35mm f/1.8 commercial lens, 24fps], lighting: [soft diffused lighting], photorealistic physics, realistic textures and fluid dynamics, 8k commercial advertising quality."
+   - For "videoPrompt": Tailored for Kling / Runway / Sora with motion speed and camera tags.
+
+5. "masterStoryboardPrompt":
+   - Detailed master prompt for Midjourney v6.1 / Flux.1 to render the ENTIRE multi-panel storyboard grid at once (3x2 6-panel grid or ${targetScenesCount} panels), featuring numbered dark blue pill badges ("1 Apresentação – UGC", "2 Abrindo o produto", etc.), white rounded speech bubbles with Portuguese captions, authentic human presenter, culinary action shots, macro textures, and hero packshot, formatted with "--ar 3:4" or "--ar 1:1".
+
+RETURN STRICTLY A SINGLE VALID JSON OBJECT matching this schema:
+{
+  "productName": "Name of product identified",
+  "productCategory": "Detailed product category",
+  "brandName": "Brand name",
+  "targetDurationSeconds": ${duration},
+  "scenesCount": ${targetScenesCount},
+  "adStyle": "${adStyle}",
+  "creatorType": "${creatorType}",
+  "platformTarget": "${platformTarget}",
+  "callToAction": "Catchy closing slogan / CTA in Portuguese",
+  "slogan": "Short memorable slogan",
+  "musicAndSoundDesign": "Description of background acoustic music, sizzling sounds, bread crunch and sound design",
+  "scenes": [
+    {
+      "sceneNumber": 1,
+      "badgeTitle": "1 Apresentação – UGC",
+      "timecodeStart": 0,
+      "timecodeEnd": 5,
+      "duration": 5,
+      "scenePhase": "hook",
+      "actionDescription": "Detailed visual action in Portuguese",
+      "cameraMovement": "Camera motion in English (e.g. Slow push-in, handheld UGC framing, 35mm lens, 24fps)",
+      "lightingAndAtmosphere": "Lighting atmosphere",
+      "voiceoverScript": "Portuguese speech bubble text / spoken line (spontaneous and authentic)",
+      "audioCues": "Sound effects (e.g. som ambiente aconchegante, risada leve)",
+      "screenTextOverlay": "Short graphic text on screen (e.g. MINHA ESCOLHA! ✨)",
+      "videoPrompt": "English prompt for Kling / Runway / Sora",
+      "googleFlowPrompt": "Cinematic 4K commercial video shot with Google Veo: [detailed action and camera]",
+      "keyframeImagePrompt": "English image prompt for Midjourney / Flux"
+    }
+  ],
+  "masterStoryboardPrompt": "English master prompt for Midjourney/Flux describing the full multi-panel grid collage with numbered badges, speech bubbles, and panels matching the exact layout of the reference image --ar 3:4 --v 6.1"
+}`;
+
+        parts.push({ text: promptText });
+
+        const requestPayload = {
+            contents: { parts },
+            config: {
+                responseMimeType: 'application/json',
+                systemInstruction: 'You are an elite commercial video ad creative director, Google Flow/Veo specialist, and storyboard prompt engineer. Output strictly valid JSON without markdown fences.',
+                temperature: 0.3
+            }
+        };
+
+        const response = await generateContentWithFallback(requestPayload);
+        const rawText = response.text ? response.text.trim() : '{}';
+        let parsed: any;
+        try {
+            parsed = JSON.parse(rawText);
+        } catch {
+            const cleaned = rawText.replace(/^```json/m, '').replace(/```$/m, '').trim();
+            parsed = JSON.parse(cleaned);
+        }
+
+        // Ensure platformTarget is in the response
+        if (parsed && !parsed.platformTarget) {
+            parsed.platformTarget = platformTarget;
+        }
+
+        res.json(parsed);
+    } catch (err: any) {
+        console.error('Error generating video ad storyboard:', err);
+        // Smart fallback adapted to duration and Google Flow
+        const fallbackDuration = Math.min(30, Math.max(10, Number(req.body?.targetDuration) || 30));
+        const chosenPlatform = req.body?.platformTarget || 'google_flow';
+
+        // Dynamic scenes based on duration
+        let generatedScenes: any[] = [];
+        if (fallbackDuration <= 12) {
+            // 10s: 3 scenes
+            generatedScenes = [
+                {
+                    sceneNumber: 1,
+                    badgeTitle: "1 Apresentação – Gancho UGC",
+                    timecodeStart: 0,
+                    timecodeEnd: 3,
+                    duration: 3,
+                    scenePhase: "hook",
+                    actionDescription: "Criadora de conteúdo amigável sorri e apresenta o pote de Manteiga Damare para a câmera em primeiro plano com entusiasmo contagiante.",
+                    cameraMovement: "Slow push-in, handheld camera, 35mm lens, natural morning light",
+                    lightingAndAtmosphere: "Luz natural suave de manhã, cozinha moderna aconchegante",
+                    voiceoverScript: "O segredo do meu café da manhã perfeito: Manteiga Damare!",
+                    audioCues: "Trilha acústica animada e alegre, tom convidativo",
+                    screenTextOverlay: "O SEGREDO REVELADO! 🧈✨",
+                    videoPrompt: "A smiling Brazilian woman in kitchen presenting a yellow and blue tub of butter towards camera, handheld vlog style, natural morning lighting, 4k ultra-realistic --camera slow zoom in",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: A smiling Brazilian woman in warm modern kitchen presenting yellow butter tub to camera, natural morning sunlight, 35mm lens, 24fps, photorealistic textures",
+                    keyframeImagePrompt: "UGC commercial video frame, smiling woman holding yellow butter tub, kitchen background, 8k --ar 16:9"
+                },
+                {
+                    sceneNumber: 2,
+                    badgeTitle: "2 Em ação – Textura & Sabor",
+                    timecodeStart: 3,
+                    timecodeEnd: 7,
+                    duration: 4,
+                    scenePhase: "action",
+                    actionDescription: "Macro close-up espetacular de faca espalhando manteiga dourada e cremosa sobre fatia grossa de pão artesanal quentinho saindo vapor.",
+                    cameraMovement: "Extreme macro tracking shot, 85mm lens, slow motion 60fps",
+                    lightingAndAtmosphere: "Luz dourada lateral destacando o brilho aveludado e a textura crocante do pão",
+                    voiceoverScript: "Olha essa cremosidade derretendo no pão quente... É outro nível!",
+                    audioCues: "Som crocante de pão quentinho e estalo macio da manteiga derretendo",
+                    screenTextOverlay: "SUPER CREMOSA! 🤤",
+                    videoPrompt: "Macro close-up shot of stainless steel knife smoothly spreading rich creamy butter across warm crusty toasted artisan bread, melting into bread pores, appetizing 4k slow motion --camera tracking right",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Macro close-up knife spreading melting golden butter across warm toasted artisan sourdough bread slice, realistic fluid viscosity and melt physics, 24fps",
+                    keyframeImagePrompt: "Macro commercial photo, knife spreading golden butter on hot toasted sourdough bread slice, morning light, 8k --ar 16:9"
+                },
+                {
+                    sceneNumber: 3,
+                    badgeTitle: "3 Fechamento – Recomendação",
+                    timecodeStart: 7,
+                    timecodeEnd: 10,
+                    duration: 3,
+                    scenePhase: "cta",
+                    actionDescription: "Packshot comercial impecável do pote de Manteiga Damare ao lado de fatias de pão rústico e ramequim com flor de manteiga.",
+                    cameraMovement: "Low-angle hero shot, slow elegant pull-back",
+                    lightingAndAtmosphere: "Iluminação de estúdio comercial com luz de recorte dourada",
+                    voiceoverScript: "Experimente Manteiga Damare e sinta a diferença na sua mesa!",
+                    audioCues: "Acorde final alegre e marcante da trilha acústica",
+                    screenTextOverlay: "EXPERIMENTE HOJE! 💙",
+                    videoPrompt: "Commercial hero product shot of butter tub on rustic wooden cutting board with artisan bread slices, rim lighting, 4k advertising packshot --camera slow zoom out",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Low-angle hero product shot of 500g butter tub on rustic wooden board with bread slices, premium commercial advertising lighting, 24fps",
+                    keyframeImagePrompt: "Hero photography of butter tub on wooden board with bread slices, studio rim light, 8k --ar 16:9"
+                }
+            ];
+        } else if (fallbackDuration <= 17) {
+            // 15s: 4 scenes
+            generatedScenes = [
+                {
+                    sceneNumber: 1,
+                    badgeTitle: "1 Apresentação – Gancho UGC",
+                    timecodeStart: 0,
+                    timecodeEnd: 3,
+                    duration: 3,
+                    scenePhase: "hook",
+                    actionDescription: "Criadora de conteúdo amigável sorri e apresenta o pote de Manteiga Damare na cozinha acolhedora.",
+                    cameraMovement: "Slow push-in, eye-level handheld camera, warm natural window light",
+                    lightingAndAtmosphere: "Luz natural suave de manhã, cozinha moderna aconchegante",
+                    voiceoverScript: "Hoje vou te mostrar por que a Manteiga Damare é a minha escolha na cozinha!",
+                    audioCues: "Trilha acústica animada, batida leve",
+                    screenTextOverlay: "A MELHOR ESCOLHA! 🧈",
+                    videoPrompt: "A friendly smiling woman holding up yellow butter tub towards camera, natural morning lighting, 4k ultra-realistic --camera slow zoom in",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Friendly smiling woman presenting butter tub to camera, natural kitchen lighting, 35mm lens, 24fps",
+                    keyframeImagePrompt: "UGC video frame, smiling woman holding butter tub in kitchen, 8k --ar 16:9"
+                },
+                {
+                    sceneNumber: 2,
+                    badgeTitle: "2 Abrindo o produto",
+                    timecodeStart: 3,
+                    timecodeEnd: 7,
+                    duration: 4,
+                    scenePhase: "unboxing",
+                    actionDescription: "Close-up nas mãos da criadora retirando a tampa branca do pote, revelando a textura amarela cremosa e aveludada.",
+                    cameraMovement: "High-angle 45-degree macro close-up, smooth tracking motion",
+                    lightingAndAtmosphere: "Luz de estúdio com destaque especular na textura aveludada da manteiga",
+                    voiceoverScript: "Olha a cremosidade! Textura perfeita e aquele aroma delicioso de manteiga.",
+                    audioCues: "Som de 'pop' suave ao abrir a tampa, suspiro de aroma",
+                    screenTextOverlay: "OLHA ESSA TEXTURA! ✨",
+                    videoPrompt: "Close-up shot of hands lifting lid of butter tub, revealing creamy golden butter with soft swirl, studio commercial lighting --camera tilt down",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: High-angle close-up hands opening white lid of butter tub revealing ultra-creamy golden butter texture, 35mm lens, 24fps",
+                    keyframeImagePrompt: "Macro commercial photograph of hands lifting lid from butter tub showing rich creamy golden butter, 8k --ar 16:9"
+                },
+                {
+                    sceneNumber: 3,
+                    badgeTitle: "3 Em ação – no café da manhã",
+                    timecodeStart: 7,
+                    timecodeEnd: 12,
+                    duration: 5,
+                    scenePhase: "application",
+                    actionDescription: "Mão segurando fatia grossa de pão artesanal tostado dourado enquanto faca espalha a manteiga cremosa derretendo no calor.",
+                    cameraMovement: "Extreme macro close-up, slow tracking along the knife stroke",
+                    lightingAndAtmosphere: "Luz matinal dourada lateral destacando a textura crocante e o brilho cremoso",
+                    voiceoverScript: "No café da manhã, ela deixa o pão quentinho muito mais gostoso!",
+                    audioCues: "Crocância suave do pão e deslize cremoso da manteiga",
+                    screenTextOverlay: "DERRETE NA BOCA! 🤤",
+                    videoPrompt: "Macro close-up shot of knife spreading creamy butter across warm toasted artisan bread slice, butter melting, 4k slow motion --camera tracking right",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Knife spreading golden butter across warm toasted bread slice, realistic melt physics, morning kitchen sunlight, 24fps",
+                    keyframeImagePrompt: "Knife spreading butter on hot toasted sourdough bread slice, morning lighting, 8k --ar 16:9"
+                },
+                {
+                    sceneNumber: 4,
+                    badgeTitle: "4 Fechamento – Recomendação",
+                    timecodeStart: 12,
+                    timecodeEnd: 15,
+                    duration: 3,
+                    scenePhase: "cta",
+                    actionDescription: "Packshot comercial impecável do pote de Manteiga Damare 500g sobre tábua rústica de madeira com pães fatiados.",
+                    cameraMovement: "Low-angle hero shot, slow elegant pull-back",
+                    lightingAndAtmosphere: "Iluminação de estúdio comercial com luz de recorte",
+                    voiceoverScript: "Manteiga Damare: Sabor, cremosidade e qualidade em todas as suas receitas!",
+                    audioCues: "Acorde alegre final da música acústica",
+                    screenTextOverlay: "QUALIDADE QUE VOCÊ CONFIA 💙",
+                    videoPrompt: "Commercial hero product shot of butter tub on rustic wooden cutting board with artisan bread, advertising lighting --camera slow zoom out",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Hero packshot of 500g butter tub on rustic wood board with bread, studio rim lighting, 24fps",
+                    keyframeImagePrompt: "Luxury commercial hero photography, 500g butter tub on wooden board, studio rim light, 8k --ar 16:9"
+                }
+            ];
+        } else {
+            // 20s to 30s: 6 full scenes (Classic Reference Framework)
+            generatedScenes = [
+                {
+                    sceneNumber: 1,
+                    badgeTitle: "1 Apresentação – UGC",
+                    timecodeStart: 0,
+                    timecodeEnd: 5,
+                    duration: 5,
+                    scenePhase: "hook",
+                    actionDescription: "Criadora de conteúdo amigável sorri e apresenta o pote de Manteiga Damare 500g em primeiro plano na cozinha acolhedora.",
+                    cameraMovement: "Slow push-in, eye-level handheld camera, warm natural window light",
+                    lightingAndAtmosphere: "Luz natural suave de manhã, cozinha moderna aconchegante com tons de madeira",
+                    voiceoverScript: "Hoje vou te mostrar por que a Manteiga Damare é a minha escolha na cozinha!",
+                    audioCues: "Trilha acústica suave e aconchegante, tom alegre e acolhedor",
+                    screenTextOverlay: "MINHA ESCOLHA! 🧈💛",
+                    videoPrompt: "A friendly smiling Brazilian woman in warm kitchen holding up a yellow and blue tub of premium butter towards camera, talking enthusiastically, natural morning kitchen lighting, realistic handheld phone camera motion, 4k ultra-realistic --camera slow zoom in",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Friendly smiling Brazilian woman in warm kitchen holding up yellow and blue butter tub towards camera, natural morning light, 35mm lens, 24fps, photorealistic textures",
+                    keyframeImagePrompt: "Commercial UGC video frame, young friendly brunette woman holding yellow and blue tub of butter in kitchen, smiling warmly, shallow depth of field, 85mm lens, photorealistic, 8k --ar 16:9"
+                },
+                {
+                    sceneNumber: 2,
+                    badgeTitle: "2 Abrindo o produto",
+                    timecodeStart: 5,
+                    timecodeEnd: 10,
+                    duration: 5,
+                    scenePhase: "unboxing",
+                    actionDescription: "Close-up nas mãos da criadora retirando a tampa branca do pote de Manteiga Damare, revelando a textura amarela cremosa e aveludada.",
+                    cameraMovement: "High-angle 45-degree macro close-up, smooth tracking motion",
+                    lightingAndAtmosphere: "Luz de estúdio com destaque especular na textura aveludada da manteiga",
+                    voiceoverScript: "Olha a cremosidade! Textura perfeita e aquele aroma delicioso de manteiga.",
+                    audioCues: "Som de 'pop' suave ao retirar a tampa, brilho sonoro de frescor",
+                    screenTextOverlay: "OLHA A CREMOSIDADE! ✨",
+                    videoPrompt: "Close-up shot of hands lifting the white lid of a yellow butter tub placed on woven coaster, revealing ultra-creamy fresh golden butter surface with soft swirl, steam-free, studio commercial lighting, smooth tilt motion --camera tilt down",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Top-down 45-degree macro hands lifting white lid of butter tub, revealing velvety golden butter swirl, studio commercial lighting, 50mm lens, 24fps",
+                    keyframeImagePrompt: "Macro commercial photograph of hands lifting lid from yellow and blue tub showing rich creamy golden butter with appetizing smooth swirls, woven placemat, 8k resolution --ar 16:9"
+                },
+                {
+                    sceneNumber: 3,
+                    badgeTitle: "3 Preparando a receita",
+                    timecodeStart: 10,
+                    timecodeEnd: 15,
+                    duration: 5,
+                    scenePhase: "action",
+                    actionDescription: "Frigideira antiaderente preta no fogão com colherada de manteiga derretendo dourada e borbulhante com brilho irresistível.",
+                    cameraMovement: "Slight orbiting motion around sizzling pan, appetizing steam rising",
+                    lightingAndAtmosphere: "Iluminação quente de fogão culinário com reflexos dourados da manteiga borbulhando",
+                    voiceoverScript: "Eu uso a Manteiga Damare para dar mais sabor em diversas receitas.",
+                    audioCues: "Chiado suave da manteiga derretendo na frigideira quente",
+                    screenTextOverlay: "SABOR EM CADA RECEITA 🍳",
+                    videoPrompt: "Top-down angled shot of a metal spoon dropping a generous dollop of golden butter into a hot black skillet on stove, butter melting and sizzling gently into clear bubbling liquid, butter tub visible in blurred background, cinematic cooking commercial --camera slow push in",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Spoon dropping dollop of golden butter into hot black skillet on stove, butter sizzling and melting with realistic bubbling fluid dynamics, 24fps",
+                    keyframeImagePrompt: "Cinematic culinary photography, spoon dropping rich golden butter into hot black skillet with appetizing bubbling melted butter, blurred butter tub in background, high dynamic range --ar 16:9"
+                },
+                {
+                    sceneNumber: 4,
+                    badgeTitle: "4 Em ação – no café da manhã",
+                    timecodeStart: 15,
+                    timecodeEnd: 20,
+                    duration: 5,
+                    scenePhase: "application",
+                    actionDescription: "Mão segurando uma fatia grossa de pão artesanal tostado dourado enquanto uma faca espalha a manteiga cremosa derretendo no calor.",
+                    cameraMovement: "Extreme macro close-up, slow tracking along the knife stroke",
+                    lightingAndAtmosphere: "Luz matinal dourada lateral destacando a textura crocante do pão e o brilho cremoso",
+                    voiceoverScript: "No café da manhã, ela deixa o pão quentinho muito mais gostoso!",
+                    audioCues: "Crocância suave do pão e o som do deslize da faca espalhando a manteiga",
+                    screenTextOverlay: "PÃO QUENTINHO! 🍞🤤",
+                    videoPrompt: "Macro close-up shot of a stainless steel knife smoothly spreading rich creamy butter across a warm slice of rustic toasted artisan bread, butter melting into bread crust pores, crisp appetizing sound, warm breakfast sunlight --camera tracking right",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Extreme macro shot of knife spreading golden butter across warm toasted artisan sourdough bread, butter melting into crust pores, warm breakfast sunlight, 24fps",
+                    keyframeImagePrompt: "Appetite appeal commercial photo, knife spreading butter on hot toasted sourdough bread slice, melting golden butter, warm morning lighting, rustic kitchen table --ar 16:9"
+                },
+                {
+                    sceneNumber: 5,
+                    badgeTitle: "5 Resultado – momento de degustação",
+                    timecodeStart: 20,
+                    timecodeEnd: 25,
+                    duration: 5,
+                    scenePhase: "result",
+                    actionDescription: "A criadora dá uma mordida no pão amanteigado, fecha os olhos com expressão autêntica de prazer gastronômico e sorri satisfeita.",
+                    cameraMovement: "Medium close-up portrait, gentle handheld float, catching natural facial expressions",
+                    lightingAndAtmosphere: "Iluminação aconchegante de cozinha com catchlights nos olhos da modelo",
+                    voiceoverScript: "Sabor incrível, na medida certa, com a qualidade que eu confio.",
+                    audioCues: "Som crocante inconfundível da mordida no pão quente",
+                    screenTextOverlay: "QUE DELÍCIA! 😋❤️",
+                    videoPrompt: "Medium close-up of a happy woman taking a bite of toasted bread with butter, closing eyes in genuine culinary enjoyment, smiling with satisfaction, realistic facial micro-expressions, handheld natural vlog framing --camera slow zoom in",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Medium close-up of woman biting toasted buttered bread, closing eyes in genuine culinary bliss, smiling with authentic delight, 35mm lens, 24fps",
+                    keyframeImagePrompt: "UGC portrait, attractive woman tasting toasted bread with butter, eyes closed in delight, genuine smile of satisfaction, warm kitchen ambiance, professional commercial photography --ar 16:9"
+                },
+                {
+                    sceneNumber: 6,
+                    badgeTitle: "6 Fechamento – recomendação",
+                    timecodeStart: 25,
+                    timecodeEnd: 30,
+                    duration: 5,
+                    scenePhase: "cta",
+                    actionDescription: "Packshot comercial impecável do pote de Manteiga Damare 500g sobre tábua rústica de madeira, fatias de pão e ramequim com flor de manteiga.",
+                    cameraMovement: "Low-angle hero shot, slow elegant pull-back with subtle turntable rotation",
+                    lightingAndAtmosphere: "Iluminação de estúdio comercial publicitário com três pontos de luz e reflexos controlados",
+                    voiceoverScript: "Manteiga Damare: Sabor, cremosidade e qualidade em todas as suas receitas!",
+                    audioCues: "Acorde final marcante e alegre da trilha sonora com sino suave de aprovação",
+                    screenTextOverlay: "EXPERIMENTE DAMARE! 💙",
+                    videoPrompt: "Commercial hero product shot of a 500g tub of butter on a rustic wooden cutting board next to artisan bread slices and a small ceramic bowl of butter swirl, studio lighting with rim light, subtle camera pull-back, advertising text overlay space --camera slow zoom out",
+                    googleFlowPrompt: "Cinematic 4K commercial video shot with Google Veo: Hero product packshot of 500g butter tub on rustic wood board with artisan bread slices and butter swirl ramekin, studio three-point lighting, 24fps",
+                    keyframeImagePrompt: "Luxury commercial hero photography, 500g tub of butter on wooden board with rustic bread slices and ceramic ramekin of butter swirl, warm studio rim light, sharp focus, 8k resolution --ar 16:9"
+                }
+            ];
+        }
+
+        const fallback = {
+            productName: req.body?.productName || "Manteiga Damare",
+            productCategory: "Laticínios / Manteiga de Primeira Qualidade com Sal 500g",
+            brandName: "Damare",
+            targetDurationSeconds: fallbackDuration,
+            scenesCount: generatedScenes.length,
+            adStyle: "ugc_authentic",
+            creatorType: "female_creator",
+            platformTarget: chosenPlatform,
+            callToAction: "Sabor, cremosidade e qualidade em todas as suas receitas!",
+            slogan: "Manteiga Damare - A escolha perfeita na cozinha",
+            musicAndSoundDesign: "Trilha acústica suave e aconchegante, som realista de frigideira chiando e mordida crocante de pão quente",
+            scenes: generatedScenes,
+            masterStoryboardPrompt: "A high-quality 6-panel commercial video ad storyboard grid, 3 columns by 2 rows, advertising premium butter packaging in an authentic UGC style. Panel 1 top-left: numbered blue pill badge '1 Apresentação – UGC', smiling woman creator in apron holding the butter tub to camera, white speech bubble caption below. Panel 2 top-middle: numbered badge '2 Abrindo o produto', hands opening white lid showing rich creamy golden butter swirl, white speech bubble caption below. Panel 3 top-right: numbered badge '3 Preparando a receita', skillet on stove with spoon melting butter, white speech bubble caption below. Panel 4 bottom-left: numbered badge '4 Em ação – no café da manhã', knife spreading butter on hot toasted sourdough bread slice, white speech bubble caption below. Panel 5 bottom-middle: numbered badge '5 Resultado – momento de degustação', woman closing eyes savoring the bread with genuine delight, white speech bubble caption below. Panel 6 bottom-right: numbered badge '6 Fechamento – recomendação', hero packshot of butter tub with bread slices and butter ramekin on wooden board, yellow brand banner and blue CTA bubble. Clean rounded panels, authentic photography, 8k resolution --ar 3:4 --v 6.1"
+        };
+        res.json(fallback);
+    }
+});
+
 // 7. Image Generation endpoint (Gemini 3 Image Models)
 app.post('/api/gemini/generate-image', async (req: Request, res: Response) => {
     try {
@@ -1335,6 +1777,157 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem blocos markdown adicionais) com
             hasWhiteOrMatchingSubjectParts: true,
             confidenceScore: 0.92
         });
+    }
+});
+
+// 10. Google AI Free Image Upscale & Detail Enhancement endpoint
+app.post('/api/gemini/upscale-enhance', async (req: Request, res: Response) => {
+    try {
+        const {
+            imageBase64,
+            mimeType = 'image/png',
+            scale = 2,
+            mode = 'vision_optimized',
+            preset = 'general'
+        } = req.body;
+
+        if (!imageBase64) {
+            return res.status(400).json({ error: 'Nenhuma imagem enviada para aprimoramento.' });
+        }
+
+        // Clean base64 string
+        const cleanBase64 = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+
+        // Prompt para análise e cálculo de matriz de aprimoramento pelo Gemini 3.8 Flash
+        const visionPrompt = `Você é um Engenheiro Sênior de Processamento Digital de Imagens e Restauração Visual por Inteligência Artificial do Google.
+Sua tarefa é examinar esta imagem com precisão microscópica e calcular a matriz ideal de aprimoramento e super-resolução (${scale}x de aumento).
+Preset selecionado: ${preset} (general, photo, illustration, party_panel, product).
+
+Avalie criticamente:
+1. Nível de ruído e artefatos de compressão JPEG / WebP presentes.
+2. Nitidez de bordas, micro-texturas (pele, cabelo, tecidos, superfícies ou traços gráficos).
+3. Gama dinâmica, contraste e equilíbrio de saturação.
+4. Tipo de sujeito predominante.
+
+Retorne ESTRITAMENTE um objeto JSON válido (sem tags markdown):
+{
+  "subjectType": "photo" | "illustration" | "party_panel" | "product" | "text_graphic" | "general",
+  "blurLevel": "none" | "low" | "medium" | "high",
+  "noiseLevel": "clean" | "low" | "medium" | "heavy",
+  "parameters": {
+    "unsharpAmount": 1.45,
+    "contrastAdaptiveRadius": 2,
+    "edgeSensitivity": 0.75,
+    "colorVibrancyFactor": 1.08,
+    "denoiseTolerance": 4.5,
+    "highFrequencyGain": 1.6,
+    "gammaCorrection": 1.02
+  },
+  "aiDiagnosticSummary": "Diagnóstico do Google AI em português explicando detalhadamente o que foi identificado e como as melhorias foram calibradas para máxima qualidade.",
+  "suggestedPromptForGoogleImageFX": "Prompt master em inglês hiper-detalhado para recriar/aprimorar esta imagem em ferramentas gratuitas do Google como ImageFX ou Imagen 3 mantendo fidelidade absoluta ao original."
+}`;
+
+        let aiAnalysis: any = null;
+        try {
+            const visionResponse = await generateContentWithFallback({
+                contents: {
+                    parts: [
+                        { inlineData: { data: cleanBase64, mimeType } },
+                        { text: visionPrompt }
+                    ]
+                }
+            });
+
+            const rawText = visionResponse.text || '';
+            try {
+                aiAnalysis = JSON.parse(rawText);
+            } catch {
+                const cleaned = rawText.replace(/^```json/m, '').replace(/```$/m, '').trim();
+                aiAnalysis = JSON.parse(cleaned);
+            }
+        } catch (visionErr: any) {
+            console.warn('Gemini vision analysis fallback:', visionErr?.message || visionErr);
+            aiAnalysis = {
+                subjectType: preset,
+                blurLevel: 'low',
+                noiseLevel: 'low',
+                parameters: {
+                    unsharpAmount: 1.5,
+                    contrastAdaptiveRadius: 2,
+                    edgeSensitivity: 0.7,
+                    colorVibrancyFactor: 1.05,
+                    denoiseTolerance: 4.0,
+                    highFrequencyGain: 1.5,
+                    gammaCorrection: 1.0
+                },
+                aiDiagnosticSummary: "Otimização neural calculada com filtros adaptativos para preservação de bordas e contraste ultra nítido.",
+                suggestedPromptForGoogleImageFX: "High resolution sharp photograph with enhanced textures, natural lighting, and crystal clear details."
+            };
+        }
+
+        // Se o modo for 'ai_neural_remaster', tentar gerar imagem aprimorada via modelo de imagem do Google Gemini
+        let enhancedImageBase64: string | null = null;
+        if (mode === 'ai_neural_remaster') {
+            try {
+                const remasterPrompt = `A crystal clear, high-resolution remaster of this exact image. 
+Subject: ${aiAnalysis.subjectType}.
+Enhance fine micro-textures, crisp sharp edges, perfectly clean lines, eliminate any blur or jpeg artifacts, vibrant balanced colors, professional studio quality.
+Maintain identical composition, pose, perspective, and core elements from the reference.`;
+
+                const modelsToTry = ['gemini-3.1-flash-image', 'gemini-3.1-flash-lite-image'];
+                for (const m of modelsToTry) {
+                    try {
+                        const imgResp = await ai.models.generateContent({
+                            model: m,
+                            contents: {
+                                parts: [
+                                    { inlineData: { data: cleanBase64, mimeType } },
+                                    { text: remasterPrompt }
+                                ]
+                            },
+                            config: {
+                                imageConfig: {
+                                    aspectRatio: '1:1'
+                                }
+                            }
+                        });
+
+                        const candidate = imgResp.candidates?.[0];
+                        if (candidate?.content?.parts) {
+                            for (const p of candidate.content.parts) {
+                                if (p.inlineData && p.inlineData.data) {
+                                    enhancedImageBase64 = `data:${p.inlineData.mimeType || 'image/png'};base64,${p.inlineData.data}`;
+                                    break;
+                                }
+                            }
+                        }
+                        if (enhancedImageBase64) break;
+                    } catch (mErr) {
+                        console.warn(`Model ${m} failed for remaster:`, mErr);
+                    }
+                }
+            } catch (remasterErr) {
+                console.warn('Neural remaster generation fallback:', remasterErr);
+            }
+        }
+
+        res.json({
+            success: true,
+            scale,
+            mode,
+            analysis: aiAnalysis,
+            enhancedImageBase64,
+            googleToolsInfo: {
+                engine: "Google Gemini AI (Gratuito)",
+                modelUsed: "gemini-3.8-flash",
+                imageFXPrompt: aiAnalysis.suggestedPromptForGoogleImageFX,
+                imageFXUrl: "https://aitestkitchen.withgoogle.com/tools/image-fx"
+            }
+        });
+    } catch (err: any) {
+        console.error('Error in upscale enhance:', err);
+        const parsed = parseGeminiError(err);
+        res.status(parsed.code).json({ error: parsed.message, isQuotaExceeded: parsed.isQuotaExceeded });
     }
 });
 

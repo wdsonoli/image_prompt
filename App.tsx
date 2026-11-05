@@ -47,8 +47,13 @@ import { ImageUpscaleStudio } from './components/ImageUpscaleStudio';
 import { BackgroundRemoverStudio } from './components/BackgroundRemoverStudio';
 import { BirthdayBackdropStudio } from './components/BirthdayBackdropStudio';
 import { PanelSplitterStudio } from './components/PanelSplitterStudio';
+import { PackagingDieCutStudio } from './components/PackagingDieCutStudio';
+import { PixelEngineStudio } from './components/PixelEngineStudio';
+import { VideoAdStoryboardStudio } from './components/VideoAdStoryboardStudio';
+import { NegativePromptStudio } from './components/NegativePromptStudio';
+import { ULTRA_PREMIUM_16K_PROMPT, ULTRA_PREMIUM_16K_NEGATIVE_PROMPT } from './utils/visualEffectsData';
 import { loadHistory, saveHistory, deleteHistoryItem, clearHistory, compressBase64Image, loadActiveImages, saveActiveImages } from './utils/historyStorage';
-import { Zap, History, Sparkles, Sliders, Settings, Plus, Trash2, Image as ImageIcon, AlertCircle, X, ExternalLink, Layers, Package, Copy, Check, Terminal, Maximize2, Scissors, PartyPopper, Cake, Grid } from 'lucide-react';
+import { Zap, History, Sparkles, Sliders, Settings, Plus, Trash2, Image as ImageIcon, AlertCircle, X, ExternalLink, Layers, Package, Copy, Check, Terminal, Maximize2, Scissors, PartyPopper, Cake, Grid, Box, Clapperboard, Video as VideoIcon, Ban, ShieldAlert } from 'lucide-react';
 
 const COMPOSITION_KEYWORDS: Record<string, string> = {
     macro: "macro photography, extreme close-up, high detail texture",
@@ -170,9 +175,10 @@ const App: React.FC = () => {
     const [isGeneratingCycles, setIsGeneratingCycles] = useState(false);
     const [isGeneratingRecraft, setIsGeneratingRecraft] = useState(false);
     const [isGeneratingMagnific, setIsGeneratingMagnific] = useState(false);
-    const [activeControlTab, setActiveControlTab] = useState<'architect' | 'effects' | 'modelsheet' | 'productsheet' | 'upscale' | 'bgremover' | 'birthdayBackdrop' | 'panelSplitter'>('architect');
+    const [activeControlTab, setActiveControlTab] = useState<'architect' | 'effects' | 'modelsheet' | 'productsheet' | 'upscale' | 'bgremover' | 'birthdayBackdrop' | 'panelSplitter' | 'packagingStudio' | 'pixelEngine' | 'videoStoryboard' | 'negativePrompts'>('architect');
     const [upscaleSourceImage, setUpscaleSourceImage] = useState<{ url: string; name: string } | null>(null);
     const [panelSplitterSourceImage, setPanelSplitterSourceImage] = useState<{ url: string; name: string } | null>(null);
+    const [panelSplitterInitialMode, setPanelSplitterInitialMode] = useState<'painel_festa' | 'cortador' | 'splitimage' | 'rasterbator' | 'wall_mockup' | 'criador_poster'>('painel_festa');
     const [searchGroundingData, setSearchGroundingData] = useState<SearchGroundingData | null>(null);
     const [isGeneratingSearchGrounding, setIsGeneratingSearchGrounding] = useState(false);
     const [mobileCopied, setMobileCopied] = useState(false);
@@ -1128,7 +1134,7 @@ const App: React.FC = () => {
         setActiveControlTab('upscale');
     };
 
-    const handleOpenPanelSplitter = (url?: string, name?: string) => {
+    const handleOpenPanelSplitter = (url?: string, name?: string, mode: 'painel_festa' | 'cortador' | 'splitimage' | 'rasterbator' | 'wall_mockup' | 'criador_poster' = 'cortador') => {
         if (url) {
             setPanelSplitterSourceImage({ url, name: name || 'painel' });
         } else if (activeImage) {
@@ -1137,6 +1143,7 @@ const App: React.FC = () => {
         } else if (generatedImageUrl) {
             setPanelSplitterSourceImage({ url: generatedImageUrl, name: 'painel-gerado' });
         }
+        setPanelSplitterInitialMode(mode);
         setActiveControlTab('panelSplitter');
     };
 
@@ -1589,35 +1596,86 @@ const App: React.FC = () => {
                         </span>
                     </button>
                     <button 
-                        onClick={() => setActiveControlTab('birthdayBackdrop')}
-                        className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
-                            activeControlTab === 'birthdayBackdrop' 
-                                ? 'bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-slate-950 shadow-lg shadow-pink-500/25 ring-1 ring-pink-400 font-black' 
+                        onClick={() => {
+                            setPanelSplitterInitialMode('painel_festa');
+                            setActiveControlTab('panelSplitter');
+                        }}
+                        className={`flex-1 min-w-[140px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'panelSplitter' || activeControlTab === 'birthdayBackdrop'
+                                ? 'bg-gradient-to-r from-pink-500 via-purple-600 to-cyan-500 text-white shadow-lg shadow-purple-500/25 ring-1 ring-purple-400 font-black' 
                                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                         }`}
-                        title="Criador de Painel de Aniversário (Painel Redondo 1.5m, Arco Romano, Cilindros) e Topo de Bolo"
+                        title="Super Estúdio Unificado: Painel de Festa, Fatiador de Painéis A4/A3, Criador de Pôster A4 e The Rasterbator Halftone"
                     >
-                        <PartyPopper size={15} className={activeControlTab === 'birthdayBackdrop' ? 'text-slate-950' : 'text-pink-400'} />
-                        <span className="hidden sm:inline">Painel & Bolo</span>
-                        <span className="sm:hidden">Painel</span>
+                        <Sparkles size={15} className={activeControlTab === 'panelSplitter' || activeControlTab === 'birthdayBackdrop' ? 'text-white' : 'text-pink-400'} />
+                        <span className="hidden sm:inline">Painel & Pôster Pro</span>
+                        <span className="sm:hidden">Painel & Pôster</span>
                         <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-pink-400/20 text-pink-200 border border-pink-400/30">
-                            Festa
+                            4 em 1
                         </span>
                     </button>
                     <button 
-                        onClick={() => handleOpenPanelSplitter()}
+                        onClick={() => setActiveControlTab('packagingStudio')}
                         className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
-                            activeControlTab === 'panelSplitter' 
-                                ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 ring-1 ring-cyan-400 font-black' 
+                            activeControlTab === 'packagingStudio'
+                                ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-pink-600 text-white shadow-lg shadow-pink-500/25 ring-1 ring-pink-400 font-black' 
                                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                         }`}
-                        title="Modo Fatiador & Cortador de Painéis (FatiArt, SplitImage, Encantiva) - Fatiamento para Impressão A4/A3 com Sangria e PDF"
+                        title="Molde de Embalagem A4 (Caixas, Sacolas, Milk Box com Linhas de Corte, Vinco, Abas de Cola e Sangrias para Impressão)"
                     >
-                        <Scissors size={15} className={activeControlTab === 'panelSplitter' ? 'text-white' : 'text-cyan-400'} />
-                        <span className="hidden sm:inline">Fatiador de Painéis</span>
-                        <span className="sm:hidden">Fatiador</span>
+                        <Box size={15} className={activeControlTab === 'packagingStudio' ? 'text-white' : 'text-amber-400'} />
+                        <span className="hidden sm:inline">Molde Embalagem</span>
+                        <span className="sm:hidden">Embalagem</span>
+                        <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30">
+                            Molde A4
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveControlTab('pixelEngine')}
+                        className={`flex-1 min-w-[110px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'pixelEngine'
+                                ? 'bg-gradient-to-r from-blue-600 via-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25 ring-1 ring-cyan-400 font-black' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                        title="Pixel Engine - Pixel Art no Tamanho Exato (16x16, 32x32, 64x64, 128x128, formatos livres até 4:1, paletas retro e showcase 4-em-1)"
+                    >
+                        <Grid size={15} className={activeControlTab === 'pixelEngine' ? 'text-white' : 'text-cyan-400'} />
+                        <span className="hidden sm:inline">Pixel Engine</span>
+                        <span className="sm:hidden">Pixel Art</span>
                         <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
-                            FatiArt
+                            16–128px
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveControlTab('videoStoryboard')}
+                        className={`flex-1 min-w-[130px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'videoStoryboard'
+                                ? 'bg-gradient-to-r from-pink-600 via-rose-600 to-amber-600 text-white shadow-lg shadow-pink-500/25 ring-1 ring-pink-400 font-black' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                        title="Estúdio de Vídeo Comercial & Storyboard UGC (10s a 30s, Cenas para Kling/Runway/Sora e Grade 6 Painéis conforme referência)"
+                    >
+                        <Clapperboard size={15} className={activeControlTab === 'videoStoryboard' ? 'text-white' : 'text-pink-400'} />
+                        <span className="hidden sm:inline">Vídeo Comercial & UGC</span>
+                        <span className="sm:hidden">Cenas Vídeo</span>
+                        <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-pink-400/20 text-pink-200 border border-pink-400/30">
+                            10s–30s
+                        </span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveControlTab('negativePrompts')}
+                        className={`flex-1 min-w-[130px] sm:min-w-0 py-2 sm:py-2.5 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 sm:gap-2 transition-all relative min-h-[42px] cursor-pointer whitespace-nowrap ${
+                            activeControlTab === 'negativePrompts'
+                                ? 'bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white shadow-lg shadow-rose-600/25 ring-1 ring-rose-400 font-black' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                        title="Estúdio de Prompts Negativos para Todas as Situações (Anti-Alucinação, 16K Remaster, Rosto, Fundo, Produto)"
+                    >
+                        <Ban size={15} className={activeControlTab === 'negativePrompts' ? 'text-white' : 'text-rose-400'} />
+                        <span className="hidden sm:inline">Prompts Negativos</span>
+                        <span className="sm:hidden">Negativos</span>
+                        <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-rose-400/20 text-rose-200 border border-rose-400/30">
+                            Anti-IA
                         </span>
                     </button>
                 </div>
@@ -1818,6 +1876,7 @@ const App: React.FC = () => {
                                 onSwitchToProductSheet={() => setActiveControlTab('productsheet')}
                                 onSwitchToBgRemover={() => setActiveControlTab('bgremover')}
                                 onSwitchToUpscale={() => setActiveControlTab('upscale')}
+                                onSwitchToNegativePrompts={() => setActiveControlTab('negativePrompts')}
                                 onAnalyzeSearchGrounding={handleAnalyzeSearchGrounding}
                                 isGeneratingSearchGrounding={isGeneratingSearchGrounding}
                             />
@@ -1883,23 +1942,75 @@ const App: React.FC = () => {
                         onBackToArchitect={() => setActiveControlTab('architect')}
                         onOpenUpscale={(url, name) => handleOpenUpscale(url, name)}
                     />
-                ) : activeControlTab === 'birthdayBackdrop' ? (
-                    /* MODO CRIADOR DE PAINEL DE ANIVERSÁRIO & TOPO DE BOLO */
-                    <BirthdayBackdropStudio 
-                        availableImages={images}
-                        onBackToArchitect={() => setActiveControlTab('architect')}
-                        onOpenBgRemover={() => setActiveControlTab('bgremover')}
-                        onOpenPanelSplitter={handleOpenPanelSplitter}
-                        initialImportedImage={activeImage?.previewUrl || (activeImage?.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : (generatedImageUrl || null))}
-                    />
-                ) : activeControlTab === 'panelSplitter' ? (
-                    /* MODO FATIADOR & CORTADOR DE PAINÉIS (FATIART, SPLITIMAGE, ENCANTIVA PRO) */
+                ) : activeControlTab === 'panelSplitter' || activeControlTab === 'birthdayBackdrop' ? (
+                    /* SUPER ESTÚDIO UNIFICADO (PAINEL DE FESTA, FATIADOR, PÔSTER A4 E RASTERBATOR) */
                     <PanelSplitterStudio 
                         availableImages={images}
                         initialImageUrl={panelSplitterSourceImage?.url || activeImage?.previewUrl || (activeImage?.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : (generatedImageUrl || null))}
                         initialImageName={panelSplitterSourceImage?.name || activeImage?.name || (generatedImageUrl ? 'imagem-gerada' : 'painel')}
+                        initialMode={activeControlTab === 'birthdayBackdrop' ? 'painel_festa' : panelSplitterInitialMode}
                         onBackToArchitect={() => setActiveControlTab('architect')}
-                        onOpenBirthdayStudio={() => setActiveControlTab('birthdayBackdrop')}
+                        onOpenBirthdayStudio={() => {
+                            setPanelSplitterInitialMode('painel_festa');
+                            setActiveControlTab('panelSplitter');
+                        }}
+                        onOpenBgRemover={() => setActiveControlTab('bgremover')}
+                        onOpenUpscale={(url, name) => handleOpenUpscale(url, name)}
+                    />
+                ) : activeControlTab === 'packagingStudio' ? (
+                    /* MODO MOLDE & PLANIFICAÇÃO DE EMBALAGEM A4 (CORTE, VINCO, SANGRIAS E ABAS DE COLA) */
+                    <PackagingDieCutStudio 
+                        availableImages={images}
+                        initialImageUrl={activeImage?.previewUrl || (activeImage?.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : (generatedImageUrl || null))}
+                        initialImageName={activeImage?.name || (generatedImageUrl ? 'imagem-embalagem' : 'embalagem')}
+                        onBackToArchitect={() => setActiveControlTab('architect')}
+                        onOpenUpscale={(url, name) => handleOpenUpscale(url, name)}
+                    />
+                ) : activeControlTab === 'pixelEngine' ? (
+                    /* MODO PIXEL ENGINE - PIXEL ART NO TAMANHO EXATO (16x16 a 128x128, FORMATOS LIVRES 4:1) */
+                    <PixelEngineStudio 
+                        availableImages={images}
+                        initialImageUrl={activeImage?.previewUrl || (activeImage?.base64Data ? `data:${activeImage.mimeType || 'image/png'};base64,${activeImage.base64Data}` : (generatedImageUrl || null))}
+                        initialImageName={activeImage?.name || (generatedImageUrl ? 'imagem-pixel' : 'meu-pixel-art')}
+                        onBackToArchitect={() => setActiveControlTab('architect')}
+                        onApplyPrompt={(newPrompt) => {
+                            setPrompt(newPrompt);
+                            setSettings(s => ({ ...s, basePrompt: newPrompt }));
+                            setActiveControlTab('architect');
+                        }}
+                        onOpenUpscale={(url, name) => handleOpenUpscale(url, name)}
+                    />
+                ) : activeControlTab === 'videoStoryboard' ? (
+                    /* MODO VÍDEO COMERCIAL & STORYBOARD UGC (10s a 30s, Cenas para Kling/Runway/Sora + Grade 6 Painéis conforme referência) */
+                    <VideoAdStoryboardStudio 
+                        availableImages={images}
+                        activeImageBase64={activeImage?.base64Data}
+                        activeImageMimeType={activeImage?.mimeType}
+                        activeImageName={activeImage?.name}
+                        onBackToArchitect={() => setActiveControlTab('architect')}
+                        onApplyPrompt={(newPrompt) => {
+                            setPrompt(newPrompt);
+                            setSettings(s => ({ ...s, basePrompt: newPrompt }));
+                            setActiveControlTab('architect');
+                        }}
+                        onCreateVisual={handleCreateVisual}
+                    />
+                ) : activeControlTab === 'negativePrompts' ? (
+                    /* MODO ESTÚDIO DE PROMPTS NEGATIVOS PARA TODAS AS SITUAÇÕES & 16K ANTI-ALUCINAÇÃO */
+                    <NegativePromptStudio 
+                        initialNegativePrompt={settings.negativePrompt}
+                        targetPlatform={settings.targetPlatform}
+                        onApplyNegativePrompt={(negPrompt) => {
+                            setSettings(prev => ({ ...prev, negativePrompt: negPrompt }));
+                        }}
+                        onApply16kRemasterPair={() => {
+                            setSettings(prev => ({
+                                ...prev,
+                                basePrompt: ULTRA_PREMIUM_16K_PROMPT,
+                                negativePrompt: ULTRA_PREMIUM_16K_NEGATIVE_PROMPT
+                            }));
+                        }}
+                        onBackToArchitect={() => setActiveControlTab('architect')}
                     />
                 ) : (
                     /* MODOS AVANÇADOS: Ficha de Modelo, Troca de Marca & Efeitos Visuais (Desktop: 8 cols + 4 cols sticky, Mobile/Tablet: 100%) */
@@ -1992,6 +2103,10 @@ const App: React.FC = () => {
                                 originalImageName={activeImage?.name || null}
                                 isGenerating={isGeneratingVisual} 
                                 onClose={() => setGeneratedImageUrl(null)} 
+                                onOpenUpscale={(url) => handleOpenUpscale(url)}
+                                onOpenPanelSplitter={(url, name, mode) => handleOpenPanelSplitter(url, name, mode)}
+                                onOpenPixelEngine={() => setActiveControlTab('pixelEngine')}
+                                onOpenVideoStoryboard={() => setActiveControlTab('videoStoryboard')}
                             />
                         </div>
                     </div>

@@ -16,6 +16,7 @@ interface ApiSettingsModalProps {
 }
 
 const ALL_STYLES_LIST: { id: string; name: string; category: string }[] = [
+    { id: 'hero_shot', name: 'Fotografia Comercial HERO SHOT (Produto 85mm Luxo)', category: 'Comercial & Produto' },
     { id: 'photorealistic', name: 'Fotorealista (8K Ultra Detalhado)', category: 'Realismo' },
     { id: '3d_render', name: '3D Render / CGI (Octane / UE5)', category: '3D & CGI' },
     { id: 'digital_art', name: 'Ilustrativo / Arte Digital', category: 'Arte' },
@@ -137,12 +138,12 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
                         {/* Grade com atalhos visuais dos estilos mais solicitados */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {[
+                                { id: 'hero_shot', label: 'Hero Shot', sub: 'Comercial 85mm', icon: Camera, borderActive: 'border-amber-500 text-amber-300 bg-amber-950/30 ring-1 ring-amber-500/40' },
                                 { id: 'photorealistic', label: 'Fotorealista', sub: '8K / Realismo', icon: Camera, borderActive: 'border-cyan-500 text-cyan-300 bg-cyan-950/30 ring-1 ring-cyan-500/40' },
                                 { id: '3d_render', label: '3D Render', sub: 'CGI / Octane', icon: Boxes, borderActive: 'border-amber-500 text-amber-300 bg-amber-950/30 ring-1 ring-amber-500/40' },
                                 { id: 'digital_art', label: 'Ilustrativo', sub: 'Arte Digital', icon: Paintbrush, borderActive: 'border-pink-500 text-pink-300 bg-pink-950/30 ring-1 ring-pink-500/40' },
                                 { id: 'blank', label: 'Mockup Clay', sub: 'Fundo Neutro', icon: Box, borderActive: 'border-slate-300 text-white bg-slate-800/50 ring-1 ring-slate-400' },
                                 { id: 'disney_pixar', label: 'Disney Pixar', sub: 'Animação 3D', icon: Sparkles, borderActive: 'border-violet-500 text-violet-300 bg-violet-950/30 ring-1 ring-violet-500/40' },
-                                { id: 'anime', label: 'Anime / Manga', sub: 'Japonesa', icon: Compass, borderActive: 'border-emerald-500 text-emerald-300 bg-emerald-950/30 ring-1 ring-emerald-500/40' },
                             ].map((item) => {
                                 const isSelected = defaultStyle === item.id;
                                 return (

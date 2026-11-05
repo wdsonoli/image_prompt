@@ -1418,7 +1418,7 @@ export const BackgroundRemoverStudio: React.FC<BackgroundRemoverStudioProps> = (
                                                                 ? 'ring-2 ring-amber-400 border-white scale-110'
                                                                 : 'border-slate-700 hover:scale-105'
                                                         }`}
-                                                    />
+                                                    ></button>
                                                 ))}
                                                 <input
                                                     type="color"

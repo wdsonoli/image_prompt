@@ -263,9 +263,32 @@ export const DETAIL_LEVEL_MAP: Record<number, { label: string; keywords: string[
     }
 };
 
+export const HERO_SHOT_PROMPT = `Professional commercial product photography, HERO SHOT style. The product is the absolute centerpiece of the composition, photographed with a premium advertising aesthetic.
+
+Create a visually striking, hyper-realistic product photograph with dramatic studio lighting, sophisticated shadows, controlled highlights, realistic reflections and exceptional material detail.
+
+CAMERA ANGLE: Low-angle perspective, slightly below the product's center, emphasizing its proportions, presence and visual authority.
+
+COMPOSITION: Strong visual hierarchy, product occupying approximately 70% of the frame, clean composition, balanced negative space and carefully controlled perspective.
+
+LIGHTING: Cinematic three-point studio lighting, soft key light, subtle rim lighting, precise specular highlights and realistic ambient occlusion.
+
+BACKGROUND: Sophisticated, seamless studio environment with subtle gradients and atmospheric depth, harmonizing with the product's original colors.
+
+PHOTOGRAPHIC QUALITY: Shot on a professional full-frame camera, 85mm commercial photography lens, ultra-detailed textures, realistic depth of field, premium color grading, crisp focus and high dynamic range.
+
+ART DIRECTION: Luxury brand advertising campaign, premium editorial photography, sophisticated visual storytelling, contemporary commercial aesthetic.
+
+IMPORTANT: Preserve the exact original product design, shape, proportions, colors, packaging, typography and branding. Do not redesign, reinterpret or distort the product.
+
+FINAL RESULT: An exceptionally realistic, high-end HERO SHOT suitable for luxury advertising campaigns, premium e-commerce, product launches and commercial marketing.
+
+No illustration, no cartoon, no artificial-looking CGI, no unnecessary props, no distorted geometry.`;
+
 export const STYLE_TEMPLATES: Record<string, string> = {
-    blank: "plain background, solid color, minimalist, clean, no distractions",
+    hero_shot: HERO_SHOT_PROMPT,
     photorealistic: "photorealistic, 8K resolution, detailed texture, realistic lighting, sharp focus, professional photography",
+    blank: "plain background, solid color, minimalist, clean, no distractions",
     disney_pixar: "Disney Pixar style, 3D animation, high quality CGI render, vibrant colors, expressive facial features, cute stylized characters, cinematic lighting, masterpiece, Pixar movie aesthetic",
     digital_art: "digital art, vibrant colors, detailed, trending on ArtStation, fantasy art, concept art",
     ghibli: "studio ghibli style, anime, cel shaded, detailed background, hayao miyazaki style, vibrant colors, whimsical, clouds, hand drawn aesthetic",
@@ -336,10 +359,28 @@ export interface ModelSectionToggles {
     lighting: boolean;
 }
 
+export interface CharacterRaceOption {
+    id: string;
+    label: string;
+    sub: string;
+    category: 'human' | 'fantasy';
+    categoryLabel: string;
+    enPrompt: string;
+    description: string;
+    suggestedSkinTone: string;
+    suggestedSkinHex: string;
+    suggestedHair: string;
+    suggestedHairHex: string;
+    icon?: string;
+}
+
 export interface ModelSheetData {
     // 1. Character Profile
     gender: ModelGender;
     ageCategory?: ModelAgeCategory;
+    race?: string; // ID ou nome da raça (ex: 'latino', 'black', 'east_asian', 'elf', 'cyborg', etc.)
+    raceCategory?: 'human' | 'fantasy' | 'custom';
+    raceDetails?: string;
     sectionToggles?: ModelSectionToggles;
     characterName: string;
     role: string;
@@ -477,3 +518,39 @@ export interface ProductSheetData {
     lighting: string;
     renderQuality: string;
 }
+
+export interface VideoScene {
+    sceneNumber: number;
+    badgeTitle: string; // Ex: "1 Apresentação – UGC", "2 Abrindo o produto"
+    timecodeStart: number; // segundos (ex: 0)
+    timecodeEnd: number; // segundos (ex: 4)
+    duration: number; // segundos (ex: 4)
+    scenePhase: 'hook' | 'unboxing' | 'action' | 'application' | 'result' | 'cta' | 'custom';
+    actionDescription: string; // Descrição visual detalhada da ação
+    cameraMovement: string; // Ex: "Slow push-in, handheld UGC camera, eye-level"
+    lightingAndAtmosphere: string; // Ex: "Natural bright morning kitchen light"
+    voiceoverScript: string; // Fala ou texto do balão (ex: "Hoje vou te mostrar por que a Manteiga Damare é a minha escolha!")
+    videoPrompt: string; // Prompt em inglês otimizado para Kling / Runway / Sora / Luma
+    googleFlowPrompt?: string; // Prompt otimizado para o Google Flow / Veo (VideoFX)
+    keyframeImagePrompt: string; // Prompt para Midjourney / Flux gerar o quadro estático
+    audioCues?: string; // Sonoplastia e efeitos sonoros (fizz, crunch, sizzle, etc.)
+    screenTextOverlay?: string; // Texto gráfico na tela (caption / sticker)
+    previewImageUrl?: string;
+}
+
+export interface VideoAdStoryboard {
+    productName: string;
+    productCategory: string;
+    brandName: string;
+    targetDurationSeconds: number; // 10 a 30 segundos
+    scenesCount: number;
+    adStyle: 'ugc_authentic' | 'cinematic_commercial' | 'unboxing_demo' | 'recipe_cooking' | 'lifestyle_routine' | 'problem_solution';
+    creatorType: 'female_creator' | 'male_creator' | 'hands_only' | 'product_only';
+    scenes: VideoScene[];
+    masterStoryboardPrompt: string; // Prompt único da grade 6 painéis exatamente como na foto de referência
+    platformTarget: 'google_flow' | 'kling' | 'runway' | 'luma' | 'sora' | 'midjourney' | 'flux';
+    callToAction: string;
+    slogan: string;
+    musicAndSoundDesign: string;
+}
+
